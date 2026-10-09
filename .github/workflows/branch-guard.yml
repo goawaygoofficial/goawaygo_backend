@@ -1,0 +1,37 @@
+# Free-plan substitute for branch protection: GitHub Free can't block direct pushes to
+# protected branches on private repos, so this flags them instead. A direct push turns this
+# check red and GitHub emails the repo owner.
+name: Branch guard
+
+on:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  require-pull-request:
+    name: Commit came from a merged PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check that the pushed commit belongs to a merged pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          # The commit→PR link can take a few seconds to appear after a merge, so retry briefly.
+          for attempt in 1 2 3 4 5; do
+            merged=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '[.[] | select(.merged_at != null)] | length')
+            if [ "$merged" -gt 0 ]; then
+              echo "OK: $SHA on '$BRANCH' came from a merged pull request."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error title=Direct push to $BRANCH::Commit $SHA was pushed to '$BRANCH' without a pull request. Changes to '$BRANCH' must go through a PR (see CONTRIBUTING.md)."
+          exit 1
