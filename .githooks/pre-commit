@@ -1,0 +1,19 @@
+#!/bin/sh
+# Scans staged changes for secrets (API keys, passwords, tokens) before they are committed.
+# Enable hooks once per clone:  git config core.hooksPath .githooks
+# CI runs the same scan on every PR, so this is the early warning, not the only line of defence.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed — skipping local secret scan (CI will still scan)."
+  echo "            Install: winget install Gitleaks.Gitleaks  |  brew install gitleaks"
+  exit 0
+fi
+
+gitleaks git --pre-commit --staged --redact --no-banner
+status=$?
+if [ $status -ne 0 ]; then
+  echo ""
+  echo "pre-commit: possible secret found in staged changes — commit blocked."
+  echo "            Remove it (move it to .env / environment variables) and try again."
+fi
+exit $status

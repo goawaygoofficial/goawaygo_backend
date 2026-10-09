@@ -1,0 +1,18 @@
+#!/bin/sh
+# Blocks pushing directly to protected branches. All changes reach develop/main through pull requests.
+# Enable hooks once per clone:  git config core.hooksPath .githooks
+
+protected="refs/heads/main refs/heads/develop"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  for branch in $protected; do
+    if [ "$remote_ref" = "$branch" ]; then
+      name=${branch#refs/heads/}
+      echo "pre-push: direct pushes to '$name' are not allowed."
+      echo "          Push a feature/fix/chore/docs branch and open a pull request instead."
+      exit 1
+    fi
+  done
+done
+
+exit 0
