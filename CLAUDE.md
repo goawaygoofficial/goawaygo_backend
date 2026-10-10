@@ -8,7 +8,7 @@ Workspace with three separate git repos. Start Claude sessions in this `Goaway` 
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | `app_frontend/` | Flutter (Dart SDK ^3.7), provider, http, google_sign_in, flutter_dotenv                                                      | `goawayofficial/goaway_app_frontend` |
 | `web_frontend/` | React 19, TypeScript (strict), Vite 8, react-router-dom 7, CSS Modules — web version of the app, mirrors it screen by screen | `goawayofficial/goaway_web_frontend` |
-| `backend/`      | Spring Boot 4.1, Java 17, Maven (`mvnw`), MySQL, spring-session-jdbc                                                         | `goawayofficial/goaway_backend`      |
+| `backend/`      | Spring Boot 4.1, Java 17, Maven (`mvnw`), PostgreSQL 17 (Docker Compose locally, Testcontainers in tests), Flyway            | `goawayofficial/goaway_backend`      |
 
 This parent folder is NOT a git repo — run git/gh commands inside `app_frontend/`, `web_frontend/` or `backend/`.
 
@@ -56,14 +56,21 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 - App frontend: `.env` (bundled as a Flutter asset — public config only, e.g. `GOOGLE_CLIENT_ID`, `BASE_URL`; keep `.env.example` in sync), `android/app/google-services.json`, `android/local.properties`, keystores, `key.properties`.
 - Web frontend: `.env` / `.env.*` (`VITE_*` values end up in the JS bundle — public config only; keep `.env.example` in sync).
-- Backend: DB passwords and other secrets go in env vars or `application-local/dev/prod.properties` / `.env` (all gitignored) — never in `application.properties`.
+- Backend: `backend/.env` (gitignored; template `.env.example`) holds local DB passwords and is read by both Docker Compose and Spring Boot (`spring.config.import`). Deployed environments use env vars. Never put secrets in `application.properties`. Never print `.env` values in chat.
 
 ## Commands
 
 - App frontend: `flutter pub get`, `flutter analyze`, `flutter test`, `flutter run`
 - Web frontend (Node 22.12+, `.nvmrc` = 24): `npm install`, `npm run dev`, `npm run check` (typecheck + lint + format check + build — run before every PR)
-- Backend (JDK 17+ — the user's machine currently has JDK 11, so backend builds only run in CI until JDK 17 is installed): `./mvnw spring-boot:run`, `./mvnw verify`
-- App CI pins Flutter 3.29.0 (matches local); update `.github/workflows/ci.yml` when upgrading.
+- Backend (JDK 17+, Docker Desktop): `docker compose up -d` (PostgreSQL 17 on 127.0.0.1:5433), `./mvnw spring-boot:run`, `./mvnw verify` (tests start their own PostgreSQL via Testcontainers)
+- App CI pins Flutter 3.47.7 (matches local); update `.github/workflows/ci.yml` when upgrading.
+
+## Database (backend)
+
+- Roles: `postgres` (container superuser, setup only) · `goaway_owner` (owns schema; Flyway only) · `goaway_app` (runtime; SELECT/INSERT/UPDATE/DELETE, no DDL). Created by `docker/postgres/init/01-create-roles.sh`, reused by tests; `DatabaseSetupTests` verifies it.
+- Schema changes only via new Flyway migrations `src/main/resources/db/migration/V<n>__<desc>.sql`; never edit a merged migration.
+- Backend runs in UTC (`BackendApplication.main` + surefire `-Duser.timezone=UTC`): Windows reports the legacy zone `Asia/Calcutta`, which PostgreSQL 17 (Debian 13 image) rejects.
+- Keep the `postgres:` image tag in `compose.yaml` and `PostgresIntegrationTest` in sync.
 
 ## Deployment
 
