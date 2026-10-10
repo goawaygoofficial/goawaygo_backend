@@ -60,6 +60,37 @@ public class User {
 		return user;
 	}
 
+	/** A new account created by Google Sign-In. Google has verified the email, so it starts verified. */
+	public static User withGoogle(String email, String name, String googleSubject, String profilePictureUrl) {
+		User user = new User();
+		user.email = normalizeEmail(email);
+		user.name = name.trim();
+		user.googleSubject = googleSubject;
+		user.emailVerified = true;
+		user.profilePictureUrl = profilePictureUrl;
+		return user;
+	}
+
+	/** Links a Google account; Google verified the email, so the email is now verified too. */
+	public void linkGoogle(String googleSubject) {
+		this.googleSubject = googleSubject;
+		this.emailVerified = true;
+	}
+
+	/**
+	 * Removes the password. Used when a Google account takes over an email whose password account was never
+	 * verified: whoever set that password may not own the email ("pre-account takeover").
+	 */
+	public void removePassword() {
+		this.passwordHash = null;
+	}
+
+	public void setProfilePictureUrlIfMissing(String url) {
+		if (this.profilePictureUrl == null && url != null && url.length() <= 2048) {
+			this.profilePictureUrl = url;
+		}
+	}
+
 	public static String normalizeEmail(String email) {
 		return email.trim().toLowerCase(java.util.Locale.ROOT);
 	}

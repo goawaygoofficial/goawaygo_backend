@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.goaway.backend.auth.dto.AuthResponse;
+import com.goaway.backend.auth.dto.GoogleSigninRequest;
 import com.goaway.backend.auth.dto.RefreshRequest;
 import com.goaway.backend.auth.dto.SigninRequest;
 import com.goaway.backend.auth.dto.SignupRequest;
@@ -59,6 +60,13 @@ public class AuthController {
 			@RequestHeader(value = CLIENT_TYPE_HEADER, required = false) String clientType,
 			@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
 		return respond(this.authService.signin(request, userAgent), isMobile(clientType));
+	}
+
+	@PostMapping("/google-signin")
+	public ResponseEntity<AuthResponse> googleSignin(@Valid @RequestBody GoogleSigninRequest request,
+			@RequestHeader(value = CLIENT_TYPE_HEADER, required = false) String clientType,
+			@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+		return respond(this.authService.googleSignin(request.idToken(), userAgent), isMobile(clientType));
 	}
 
 	@PostMapping("/refresh")

@@ -40,8 +40,8 @@ public class SecurityConfig {
 			.formLogin(AbstractHttpConfigurer::disable)
 			.logout(AbstractHttpConfigurer::disable)
 			.authorizeHttpRequests(requests -> requests
-				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/signin", "/api/auth/refresh",
-						"/api/auth/logout")
+				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/signin", "/api/auth/google-signin",
+						"/api/auth/refresh", "/api/auth/logout")
 				.permitAll()
 				.requestMatchers("/error")
 				.permitAll()

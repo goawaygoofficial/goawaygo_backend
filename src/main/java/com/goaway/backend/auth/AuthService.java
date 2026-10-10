@@ -3,6 +3,8 @@ package com.goaway.backend.auth;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +23,8 @@ import com.goaway.backend.user.UserResponse;
 @Service
 public class AuthService {
 
+	private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
 	private static final int BCRYPT_MAX_BYTES = 72;
 
 	private final UserRepository users;
@@ -31,15 +35,18 @@ public class AuthService {
 
 	private final RefreshTokenService refreshTokens;
 
+	private final GoogleIdTokenVerifier googleVerifier;
+
 	/** Compared against when the email is unknown, so "no such user" takes as long as "wrong password". */
 	private final String dummyPasswordHash;
 
 	public AuthService(UserRepository users, PasswordEncoder passwordEncoder, AccessTokenService accessTokens,
-			RefreshTokenService refreshTokens) {
+			RefreshTokenService refreshTokens, GoogleIdTokenVerifier googleVerifier) {
 		this.users = users;
 		this.passwordEncoder = passwordEncoder;
 		this.accessTokens = accessTokens;
 		this.refreshTokens = refreshTokens;
+		this.googleVerifier = googleVerifier;
 		this.dummyPasswordHash = passwordEncoder.encode("timing-equalizer-not-a-real-password");
 	}
 
@@ -73,6 +80,61 @@ public class AuthService {
 			throw new ApiException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Incorrect email or password.");
 		}
 		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent));
+	}
+
+	/**
+	 * Signs in with a Google ID token. The token is verified first; only Google's verified claims are used.
+	 * <ol>
+	 * <li>Known Google account: sign in.</li>
+	 * <li>Unknown Google account, email already registered: link the Google account. If that account's email was
+	 * never verified, its password is removed and its sessions revoked, because whoever registered it may not own
+	 * the email (pre-account takeover).</li>
+	 * <li>New email: create a passwordless, verified account.</li>
+	 * </ol>
+	 */
+	@Transactional
+	public Session googleSignin(String idToken, String userAgent) {
+		GoogleIdTokenVerifier.GoogleIdentity google = this.googleVerifier.verify(idToken);
+		if (google.email() == null || !google.emailVerified()) {
+			throw new ApiException(HttpStatus.FORBIDDEN, "google_email_not_verified",
+					"Your Google account's email is not verified. Verify it with Google, or sign up with email.");
+		}
+
+		User user = this.users.findByGoogleSubject(google.subject()).orElse(null);
+		if (user == null) {
+			user = this.users.findByEmail(User.normalizeEmail(google.email()))
+				.map(existing -> linkGoogle(existing, google))
+				.orElseGet(() -> createGoogleUser(google));
+		}
+		user.setProfilePictureUrlIfMissing(google.pictureUrl());
+		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent));
+	}
+
+	private User linkGoogle(User existing, GoogleIdTokenVerifier.GoogleIdentity google) {
+		if (existing.getGoogleSubject() != null) {
+			// The email belongs to a different Google account than the one signing in. Don't silently switch.
+			throw new ApiException(HttpStatus.CONFLICT, "email_linked_to_other_google_account",
+					"This email is already linked to a different Google account.");
+		}
+		if (!existing.isEmailVerified() && existing.getPasswordHash() != null) {
+			existing.removePassword();
+			int revoked = this.refreshTokens.revokeAllForUser(existing.getId());
+			log.info("Google sign-in took over unverified account {}: password removed, {} session(s) revoked",
+					existing.getId(), revoked);
+		}
+		existing.linkGoogle(google.subject());
+		return existing;
+	}
+
+	private User createGoogleUser(GoogleIdTokenVerifier.GoogleIdentity google) {
+		String email = User.normalizeEmail(google.email());
+		return this.users.saveAndFlush(User.withGoogle(email, displayName(google.name(), email), google.subject(), null));
+	}
+
+	/** Google's name if present (max 100 characters), otherwise the part of the email before the @. */
+	private static String displayName(String googleName, String email) {
+		String name = (googleName == null || googleName.isBlank()) ? email.substring(0, email.indexOf('@')) : googleName.trim();
+		return name.length() <= 100 ? name : name.substring(0, 100);
 	}
 
 	@Transactional(noRollbackFor = ApiException.class)

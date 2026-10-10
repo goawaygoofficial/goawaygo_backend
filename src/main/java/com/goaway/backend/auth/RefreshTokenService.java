@@ -87,6 +87,12 @@ public class RefreshTokenService {
 		this.tokens.findByTokenHash(hash(rawToken)).ifPresent(token -> token.revoke(this.clock.instant()));
 	}
 
+	/** Signs the user out everywhere: revokes all of their refresh tokens. */
+	@Transactional
+	public int revokeAllForUser(long userId) {
+		return this.tokens.revokeAllForUser(userId, this.clock.instant());
+	}
+
 	private Created create(long userId, UUID familyId, String userAgent) {
 		byte[] bytes = new byte[TOKEN_BYTES];
 		this.random.nextBytes(bytes);
