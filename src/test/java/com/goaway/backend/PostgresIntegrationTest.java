@@ -1,5 +1,11 @@
 package com.goaway.backend;
 
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.spec.ECGenParameterSpec;
+import java.util.Base64;
+
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -49,6 +55,9 @@ public abstract class PostgresIntegrationTest {
 		return "jdbc:postgresql://%s:%d/%s".formatted(POSTGRES.getHost(), POSTGRES.getMappedPort(5432), DB_NAME);
 	}
 
+	/** Throwaway ES256 key pair for signing access tokens in tests. */
+	private static final KeyPair JWT_KEYS = generateJwtKeys();
+
 	@DynamicPropertySource
 	static void databaseProperties(DynamicPropertyRegistry registry) {
 		registry.add("spring.datasource.url", PostgresIntegrationTest::jdbcUrl);
@@ -56,6 +65,21 @@ public abstract class PostgresIntegrationTest {
 		registry.add("spring.datasource.password", () -> APP_PASSWORD);
 		registry.add("spring.flyway.user", () -> OWNER_USER);
 		registry.add("spring.flyway.password", () -> OWNER_PASSWORD);
+		registry.add("goaway.auth.jwt.private-key",
+				() -> Base64.getEncoder().encodeToString(JWT_KEYS.getPrivate().getEncoded()));
+		registry.add("goaway.auth.jwt.public-key",
+				() -> Base64.getEncoder().encodeToString(JWT_KEYS.getPublic().getEncoded()));
+	}
+
+	private static KeyPair generateJwtKeys() {
+		try {
+			KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+			generator.initialize(new ECGenParameterSpec("secp256r1"));
+			return generator.generateKeyPair();
+		}
+		catch (GeneralSecurityException ex) {
+			throw new IllegalStateException(ex);
+		}
 	}
 
 }

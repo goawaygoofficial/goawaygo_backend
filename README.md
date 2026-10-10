@@ -5,25 +5,70 @@ REST API for **Goaway**, a travel app. Built with Spring Boot and PostgreSQL.
 Frontends: [app](https://github.com/goawayofficial/goaway_app_frontend) (Flutter) ·
 [web](https://github.com/goawayofficial/goaway_web_frontend) (React).
 
-> **Status:** early stage. The database layer is set up; the API below is what both frontends already call and is still to be implemented.
+> **Status:** email/password authentication is implemented. Google Sign-In and password reset are next.
 
 ## Tech stack
 
 - Java 17
-- Spring Boot 4.1 (Spring Web MVC, JDBC, DevTools)
+- Spring Boot 4.1 (Web MVC, Security, OAuth2 Resource Server, Data JPA, Validation)
 - PostgreSQL 17 (local: Docker Compose; tests: Testcontainers)
 - Flyway for database migrations
 - Maven (wrapper included: `mvnw` / `mvnw.cmd`)
 
-## API (expected by the frontends)
+## API
 
-| Method | Endpoint                    | Purpose                          |
-| ------ | --------------------------- | -------------------------------- |
-| `POST` | `/api/auth/signup`          | Register with email and password |
-| `POST` | `/api/auth/signin`          | Sign in with email and password  |
-| `POST` | `/api/auth/google-signin`   | Sign in with a Google ID token   |
-| `POST` | `/api/auth/forgot-password` | Start password reset             |
-| `GET`  | `/api/auth/users/{userId}`  | Get a user's profile             |
+| Method | Endpoint                    | Auth          | Purpose                                                                                      |
+| ------ | --------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
+| `POST` | `/api/auth/signup`          | none          | Create an account (`name`, `email`, `password` of 8-72 characters). Returns the user, `201`. |
+| `POST` | `/api/auth/signin`          | none          | Sign in with email and password. Returns tokens.                                             |
+| `POST` | `/api/auth/refresh`         | refresh token | Exchange a refresh token for new tokens (rotation).                                          |
+| `POST` | `/api/auth/logout`          | refresh token | Revoke the refresh token. `204`.                                                             |
+| `GET`  | `/api/users/me`             | access token  | The signed-in user's own profile.                                                            |
+| `POST` | `/api/auth/google-signin`   | none          | _Next PR._ Sign in with a Google ID token.                                                   |
+| `POST` | `/api/auth/forgot-password` | none          | _Next PR._ Email a password-reset link.                                                      |
+
+### How authentication works
+
+- **Access token**: a signed JWT (ES256), valid **20 minutes**. Send it on every request as
+  `Authorization: Bearer <accessToken>`. It is not stored on the server.
+- **Refresh token**: a random value, valid **30 days**, stored on the server **only as a SHA-256 hash**.
+  Every refresh returns a **new** refresh token and invalidates the old one. If an old one is used again
+  (a sign it was copied), every token from that sign-in is revoked and the user must sign in again.
+- **Where the refresh token goes**:
+  - Mobile app: send the header `X-Client-Type: mobile`. The token comes in the JSON body; keep it in secure
+    storage (Keychain / Keystore) and send it back as `{"refreshToken": "..."}`.
+  - Web: the token is only set as an `HttpOnly; Secure; SameSite=Strict` cookie on `/api/auth`, which page
+    JavaScript can never read. Call `/api/auth/refresh` with credentials included.
+
+Sign-in / refresh response:
+
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "Asha",
+    "email": "asha@example.com",
+    "profile_picture": null,
+    "phone": null,
+    "email_verified": false
+  },
+  "accessToken": "<signed JWT>",
+  "tokenType": "Bearer",
+  "expiresIn": 1200,
+  "refreshToken": "<only present for X-Client-Type: mobile>"
+}
+```
+
+### Errors
+
+Every error has the same shape. Clients should branch on `error` and may show `message`:
+
+```json
+{ "status": 401, "error": "invalid_credentials", "message": "Incorrect email or password." }
+```
+
+Validation errors (`400`, `validation_failed`) also include `fieldErrors`, for example
+`{"email": "Enter a valid email address."}`.
 
 ## Getting started
 
@@ -41,7 +86,7 @@ cd goaway_backend
 
 ### 2. Create `.env`
 
-Copy `.env.example` to `.env` and fill in the three passwords with long random values
+Copy `.env.example` to `.env` and fill in the three database passwords and the JWT key pair
 (the file explains how to generate them). `.env` is gitignored, never commit it.
 
 ### 3. Start the database
