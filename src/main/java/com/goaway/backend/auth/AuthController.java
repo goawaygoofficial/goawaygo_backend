@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.goaway.backend.auth.dto.AuthResponse;
+import com.goaway.backend.auth.dto.GoogleCodeRequest;
 import com.goaway.backend.auth.dto.GoogleSigninRequest;
 import com.goaway.backend.auth.dto.RefreshRequest;
 import com.goaway.backend.auth.dto.SigninRequest;
@@ -45,9 +46,13 @@ public class AuthController {
 
 	private final AuthProperties properties;
 
-	public AuthController(AuthService authService, AuthProperties properties) {
+	private final GoogleAuthorizationCodeExchanger googleCodeExchanger;
+
+	public AuthController(AuthService authService, AuthProperties properties,
+			GoogleAuthorizationCodeExchanger googleCodeExchanger) {
 		this.authService = authService;
 		this.properties = properties;
+		this.googleCodeExchanger = googleCodeExchanger;
 	}
 
 	@PostMapping("/signup")
@@ -67,6 +72,18 @@ public class AuthController {
 			@RequestHeader(value = CLIENT_TYPE_HEADER, required = false) String clientType,
 			@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
 		return respond(this.authService.googleSignin(request.idToken(), userAgent), isMobile(clientType));
+	}
+
+	/**
+	 * Google sign-in via the authorization-code flow (the website's custom button). The code is exchanged for an ID
+	 * token here, outside any database transaction, then handled exactly like {@link #googleSignin}.
+	 */
+	@PostMapping("/google-signin/code")
+	public ResponseEntity<AuthResponse> googleSigninWithCode(@Valid @RequestBody GoogleCodeRequest request,
+			@RequestHeader(value = CLIENT_TYPE_HEADER, required = false) String clientType,
+			@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+		String idToken = this.googleCodeExchanger.exchangeForIdToken(request.code());
+		return respond(this.authService.googleSignin(idToken, userAgent), isMobile(clientType));
 	}
 
 	@PostMapping("/refresh")

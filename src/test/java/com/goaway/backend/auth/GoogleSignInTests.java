@@ -35,7 +35,9 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -63,11 +65,16 @@ class GoogleSignInTests extends PostgresIntegrationTest {
 
 	private static final HttpServer GOOGLE_CERTS = startCertsServer();
 
+	private static final String CLIENT_SECRET = "test-client-secret";
+
 	@DynamicPropertySource
 	static void googleProperties(DynamicPropertyRegistry registry) {
-		registry.add("goaway.auth.google.jwk-set-uri",
-				() -> "http://localhost:" + GOOGLE_CERTS.getAddress().getPort() + "/oauth2/v3/certs");
+		String google = "http://localhost:" + GOOGLE_CERTS.getAddress().getPort();
+		registry.add("goaway.auth.google.jwk-set-uri", () -> google + "/oauth2/v3/certs");
+		registry.add("goaway.auth.google.token-uri", () -> google + "/token");
 		registry.add("goaway.auth.google.client-ids", () -> WEB_CLIENT_ID + "," + IOS_CLIENT_ID);
+		registry.add("goaway.auth.google.web-client-id", () -> WEB_CLIENT_ID);
+		registry.add("goaway.auth.google.client-secret", () -> CLIENT_SECRET);
 	}
 
 	@Autowired
@@ -196,7 +203,55 @@ class GoogleSignInTests extends PostgresIntegrationTest {
 			.andExpect(jsonPath("$.fieldErrors.idToken").exists());
 	}
 
+	// ---- authorization-code flow (website custom button) ----
+
+	@Test
+	void authorizationCodeIsExchangedWithGoogleAndSignsTheUserIn() throws Exception {
+		String email = uniqueEmail();
+
+		MvcResult result = this.mvc
+			.perform(post("/api/auth/google-signin/code").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"code\":\"ok:" + uniqueSubject() + ":" + email + "\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.user.email").value(email))
+			.andExpect(jsonPath("$.user.email_verified").value(true))
+			.andExpect(jsonPath("$.accessToken").isNotEmpty())
+			// Web client: refresh token only in the HttpOnly cookie, never in the body.
+			.andExpect(jsonPath("$.refreshToken").doesNotExist())
+			.andReturn();
+
+		assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE)).contains("HttpOnly");
+	}
+
+	@Test
+	void aCodeGoogleRejectsIsA401() throws Exception {
+		this.mvc
+			.perform(post("/api/auth/google-signin/code").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"code\":\"expired-or-forged\"}"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.error").value("invalid_google_code"));
+	}
+
+	@Test
+	void missingCodeIsA400() throws Exception {
+		this.mvc.perform(post("/api/auth/google-signin/code").contentType(MediaType.APPLICATION_JSON).content("{}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.fieldErrors.code").exists());
+	}
+
 	// ---- helpers ----
+
+	private static Map<String, String> parseForm(String body) {
+		Map<String, String> form = new java.util.HashMap<>();
+		for (String pair : body.split("&")) {
+			int eq = pair.indexOf('=');
+			if (eq > 0) {
+				form.put(java.net.URLDecoder.decode(pair.substring(0, eq), StandardCharsets.UTF_8),
+						java.net.URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8));
+			}
+		}
+		return form;
+	}
 
 	private ResultActions googleSignin(String idToken) throws Exception {
 		return this.mvc.perform(post("/api/auth/google-signin").header(AuthController.CLIENT_TYPE_HEADER, "mobile")
@@ -265,6 +320,35 @@ class GoogleSignInTests extends PostgresIntegrationTest {
 				exchange.sendResponseHeaders(200, body.length);
 				try (OutputStream out = exchange.getResponseBody()) {
 					out.write(body);
+				}
+			});
+			// Plays Google's token endpoint. A code "ok:<subject>:<email>" is exchanged for an ID token for that
+			// user, but only if the backend sent our client id, secret and the popup redirect URI.
+			server.createContext("/token", exchange -> {
+				Map<String, String> form = parseForm(
+						new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+				String code = form.getOrDefault("code", "");
+				boolean authenticClient = WEB_CLIENT_ID.equals(form.get("client_id"))
+						&& CLIENT_SECRET.equals(form.get("client_secret"))
+						&& "postmessage".equals(form.get("redirect_uri"))
+						&& "authorization_code".equals(form.get("grant_type"));
+				String response;
+				int status;
+				if (authenticClient && code.startsWith("ok:")) {
+					String[] parts = code.split(":", 3);
+					status = 200;
+					response = "{\"access_token\":\"ignored\",\"id_token\":\"" + token(parts[1], parts[2], true, WEB_CLIENT_ID)
+							+ "\"}";
+				}
+				else {
+					status = 400;
+					response = "{\"error\":\"invalid_grant\"}";
+				}
+				byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+				exchange.getResponseHeaders().add("Content-Type", "application/json");
+				exchange.sendResponseHeaders(status, bytes.length);
+				try (OutputStream out = exchange.getResponseBody()) {
+					out.write(bytes);
 				}
 			});
 			server.start();
