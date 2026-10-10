@@ -17,19 +17,29 @@ Frontends: [app](https://github.com/goawayofficial/goaway_app_frontend) (Flutter
 
 ## API
 
-| Method | Endpoint                    | Auth          | Purpose                                                                                      |
-| ------ | --------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
-| `POST` | `/api/auth/signup`          | none          | Create an account (`name`, `email`, `password` of 8-72 characters). Returns the user, `201`. |
-| `POST` | `/api/auth/signin`          | none          | Sign in with email and password. Returns tokens.                                             |
-| `POST` | `/api/auth/refresh`         | refresh token | Exchange a refresh token for new tokens (rotation).                                          |
-| `POST` | `/api/auth/logout`          | refresh token | Revoke the refresh token. `204`.                                                             |
-| `GET`  | `/api/users/me`             | access token  | The signed-in user's own profile.                                                            |
-| `POST` | `/api/auth/google-signin`   | none          | Sign in with a Google ID token (`{"idToken": "..."}`). Returns tokens.                       |
-| `POST` | `/api/auth/forgot-password` | none          | _Next PR._ Email a password-reset link.                                                      |
+| Method | Endpoint                       | Auth          | Purpose                                                                                            |
+| ------ | ------------------------------ | ------------- | -------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/auth/signup`             | none          | Create an account (`name`, `email`, `password` of 8-72 characters). Returns the user, `201`.       |
+| `POST` | `/api/auth/signin`             | none          | Sign in with email and password. Returns tokens.                                                   |
+| `POST` | `/api/auth/refresh`            | refresh token | Exchange a refresh token for new tokens (rotation).                                                |
+| `POST` | `/api/auth/logout`             | refresh token | Revoke the refresh token. `204`.                                                                   |
+| `GET`  | `/api/users/me`                | access token  | The signed-in user's own profile.                                                                  |
+| `POST` | `/api/auth/google-signin`      | none          | Sign in with a Google ID token (`{"idToken": "..."}`). Returns tokens. Used by the mobile app.     |
+| `POST` | `/api/auth/google-signin/code` | none          | Sign in with a Google authorization code (`{"code": "..."}`). Returns tokens. Used by the website. |
+| `POST` | `/api/auth/forgot-password`    | none          | _Next PR._ Email a password-reset link.                                                            |
 
 ### Google Sign-In
 
-The app or website gets an **ID token** from Google and sends it to `/api/auth/google-signin`. The backend:
+Two ways in, one verification path:
+
+- **Mobile app → `/api/auth/google-signin`** with the **ID token** that Google Sign-In returns on the device.
+- **Website → `/api/auth/google-signin/code`** with a one-time **authorization code** from Google's code client
+  (popup mode). This lets the website use its own button instead of Google's iframe button. The backend swaps
+  the code for an ID token at Google's token endpoint using the Web client's **secret** (`GOOGLE_CLIENT_SECRET`,
+  `.env` only; without it this endpoint returns `503 google_sign_in_unavailable`). The browser never sees the
+  secret, and the code is useless without it.
+
+Either way, the backend then:
 
 1. **Verifies the token**: RS256 signature against Google's published keys
    (`https://www.googleapis.com/oauth2/v3/certs`, cached), issuer `accounts.google.com`, not expired, and the
