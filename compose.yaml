@@ -1,0 +1,34 @@
+# Local development database.
+#   Start:  docker compose up -d
+#   Stop:   docker compose down          (data is kept in the goaway-pgdata volume)
+#   Reset:  docker compose down -v       (deletes all local data; roles are recreated on next start)
+# Values come from .env (copy .env.example). The port is bound to 127.0.0.1 only, so the
+# database is not reachable from other machines on the network.
+name: goaway
+
+services:
+  postgres:
+    image: postgres:17.11
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: postgres
+      GOAWAY_DB_NAME: ${DB_NAME:-goaway}
+      GOAWAY_OWNER_USER: ${DB_OWNER_USER:-goaway_owner}
+      GOAWAY_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?Set DB_OWNER_PASSWORD in .env}
+      GOAWAY_APP_USER: ${DB_APP_USER:-goaway_app}
+      GOAWAY_APP_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}
+    ports:
+      - '127.0.0.1:${DB_PORT:-5433}:5432'
+    volumes:
+      - goaway-pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  goaway-pgdata:
