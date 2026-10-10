@@ -35,9 +35,25 @@ public record AuthProperties(
 	 * @param clientIds our OAuth client IDs; an ID token is accepted only if its audience is one of them
 	 * @param jwkSetUri where Google publishes the keys that sign ID tokens
 	 * @param issuers accepted {@code iss} values
+	 * @param webClientId the Web client, used to exchange authorization codes
+	 * @param clientSecret the Web client's secret; blank disables the authorization-code flow
+	 * @param tokenUri Google's token endpoint
 	 */
 	public record Google(@NotEmpty List<@NotBlank String> clientIds, @NotBlank String jwkSetUri,
-			@NotEmpty List<@NotBlank String> issuers) {
+			@NotEmpty List<@NotBlank String> issuers, @NotBlank String webClientId, String clientSecret,
+			@NotBlank String tokenUri) {
+
+		public boolean codeFlowEnabled() {
+			return this.clientSecret != null && !this.clientSecret.isBlank();
+		}
+
+		/** Never print the secret (e.g. in logs or error messages that include this record). */
+		@Override
+		public String toString() {
+			return "Google[clientIds=" + this.clientIds + ", webClientId=" + this.webClientId + ", codeFlowEnabled="
+					+ codeFlowEnabled() + "]";
+		}
+
 	}
 
 }
