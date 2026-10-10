@@ -93,17 +93,24 @@ Review them like any other PR: CI must pass, and read the changelog for major up
 
 ## This repository: Backend (Spring Boot)
 
-Requires **JDK 17+**.
+Requires **JDK 17+** and **Docker Desktop**.
 
 ```bash
-./mvnw spring-boot:run        # Windows PowerShell: .\mvnw.cmd spring-boot:run
+cp .env.example .env          # then fill in the three passwords (see the file)
+docker compose up -d          # local PostgreSQL 17 on 127.0.0.1:5433
+./mvnw spring-boot:run        # Windows PowerShell: .mvnw.cmd spring-boot:run
 ```
 
 Check to run before every PR (the same one CI runs):
 
 ```bash
-./mvnw verify                 # build + all tests
+./mvnw verify                 # build + all tests (tests start their own PostgreSQL container)
 ```
 
-Secrets such as database passwords go in environment variables or `application-local.properties`
-(gitignored), never in `application.properties`.
+Database rules:
+
+- Schema changes are **Flyway migrations** in `src/main/resources/db/migration` (`V<n>__<description>.sql`).
+  Never edit a migration after it has been merged; add a new one.
+- The backend connects as `goaway_app` (data only). Only Flyway, as `goaway_owner`, changes the schema.
+- Secrets (database passwords) go in `.env` locally and in environment variables when deployed, never in
+  `application.properties`.
