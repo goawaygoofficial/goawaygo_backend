@@ -5,7 +5,7 @@ REST API for **Goaway**, a travel app. Built with Spring Boot and PostgreSQL.
 Frontends: [app](https://github.com/goawayofficial/goaway_app_frontend) (Flutter) ·
 [web](https://github.com/goawayofficial/goaway_web_frontend) (React).
 
-> **Status:** email/password authentication is implemented. Google Sign-In and password reset are next.
+> **Status:** email/password and Google Sign-In are implemented. Password reset by email is next.
 
 ## Tech stack
 
@@ -24,8 +24,27 @@ Frontends: [app](https://github.com/goawayofficial/goaway_app_frontend) (Flutter
 | `POST` | `/api/auth/refresh`         | refresh token | Exchange a refresh token for new tokens (rotation).                                          |
 | `POST` | `/api/auth/logout`          | refresh token | Revoke the refresh token. `204`.                                                             |
 | `GET`  | `/api/users/me`             | access token  | The signed-in user's own profile.                                                            |
-| `POST` | `/api/auth/google-signin`   | none          | _Next PR._ Sign in with a Google ID token.                                                   |
+| `POST` | `/api/auth/google-signin`   | none          | Sign in with a Google ID token (`{"idToken": "..."}`). Returns tokens.                       |
 | `POST` | `/api/auth/forgot-password` | none          | _Next PR._ Email a password-reset link.                                                      |
+
+### Google Sign-In
+
+The app or website gets an **ID token** from Google and sends it to `/api/auth/google-signin`. The backend:
+
+1. **Verifies the token**: RS256 signature against Google's published keys
+   (`https://www.googleapis.com/oauth2/v3/certs`, cached), issuer `accounts.google.com`, not expired, and the
+   audience is one of **our** client IDs (`goaway.auth.google.client-ids`: Web and iOS). Tokens issued to other
+   apps are rejected.
+2. **Requires `email_verified`** from Google (`403 google_email_not_verified` otherwise).
+3. **Finds or creates the account**:
+   - Known Google account → sign in.
+   - Email already registered with a password → link Google to it. If that account's email was **never
+     verified**, its password is removed and all its sessions are revoked: whoever registered it may not own the
+     email (protection against pre-account takeover).
+   - Email linked to a **different** Google account → `409 email_linked_to_other_google_account`.
+   - New email → passwordless account, `email_verified: true`.
+
+Only Google's verified claims are used; nothing the client sends alongside the token is trusted.
 
 ### How authentication works
 
