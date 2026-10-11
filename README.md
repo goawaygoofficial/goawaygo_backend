@@ -17,16 +17,34 @@ Frontends: [app](https://github.com/goawayofficial/goaway_app_frontend) (Flutter
 
 ## API
 
-| Method | Endpoint                       | Auth          | Purpose                                                                                            |
-| ------ | ------------------------------ | ------------- | -------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/auth/signup`             | none          | Create an account (`name`, `email`, `password` of 8-72 characters). Returns the user, `201`.       |
-| `POST` | `/api/auth/signin`             | none          | Sign in with email and password. Returns tokens.                                                   |
-| `POST` | `/api/auth/refresh`            | refresh token | Exchange a refresh token for new tokens (rotation).                                                |
-| `POST` | `/api/auth/logout`             | refresh token | Revoke the refresh token. `204`.                                                                   |
-| `GET`  | `/api/users/me`                | access token  | The signed-in user's own profile.                                                                  |
-| `POST` | `/api/auth/google-signin`      | none          | Sign in with a Google ID token (`{"idToken": "..."}`). Returns tokens. Used by the mobile app.     |
-| `POST` | `/api/auth/google-signin/code` | none          | Sign in with a Google authorization code (`{"code": "..."}`). Returns tokens. Used by the website. |
-| `POST` | `/api/auth/forgot-password`    | none          | _Next PR._ Email a password-reset link.                                                            |
+| Method | Endpoint                        | Auth          | Purpose                                                                                            |
+| ------ | ------------------------------- | ------------- | -------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/auth/signup`              | none          | Create an account (`name`, `email`, `password` of 8-72 characters). Returns the user, `201`.       |
+| `POST` | `/api/auth/signin`              | none          | Sign in with email and password. Returns tokens.                                                   |
+| `POST` | `/api/auth/refresh`             | refresh token | Exchange a refresh token for new tokens (rotation).                                                |
+| `POST` | `/api/auth/logout`              | refresh token | Revoke the refresh token. `204`.                                                                   |
+| `GET`  | `/api/users/me`                 | access token  | The signed-in user's own profile.                                                                  |
+| `POST` | `/api/auth/google-signin`       | none          | Sign in with a Google ID token (`{"idToken": "..."}`). Returns tokens. Used by the mobile app.     |
+| `POST` | `/api/auth/google-signin/code`  | none          | Sign in with a Google authorization code (`{"code": "..."}`). Returns tokens. Used by the website. |
+| `POST` | `/api/auth/forgot-password`     | none          | `{"email"}` → always `202`, same body; emails a reset link if the account exists.                  |
+| `POST` | `/api/auth/reset-password`      | none          | `{"token", "newPassword"}` → `204`. Verifies the email and signs out every device.                 |
+| `POST` | `/api/auth/verify-email`        | none          | `{"token"}` → `204`. Marks the email verified.                                                     |
+| `POST` | `/api/auth/resend-verification` | access token  | `202`: emails a new verification link (`409` if already verified).                                 |
+
+### Emails: password reset and verification
+
+- **Sign-up** sends a "verify your email" link (valid **24 h**). **Forgot password** sends a reset link (valid
+  **30 min**). Links open the website: `{WEB_BASE_URL}/verify-email?token=…` and `/reset-password?token=…`.
+- Links are **single-use**; tokens are 256-bit random values stored only as **SHA-256 hashes**
+  (`user_action_tokens`). A new link retires the user's older unused ones of the same kind.
+- **Forgot password never reveals whether an account exists**: same `202` body either way, and emails are sent
+  in the background **after the transaction commits**, so response time doesn't leak it either.
+- **Reset password** also marks the email verified (the link proved ownership) and **revokes every refresh token**.
+- Sending is plain **SMTP** (`spring.mail.*`): **Mailpit** locally (`docker compose`, inbox at
+  http://localhost:8025, nothing reaches real inboxes), **Resend** when deployed (SMTP settings in
+  `application.properties`). Switching providers is configuration only.
+- Delivery failures are logged (never the email body, which holds a one-time link) and not retried; users can
+  request a new link.
 
 ### Google Sign-In
 
@@ -110,7 +128,9 @@ The public auth endpoints are rate limited (token buckets, refilled gradually). 
 | `signup`                              | 10 / hour per IP                                                                           |
 | `google-signin`, `google-signin/code` | 20 / minute per IP                                                                         |
 | `refresh`                             | 60 / minute per IP                                                                         |
-| `forgot-password`                     | 5 / hour per IP, 3 / hour per email (once the endpoint exists)                             |
+| `forgot-password`                     | 5 / hour per IP, 3 / hour per email (whether or not the account exists)                    |
+| `reset-password`, `verify-email`      | 20 / minute per IP                                                                         |
+| `resend-verification`                 | 3 / hour per user                                                                          |
 
 Limits are settings (`goaway.rate-limit.*` in `application.properties`); `RATE_LIMIT_ENABLED=false` turns them
 off. They are kept **in memory per backend instance**; with several instances, move them to a shared store
@@ -142,7 +162,8 @@ Copy `.env.example` to `.env` and fill in the three database passwords and the J
 docker compose up -d
 ```
 
-This starts PostgreSQL 17 on `127.0.0.1:5433` (only reachable from your machine). On first start it creates the
+This starts PostgreSQL 17 on `127.0.0.1:5433` (only reachable from your machine) and **Mailpit**, which catches
+every email the backend sends: open **http://localhost:8025** to read them. On first start it creates the
 `goaway` database and its roles (see [Database](#database)).
 
 ### 4. Run the backend

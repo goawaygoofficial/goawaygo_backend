@@ -80,7 +80,9 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 - Profile: `GET /api/users/me` (own profile only). There is no `GET /api/auth/users/{id}`: the old frontend code that calls it must be replaced.
 - Errors: always `{status, error, message[, fieldErrors]}`; clients branch on `error`.
 - Never trust identity from the client; derive the user from the access token (`jwt.getSubject()`).
-- Forgot-password must be an emailed reset link; the old frontends' `{email, newPassword}` request is insecure and must not be implemented.
+- Password reset / email verification: single-use emailed links (`user_action_tokens`, SHA-256 hashes; reset 30 min, verify 24 h) opening the website (`/reset-password`, `/verify-email`). Forgot-password must not reveal whether an account exists (same 202 body; email sent after commit in the background). Never accept `{email, newPassword}`.
+- Email: SMTP only (`EmailSender`/`EmailOutbox`). Local: Mailpit from `docker compose` (inbox http://localhost:8025). Deployed: Resend over SMTP (`MAIL_*` env vars; the API key is a secret). Never log email bodies (they contain one-time links).
+- Rate limits (Bucket4j, in-memory per instance): per IP on public `/api/auth/*`, per email on signin/forgot-password; 429 + `Retry-After`. Tests disable it in `PostgresIntegrationTest`.
 
 ## Google Sign-In
 
