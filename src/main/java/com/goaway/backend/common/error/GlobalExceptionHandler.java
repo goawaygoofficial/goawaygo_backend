@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import com.goaway.backend.ratelimit.RateLimitedException;
+
 /** Turns exceptions into {@link ApiError} responses so clients always get the same error shape. */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,6 +27,14 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ApiException.class)
 	ResponseEntity<ApiError> handleApiException(ApiException ex) {
 		return respond(ex.getStatus(), ex.getCode(), ex.getMessage());
+	}
+
+	/** 429 with {@code Retry-After} (seconds), so clients know when to try again. */
+	@ExceptionHandler(RateLimitedException.class)
+	ResponseEntity<ApiError> handleRateLimited(RateLimitedException ex) {
+		return ResponseEntity.status(ex.getStatus())
+			.header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getRetryAfterSeconds()))
+			.body(new ApiError(ex.getStatus().value(), ex.getCode(), ex.getMessage()));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
