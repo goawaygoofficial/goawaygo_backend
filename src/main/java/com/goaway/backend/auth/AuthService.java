@@ -16,6 +16,8 @@ import com.goaway.backend.auth.RefreshTokenService.IssuedRefreshToken;
 import com.goaway.backend.auth.dto.SigninRequest;
 import com.goaway.backend.auth.dto.SignupRequest;
 import com.goaway.backend.common.error.ApiException;
+import com.goaway.backend.ratelimit.RateLimitProperties;
+import com.goaway.backend.ratelimit.RateLimiter;
 import com.goaway.backend.user.User;
 import com.goaway.backend.user.UserRepository;
 import com.goaway.backend.user.UserResponse;
@@ -37,16 +39,23 @@ public class AuthService {
 
 	private final GoogleIdTokenVerifier googleVerifier;
 
+	private final RateLimiter rateLimiter;
+
+	private final RateLimitProperties rateLimits;
+
 	/** Compared against when the email is unknown, so "no such user" takes as long as "wrong password". */
 	private final String dummyPasswordHash;
 
 	public AuthService(UserRepository users, PasswordEncoder passwordEncoder, AccessTokenService accessTokens,
-			RefreshTokenService refreshTokens, GoogleIdTokenVerifier googleVerifier) {
+			RefreshTokenService refreshTokens, GoogleIdTokenVerifier googleVerifier, RateLimiter rateLimiter,
+			RateLimitProperties rateLimits) {
 		this.users = users;
 		this.passwordEncoder = passwordEncoder;
 		this.accessTokens = accessTokens;
 		this.refreshTokens = refreshTokens;
 		this.googleVerifier = googleVerifier;
+		this.rateLimiter = rateLimiter;
+		this.rateLimits = rateLimits;
 		this.dummyPasswordHash = passwordEncoder.encode("timing-equalizer-not-a-real-password");
 	}
 
@@ -72,7 +81,11 @@ public class AuthService {
 
 	@Transactional
 	public Session signin(SigninRequest request, String userAgent) {
-		User user = this.users.findByEmail(User.normalizeEmail(request.email())).orElse(null);
+		String email = User.normalizeEmail(request.email());
+		// Per account, on top of the per-IP limit: stops password guessing spread across many IPs. Checked before
+		// the password, so every attempt counts, right or wrong.
+		this.rateLimiter.consume("signin-email", email, this.rateLimits.signinPerEmail());
+		User user = this.users.findByEmail(email).orElse(null);
 		String hash = (user != null && user.getPasswordHash() != null) ? user.getPasswordHash() : this.dummyPasswordHash;
 		boolean matches = this.passwordEncoder.matches(request.password(), hash);
 		if (user == null || user.getPasswordHash() == null || !matches) {
