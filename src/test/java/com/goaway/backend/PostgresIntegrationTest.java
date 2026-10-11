@@ -6,12 +6,15 @@ import java.security.KeyPairGenerator;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
+
+import com.goaway.backend.mail.RecordingEmailSender;
 
 /**
  * Base class for tests that need the database.
@@ -22,9 +25,11 @@ import org.testcontainers.utility.MountableFile;
  * connects as the app role.
  *
  * <p>Rate limiting is off here, because tests sign in many times from the same address; {@code RateLimitTests}
- * turns it on with small limits.
+ * turns it on with small limits. Emails are recorded ({@link RecordingEmailSender}) and sent synchronously, so
+ * tests can read them right after the request.
  */
-@TestPropertySource(properties = "goaway.rate-limit.enabled=false")
+@TestPropertySource(properties = { "goaway.rate-limit.enabled=false", "goaway.mail.async=false" })
+@Import(RecordingEmailSender.Config.class)
 public abstract class PostgresIntegrationTest {
 
 	protected static final String DB_NAME = "goaway";
