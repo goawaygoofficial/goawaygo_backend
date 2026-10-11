@@ -85,6 +85,16 @@ public class User {
 		this.passwordHash = null;
 	}
 
+	/** Sets a new password (already hashed). */
+	public void changePassword(String newPasswordHash) {
+		this.passwordHash = newPasswordHash;
+	}
+
+	/** The user proved they own the email (verification link, password-reset link or Google). */
+	public void markEmailVerified() {
+		this.emailVerified = true;
+	}
+
 	public void setProfilePictureUrlIfMissing(String url) {
 		if (this.profilePictureUrl == null && url != null && url.length() <= 2048) {
 			this.profilePictureUrl = url;
