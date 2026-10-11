@@ -99,6 +99,24 @@ Every error has the same shape. Clients should branch on `error` and may show `m
 Validation errors (`400`, `validation_failed`) also include `fieldErrors`, for example
 `{"email": "Enter a valid email address."}`.
 
+### Rate limits
+
+The public auth endpoints are rate limited (token buckets, refilled gradually). Over the limit the API answers
+`429 too_many_requests` with a `Retry-After` header (seconds).
+
+| Endpoint                              | Limit                                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `signin`                              | 10 / minute per IP **and** 10 / 15 minutes per email (stops guessing spread over many IPs) |
+| `signup`                              | 10 / hour per IP                                                                           |
+| `google-signin`, `google-signin/code` | 20 / minute per IP                                                                         |
+| `refresh`                             | 60 / minute per IP                                                                         |
+| `forgot-password`                     | 5 / hour per IP, 3 / hour per email (once the endpoint exists)                             |
+
+Limits are settings (`goaway.rate-limit.*` in `application.properties`); `RATE_LIMIT_ENABLED=false` turns them
+off. They are kept **in memory per backend instance**; with several instances, move them to a shared store
+(Bucket4j supports Redis and PostgreSQL). The client IP is the connection address. `X-Forwarded-For` is not
+trusted, so behind a reverse proxy configure Spring's forwarded-header support for the proxy.
+
 ## Getting started
 
 ### Prerequisites
