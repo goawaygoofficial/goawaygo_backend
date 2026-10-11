@@ -8,6 +8,7 @@ import java.util.Base64;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -19,7 +20,11 @@ import org.testcontainers.utility.MountableFile;
  * role-setup script ({@code docker/postgres/init/01-create-roles.sh}) as local development, so tests
  * run against the real least-privilege setup: Flyway migrates as the owner role, the application
  * connects as the app role.
+ *
+ * <p>Rate limiting is off here, because tests sign in many times from the same address; {@code RateLimitTests}
+ * turns it on with small limits.
  */
+@TestPropertySource(properties = "goaway.rate-limit.enabled=false")
 public abstract class PostgresIntegrationTest {
 
 	protected static final String DB_NAME = "goaway";
