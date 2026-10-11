@@ -43,12 +43,14 @@ public class AuthService {
 
 	private final RateLimitProperties rateLimits;
 
+	private final AccountEmailService accountEmails;
+
 	/** Compared against when the email is unknown, so "no such user" takes as long as "wrong password". */
 	private final String dummyPasswordHash;
 
 	public AuthService(UserRepository users, PasswordEncoder passwordEncoder, AccessTokenService accessTokens,
 			RefreshTokenService refreshTokens, GoogleIdTokenVerifier googleVerifier, RateLimiter rateLimiter,
-			RateLimitProperties rateLimits) {
+			RateLimitProperties rateLimits, AccountEmailService accountEmails) {
 		this.users = users;
 		this.passwordEncoder = passwordEncoder;
 		this.accessTokens = accessTokens;
@@ -56,6 +58,7 @@ public class AuthService {
 		this.googleVerifier = googleVerifier;
 		this.rateLimiter = rateLimiter;
 		this.rateLimits = rateLimits;
+		this.accountEmails = accountEmails;
 		this.dummyPasswordHash = passwordEncoder.encode("timing-equalizer-not-a-real-password");
 	}
 
@@ -71,6 +74,8 @@ public class AuthService {
 		try {
 			User user = this.users.saveAndFlush(
 					User.withPassword(email, request.name(), this.passwordEncoder.encode(request.password())));
+			// Sent after the transaction commits, in the background.
+			this.accountEmails.sendVerificationEmail(user);
 			return UserResponse.from(user);
 		}
 		catch (DataIntegrityViolationException ex) {

@@ -20,7 +20,9 @@ public record RateLimitProperties(
 		@Valid @NotNull Limit googleSigninPerIp,
 		@Valid @NotNull Limit refreshPerIp,
 		@Valid @NotNull Limit forgotPasswordPerIp,
-		@Valid @NotNull Limit forgotPasswordPerEmail) {
+		@Valid @NotNull Limit forgotPasswordPerEmail,
+		@Valid @NotNull Limit verificationEmailPerUser,
+		@Valid @NotNull Limit tokenRedeemPerIp) {
 
 	/** At most {@code capacity} requests per {@code period}, refilled gradually. */
 	public record Limit(@Positive int capacity, @NotNull Duration period) {

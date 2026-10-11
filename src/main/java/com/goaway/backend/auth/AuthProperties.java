@@ -19,6 +19,8 @@ public record AuthProperties(
 		@NotBlank String audience,
 		@NotNull Duration accessTokenTtl,
 		@NotNull Duration refreshTokenTtl,
+		@NotNull Duration passwordResetTtl,
+		@NotNull Duration emailVerificationTtl,
 		@Valid @NotNull Jwt jwt,
 		@Valid @NotNull RefreshCookie refreshCookie,
 		@Valid @NotNull Google google) {

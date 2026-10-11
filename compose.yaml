@@ -1,4 +1,4 @@
-# Local development database.
+# Local development services: PostgreSQL and Mailpit (email catcher).
 #   Start:  docker compose up -d
 #   Stop:   docker compose down          (data is kept in the goaway-pgdata volume)
 #   Reset:  docker compose down -v       (deletes all local data; roles are recreated on next start)
@@ -29,6 +29,15 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Catches every email the backend sends in development; nothing reaches real inboxes.
+  # Inbox: http://localhost:8025   SMTP: 127.0.0.1:1025
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025'
 
 volumes:
   goaway-pgdata:

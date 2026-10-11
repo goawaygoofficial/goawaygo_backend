@@ -41,7 +41,8 @@ public class SecurityConfig {
 			.logout(AbstractHttpConfigurer::disable)
 			.authorizeHttpRequests(requests -> requests
 				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/signin", "/api/auth/google-signin",
-						"/api/auth/google-signin/code", "/api/auth/refresh", "/api/auth/logout")
+						"/api/auth/google-signin/code", "/api/auth/refresh", "/api/auth/logout",
+						"/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/verify-email")
 				.permitAll()
 				.requestMatchers("/error")
 				.permitAll()

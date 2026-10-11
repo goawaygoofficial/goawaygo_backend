@@ -2,6 +2,7 @@ package com.goaway.backend.auth;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 
 import jakarta.validation.Valid;
 
@@ -9,6 +10,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,11 +20,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.goaway.backend.auth.dto.AuthResponse;
+import com.goaway.backend.auth.dto.ForgotPasswordRequest;
 import com.goaway.backend.auth.dto.GoogleCodeRequest;
 import com.goaway.backend.auth.dto.GoogleSigninRequest;
 import com.goaway.backend.auth.dto.RefreshRequest;
+import com.goaway.backend.auth.dto.ResetPasswordRequest;
 import com.goaway.backend.auth.dto.SigninRequest;
 import com.goaway.backend.auth.dto.SignupRequest;
+import com.goaway.backend.auth.dto.VerifyEmailRequest;
 import com.goaway.backend.user.UserResponse;
 
 /**
@@ -48,11 +54,14 @@ public class AuthController {
 
 	private final GoogleAuthorizationCodeExchanger googleCodeExchanger;
 
+	private final AccountEmailService accountEmails;
+
 	public AuthController(AuthService authService, AuthProperties properties,
-			GoogleAuthorizationCodeExchanger googleCodeExchanger) {
+			GoogleAuthorizationCodeExchanger googleCodeExchanger, AccountEmailService accountEmails) {
 		this.authService = authService;
 		this.properties = properties;
 		this.googleCodeExchanger = googleCodeExchanger;
+		this.accountEmails = accountEmails;
 	}
 
 	@PostMapping("/signup")
@@ -99,6 +108,33 @@ public class AuthController {
 			@CookieValue(name = "${goaway.auth.refresh-cookie.name}", required = false) String cookieToken) {
 		this.authService.logout(tokenFrom(body, cookieToken));
 		return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO)).build();
+	}
+
+	/** Always 202 with the same body, whether or not the account exists. */
+	@PostMapping("/forgot-password")
+	public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+		this.accountEmails.requestPasswordReset(request.email());
+		return ResponseEntity.accepted()
+			.body(Map.of("message", "If an account exists for that email, we have sent a link to reset the password."));
+	}
+
+	@PostMapping("/reset-password")
+	public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+		this.accountEmails.resetPassword(request.token(), request.newPassword());
+		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/verify-email")
+	public ResponseEntity<Void> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+		this.accountEmails.verifyEmail(request.token());
+		return ResponseEntity.noContent().build();
+	}
+
+	/** Signed-in users only. */
+	@PostMapping("/resend-verification")
+	public ResponseEntity<Void> resendVerification(@AuthenticationPrincipal Jwt jwt) {
+		this.accountEmails.resendVerificationEmail(Long.parseLong(jwt.getSubject()));
+		return ResponseEntity.accepted().build();
 	}
 
 	private ResponseEntity<AuthResponse> respond(AuthService.Session session, boolean mobile) {
