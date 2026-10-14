@@ -96,4 +96,10 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 ## Deployment
 
-Not set up yet for any project.
+Domain `goawaygo.com` (Cloudflare Registrar + DNS). Website and API must stay on the same registrable domain (the refresh cookie is `SameSite=Strict`).
+
+- Pre-launch (alpha/beta, all free): backend on Google Cloud Run `asia-southeast1` (project `goawaygo-staging`, service `goaway-backend`, `api.goawaygo.com`); database Neon PostgreSQL 17 (AWS Singapore); website on Cloudflare Pages (`staging.goawaygo.com`); email Resend; Android testers via Firebase App Distribution.
+- At launch (Phase 5): database moves to Google Cloud SQL; Play Console then. Company not registered yet.
+- Backend deploys automatically after CI passes on `develop` (`.github/workflows/deploy-staging.yml`, keyless Workload Identity Federation). Secrets live only in Google Secret Manager; setup scripts and steps in `backend/docs/deployment.md`.
+- Cloud Run: min 0 instances (cold start ~7–10 s after idle), max 1 (in-memory rate limits), no CPU throttling (background email).
+- Google free trial ends 90 days after sign-up: upgrade billing before then or the project stops.

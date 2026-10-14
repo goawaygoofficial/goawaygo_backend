@@ -13,8 +13,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * {@link RateLimitedException} is rendered by the global exception handler like any other API error.
  *
  * <p>The IP is the connection's remote address. {@code X-Forwarded-For} is deliberately not read here: clients can
- * set it to anything. Behind a reverse proxy, enable Spring's trusted forwarded-header handling instead, which
- * makes {@code getRemoteAddr()} return the real client.
+ * set it to anything. Behind a reverse proxy (Cloud Run), {@code server.forward-headers-strategy=native} makes Tomcat
+ * trust the header only from internal proxy addresses, so {@code getRemoteAddr()} returns the real client.
  */
 @Component
 public class AuthRateLimitInterceptor implements HandlerInterceptor {

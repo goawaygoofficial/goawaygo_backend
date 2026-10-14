@@ -1,0 +1,14 @@
+# Only what the Dockerfile needs goes into the build context. Secrets must never reach an image.
+.env
+.env.*
+.git
+.github
+.githooks
+.idea
+.vscode
+target
+docker
+docs
+scripts
+*.md
+compose.yaml
