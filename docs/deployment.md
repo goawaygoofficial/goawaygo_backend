@@ -139,7 +139,19 @@ Settings → Secrets and variables → Actions → **Variables** (identifiers an
 
 The deploy workflow stays inactive until `GCP_PROJECT_ID` is set.
 
-### 5. Custom domain `api.goawaygo.com`
+### 5. Make the API public (once, after the first deploy)
+
+The first deploy succeeds but every request gets Google's 401/403 until the service allows public calls. The deployer
+account can't change that on purpose (least privilege), so a project owner runs once:
+
+```bash
+gcloud run services add-iam-policy-binding goaway-backend --region asia-southeast1 --member allUsers --role roles/run.invoker
+```
+
+Then re-run the workflow (Actions → Deploy staging → Run workflow) to get a green smoke test. The API's own
+security (JWT, rate limits) protects every endpoint; this setting only lets requests reach it.
+
+### 6. Custom domain `api.goawaygo.com`
 
 1. Verify the domain with Google once: `gcloud domains verify goawaygo.com` opens Search Console; add the TXT
    record it shows in Cloudflare DNS.
@@ -152,7 +164,7 @@ The deploy workflow stays inactive until `GCP_PROJECT_ID` is set.
 3. In Cloudflare DNS add the record it prints (CNAME `api` → `ghs.googlehosted.com`) as **DNS only** (grey cloud),
    so Google can issue the certificate. HTTPS is ready after up to ~15 minutes.
 
-### 6. After the first deploy: check client IPs
+### 7. After the first deploy: check client IPs
 
 Rate limits use the client address from `X-Forwarded-For`, trusted only from internal proxy addresses
 (`FORWARD_HEADERS_STRATEGY=native`). Check once that the backend sees real client IPs, not the proxy's: with
