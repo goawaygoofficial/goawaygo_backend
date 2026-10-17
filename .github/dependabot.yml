@@ -29,6 +29,19 @@ updates:
       - dependency-name: postgres
         update-types: ['version-update:semver-major']
 
+  # Base images in the Dockerfile (Temurin JDK/JRE 17). Java 17 stays until a planned upgrade.
+  - package-ecosystem: docker
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: 'chore(deps)'
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ['version-update:semver-major']
+
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
