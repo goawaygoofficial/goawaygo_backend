@@ -103,4 +103,4 @@ Domain `goawaygo.com` (Cloudflare Registrar + DNS). Website and API must stay on
 - Backend deploys automatically after CI passes on `develop` (`.github/workflows/deploy-staging.yml`, keyless Workload Identity Federation). Secrets live only in Google Secret Manager; setup scripts and steps in `backend/docs/deployment.md`.
 - Cloud Run: min 0 instances (cold start ~7–10 s after idle), max 1 (in-memory rate limits), no CPU throttling (background email).
 - Google free trial ends 90 days after sign-up: upgrade billing before then or the project stops.
-- After a merge: backend and website deploy themselves; Android builds are released by hand with `app_frontend/scripts/release-android.sh` (upload key on the release PC only). Step by step: `RELEASING.md` (copy in every repo).
+- After a merge: backend and website deploy themselves; Android builds are released by hand with `app_frontend/scripts/release-android.sh` (upload key on the release PC only). Step by step: `RELEASING.md` (copy in every repo). What's next: `ROADMAP.md` (copy in every repo; tick items as they ship).
