@@ -101,6 +101,6 @@ Domain `goawaygo.com` (Cloudflare Registrar + DNS). Website and API must stay on
 - Pre-launch (alpha/beta, all free): backend on Google Cloud Run `asia-southeast1` (project `goawaygo-staging`, service `goaway-backend`, `api.goawaygo.com`); database Neon PostgreSQL 17 (AWS Singapore); website on Cloudflare Pages (`staging.goawaygo.com`); email Resend; Android testers via Firebase App Distribution.
 - At launch (Phase 5): database moves to Google Cloud SQL; Play Console then. Company not registered yet.
 - Backend deploys automatically after CI passes on `develop` (`.github/workflows/deploy-staging.yml`, keyless Workload Identity Federation). Secrets live only in Google Secret Manager; setup scripts and steps in `backend/docs/deployment.md`.
-- Cloud Run: min 0 instances (cold start ~7–10 s after idle), max 1 (in-memory rate limits), no CPU throttling (background email).
+- Cloud Run: min 0 instances (cold start ~7–10 s after idle), max 1 (in-memory rate limits), request-based billing (CPU only during requests; emails sent inside the request). Health: `GET /actuator/health` (no DB check, so Neon can sleep).
 - Google free trial ends 90 days after sign-up: upgrade billing before then or the project stops.
 - After a merge: backend and website deploy themselves; Android builds are released by hand with `app_frontend/scripts/release-android.sh` (upload key on the release PC only). Step by step: `RELEASING.md` (copy in every repo). What's next: `ROADMAP.md` (copy in every repo; tick items as they ship).

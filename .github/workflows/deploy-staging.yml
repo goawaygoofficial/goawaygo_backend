@@ -100,7 +100,8 @@ jobs:
           fi
 
           # max-instances 1: rate limits are kept in memory (one instance). min-instances 0: free when idle.
-          # no-cpu-throttling: emails are sent in the background after the response, which needs CPU then too.
+          # cpu-throttling (request-based billing): CPU only while a request is handled, so an idle instance kept up by
+          # uptime checks costs nothing. Everything, emails included, finishes inside the request.
           # Public access is granted once by a project owner (docs/deployment.md); the deployer is deliberately not
           # allowed to change who can call the service.
           gcloud run deploy "$SERVICE" \
@@ -111,7 +112,7 @@ jobs:
             --set-secrets "$secrets" \
             --port 8080 --cpu 1 --memory 1Gi \
             --min-instances 0 --max-instances 1 --concurrency 80 --timeout 60 \
-            --cpu-boost --no-cpu-throttling \
+            --cpu-boost --cpu-throttling \
             --quiet
 
       - name: Smoke test

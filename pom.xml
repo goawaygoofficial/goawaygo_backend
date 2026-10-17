@@ -56,6 +56,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
+		<!-- /actuator/health only (uptime monitoring); nothing else is exposed -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 		<!-- Rate limiting: token buckets (Bucket4j), kept in a bounded, expiring in-memory cache (Caffeine) -->
 		<dependency>
 			<groupId>com.bucket4j</groupId>

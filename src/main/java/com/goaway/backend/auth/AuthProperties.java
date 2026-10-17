@@ -21,6 +21,7 @@ public record AuthProperties(
 		@NotNull Duration refreshTokenTtl,
 		@NotNull Duration passwordResetTtl,
 		@NotNull Duration emailVerificationTtl,
+		@NotNull Duration forgotPasswordMinResponse,
 		@Valid @NotNull Jwt jwt,
 		@Valid @NotNull RefreshCookie refreshCookie,
 		@Valid @NotNull Google google) {
