@@ -74,6 +74,11 @@ jobs:
           FORWARD_HEADERS_STRATEGY: "native"
           CORS_ALLOWED_ORIGINS: "${{ vars.CORS_ALLOWED_ORIGINS }}"
           WEB_BASE_URL: "${{ vars.WEB_BASE_URL }}"
+          GOOGLE_CLOUD_PROJECT: "${{ vars.GCP_PROJECT_ID }}"
+          LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goaway.backend.logging.CloudLoggingFormatter"
+          SENTRY_DSN: "${{ vars.SENTRY_DSN }}"
+          SENTRY_ENVIRONMENT: "staging"
+          SENTRY_RELEASE: "goaway-backend@${{ github.event.workflow_run.head_sha || github.sha }}"
           EOF
 
           # Secrets come from Secret Manager at runtime; GitHub never sees them.

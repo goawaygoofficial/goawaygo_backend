@@ -29,6 +29,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<bucket4j.version>8.21.0</bucket4j.version>
+		<sentry.version>8.59.0</sentry.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -64,6 +65,18 @@
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
+		</dependency>
+
+		<!-- Error tracking (Sentry). Off unless SENTRY_DSN is set; ERROR logs become Sentry events. -->
+		<dependency>
+			<groupId>io.sentry</groupId>
+			<artifactId>sentry-spring-boot-4-starter</artifactId>
+			<version>${sentry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sentry</groupId>
+			<artifactId>sentry-logback</artifactId>
+			<version>${sentry.version}</version>
 		</dependency>
 
 		<dependency>
