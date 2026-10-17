@@ -35,7 +35,7 @@ phone number optional, no SMS · India-first (INR default).
 Accounts (team Gmail, free): Sentry, PostHog, Better Stack. Existing: Cloudflare (Web Analytics, Email Routing),
 Google Cloud.
 
-- [ ] **4.0a Error tracking** — Sentry in backend (Spring Boot), website (React) and app (Flutter): one
+- [x] **4.0a Error tracking** — Sentry in backend (Spring Boot), website (React) and app (Flutter): one
       organisation, a project per part, `staging` environment, release = version/commit, no personal data sent
       (`sendDefaultPii` off, emails/tokens scrubbed). Backend: JSON logs that Google Cloud Logging understands,
       request IDs in every log line and error.

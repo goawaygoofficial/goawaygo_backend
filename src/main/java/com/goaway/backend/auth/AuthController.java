@@ -110,10 +110,15 @@ public class AuthController {
 		return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO)).build();
 	}
 
-	/** Always 202 with the same body, whether or not the account exists. */
+	/**
+	 * Always 202 with the same body, whether or not the account exists, and never faster than
+	 * {@code goaway.auth.forgot-password-min-response}: the reset email is sent inside the request, so without the
+	 * padding the response time would reveal whether an email went out.
+	 */
 	@PostMapping("/forgot-password")
 	public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-		this.accountEmails.requestPasswordReset(request.email());
+		MinimumDuration.run(this.properties.forgotPasswordMinResponse(),
+				() -> this.accountEmails.requestPasswordReset(request.email()));
 		return ResponseEntity.accepted()
 			.body(Map.of("message", "If an account exists for that email, we have sent a link to reset the password."));
 	}

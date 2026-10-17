@@ -40,7 +40,10 @@ Cloud Run settings and why:
 - `min-instances 0`: free while nobody uses it. The first request after ~15 idle minutes waits for a cold start
   (~7–10 s for Spring Boot); later requests are fast.
 - `max-instances 1`: rate limits are kept in memory, so they only hold with a single instance.
-- `no-cpu-throttling`: emails are sent in the background after the response; that needs CPU after the response.
+- `cpu-throttling` (request-based billing): CPU is given, and billed, only while a request is being handled. An
+  instance kept up between uptime checks costs nothing. So nothing may run after the response: emails are sent inside
+  the request (`goaway.mail.async=false`), and forgot-password always takes at least 1.5 s so its timing doesn't
+  reveal whether the account exists.
 - `cpu-boost`: extra CPU during startup, shorter cold starts.
 
 ## Rollback
@@ -174,9 +177,28 @@ to match it.
 
 ## Costs and limits (pre-launch)
 
-- Cloud Run free tier (instance-based billing): ~240,000 vCPU-seconds and 450,000 GiB-seconds a month, about 66
-  hours of an instance being up. Plenty for testers; the $300 trial credit covers anything above it.
-- Neon free: ~1 GB storage, 100 compute hours a month; it sleeps when idle and wakes in under a second.
+- Cloud Run free tier (request-based billing): 180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million requests a
+  month, counted only while requests are handled. Uptime checks every 3 minutes use well under 1% of it.
+- Neon free: ~1 GB storage, 100 compute hours a month; it sleeps after 5 idle minutes and wakes in under a second.
+  To let it sleep, the connection pool keeps no idle connections (`minimum-idle=0`, closed after 2 minutes) and the
+  health check never touches the database.
 - Artifact Registry: 0.5 GB free; the cleanup policy keeps the newest 3 images (they share most layers).
 - **The Google free trial ends 90 days after sign-up.** Upgrade the billing account to paid before then or the
   project is stopped. Usage inside the free tier stays $0; the budget alert warns before any charge.
+
+## Health and uptime
+
+`GET https://api.goawaygo.com/actuator/health` answers `{"status":"UP"}` without signing in. It only says the backend
+is running: it doesn't check the database or email (so uptime checks don't wake Neon); those failures reach Sentry.
+Nothing else from Spring Boot Actuator is exposed.
+
+Better Stack (free plan, team Gmail) checks every 3 minutes and emails on downtime:
+
+| Monitor                                           | Expect               | Every  |
+| ------------------------------------------------- | -------------------- | ------ |
+| `https://api.goawaygo.com/actuator/health`        | status 200, `"UP"`   | 3 min  |
+| `https://staging.goawaygo.com`                    | status 200           | 3 min  |
+| `https://downloads.goawaygo.com/android/latest.json` | status 200        | 30 min |
+
+The API monitor allows a 30 s timeout, because the first check after an idle period waits for a cold start. Public
+status page: `status.goawaygo.com` (CNAME in Cloudflare, DNS only).

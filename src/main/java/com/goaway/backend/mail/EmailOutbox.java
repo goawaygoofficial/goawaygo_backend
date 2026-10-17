@@ -12,16 +12,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * Queues emails so they are sent <em>after</em> the surrounding transaction commits, in the background.
+ * Queues emails so they are sent <em>after</em> the surrounding transaction commits: an email never goes out for work
+ * that was rolled back (e.g. a sign-up that failed).
  *
- * <ul>
- * <li>After commit: an email never goes out for work that was rolled back (e.g. a sign-up that failed).</li>
- * <li>In the background: the HTTP response doesn't wait for SMTP, so forgot-password answers equally fast whether
- * or not the account exists (no account enumeration through timing), and a slow mail server can't slow the API.</li>
- * </ul>
+ * <p>By default ({@code goaway.mail.async=false}) the email is sent right after the commit, still inside the request,
+ * because Cloud Run only gives the backend CPU (and bills) while a request is being handled. Forgot-password pads
+ * its response to a fixed minimum time, so sending inside the request doesn't reveal whether the account exists.
+ * {@code goaway.mail.async=true} sends from a background thread instead, for hosts that keep CPU after the response.
  *
- * <p>Delivery failures are logged, not retried. Good enough for reset/verification links, which users can request
- * again; a persistent outbox with retries is the upgrade path if more critical mail is added.
+ * <p>Delivery failures are logged (and reported to Sentry), never thrown: the user's action already succeeded, and
+ * reset/verification links can be requested again. A persistent outbox with retries is the upgrade path if more
+ * critical mail is added.
  */
 @Component
 public class EmailOutbox implements DisposableBean {

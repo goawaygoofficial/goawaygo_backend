@@ -28,7 +28,8 @@ import com.goaway.backend.mail.RecordingEmailSender;
  * turns it on with small limits. Emails are recorded ({@link RecordingEmailSender}) and sent synchronously, so
  * tests can read them right after the request.
  */
-@TestPropertySource(properties = { "goaway.rate-limit.enabled=false", "goaway.mail.async=false" })
+@TestPropertySource(properties = { "goaway.rate-limit.enabled=false", "goaway.mail.async=false",
+		"goaway.auth.forgot-password-min-response=0ms" })
 @Import(RecordingEmailSender.Config.class)
 public abstract class PostgresIntegrationTest {
 
