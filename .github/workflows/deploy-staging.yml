@@ -96,13 +96,14 @@ jobs:
 
           # max-instances 1: rate limits are kept in memory (one instance). min-instances 0: free when idle.
           # no-cpu-throttling: emails are sent in the background after the response, which needs CPU then too.
+          # Public access is granted once by a project owner (docs/deployment.md); the deployer is deliberately not
+          # allowed to change who can call the service.
           gcloud run deploy "$SERVICE" \
             --image "$IMAGE:${{ github.event.workflow_run.head_sha || github.sha }}" \
             --region "${{ vars.GCP_REGION }}" \
             --service-account "${{ vars.GCP_RUNTIME_SA }}" \
             --env-vars-file env.yaml \
             --set-secrets "$secrets" \
-            --allow-unauthenticated \
             --port 8080 --cpu 1 --memory 1Gi \
             --min-instances 0 --max-instances 1 --concurrency 80 --timeout 60 \
             --cpu-boost --no-cpu-throttling \
