@@ -104,7 +104,6 @@ jobs:
             --service-account "${{ vars.GCP_RUNTIME_SA }}" \
             --env-vars-file env.yaml \
             --set-secrets "$secrets" \
-            --allow-unauthenticated \
             --port 8080 --cpu 1 --memory 1Gi \
             --min-instances 0 --max-instances 1 --concurrency 80 --timeout 60 \
             --cpu-boost --no-cpu-throttling \
