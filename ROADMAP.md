@@ -39,7 +39,7 @@ Google Cloud.
       organisation, a project per part, `staging` environment, release = version/commit, no personal data sent
       (`sendDefaultPii` off, emails/tokens scrubbed). Backend: JSON logs that Google Cloud Logging understands,
       request IDs in every log line and error.
-- [ ] **4.0b Health and uptime** — `GET /actuator/health` (status only, nothing else exposed); Better Stack checks
+- [x] **4.0b Health and uptime** — `GET /actuator/health` (status only, nothing else exposed); Better Stack checks
       the API and the website every 3 min and emails on downtime; public status page `status.goawaygo.com`.
 - [ ] **4.0c Legal and privacy** — Privacy Policy, Terms of Use, and Delete-my-data page on the website (DPDP Act
       2023 / Rules 2025 based: notice, consent, purposes, rights, retention, grievance contact); links in the website
