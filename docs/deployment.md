@@ -202,3 +202,37 @@ Better Stack (free plan, team Gmail) checks every 3 minutes and emails on downti
 
 The API monitor allows a 30 s timeout, because the first check after an idle period waits for a cold start. Public
 status page: `status.goawaygo.com` (CNAME in Cloudflare, DNS only).
+
+## Outside APIs
+
+Every call to an outside API (places, photos, flights, AI, ...) goes through `com.goaway.backend.external`:
+timeouts, retries for temporary failures, a circuit breaker that pauses a failing provider for a minute, per-day and
+per-month usage limits kept in the database (`external_api_usage`) that refuse calls before a free tier is exceeded,
+and a database cache (`external_api_cache`) that also serves the last answer when the provider is down. When nothing
+can be returned, the client gets a 503 with a friendly message.
+
+To add a provider:
+
+1. Sign up with the team Gmail; note the free tier's limits.
+2. Add its settings to `application.properties`, limits **below** the free tier:
+
+   ```properties
+   goaway.external.providers.opentripmap.base-url=https://api.opentripmap.com/0.1
+   goaway.external.providers.opentripmap.daily-limit=4500
+   goaway.external.providers.opentripmap.cache-ttl=7d
+   ```
+
+   Names are lowercase letters and digits only. Optional: `connect-timeout` (3s), `read-timeout` (10s),
+   `max-attempts` (3), `retry-wait` (500ms), `monthly-limit`.
+3. If it needs a key, store it in Secret Manager (typed hidden; the backend can read it right away):
+
+   ```bash
+   scripts/gcp-secrets.sh goawaygo-staging provider opentripmap
+   ```
+
+4. Add the name to the repo variable `EXTERNAL_API_PROVIDERS` (space-separated, e.g. `opentripmap unsplash`). The deploy
+   passes the key as `GOAWAY_EXTERNAL_PROVIDERS_<NAME>_APIKEY`. Locally, put that variable in `.env`.
+5. Use it from a feature: `externalApis.client("opentripmap").cached(key, Type.class, (http, apiKey) -> ...)`.
+
+Calls so far are in the database: `SELECT * FROM external_api_usage ORDER BY period_start DESC;`. Reaching a limit
+or a provider failing repeatedly is logged as an error, so it shows up in Sentry.
