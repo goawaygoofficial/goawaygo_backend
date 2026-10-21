@@ -54,7 +54,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 ## Secrets — never commit
 
-- App frontend: `.env` (bundled as a Flutter asset — public config only: `BASE_URL`, `WEBSITE_URL`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`; keep `.env.example` in sync), `android/app/google-services.json` (if Firebase is ever added), `android/local.properties`, keystores, `key.properties`.
+- App frontend: `.env` (bundled as a Flutter asset — public config only: `BASE_URL`, `WEBSITE_URL`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `SENTRY_DSN`, `POSTHOG_KEY`; keep `.env.example` in sync), `android/app/google-services.json` (if Firebase is ever added), `android/local.properties`, keystores, `key.properties`.
 - Web frontend: `.env` / `.env.*` (`VITE_*` values end up in the JS bundle — public config only; keep `.env.example` in sync).
 - Backend: `backend/.env` (gitignored; template `.env.example`) holds local DB passwords and is read by both Docker Compose and Spring Boot (`spring.config.import`). Deployed environments use env vars. Never put secrets in `application.properties`. Never print `.env` values in chat.
 

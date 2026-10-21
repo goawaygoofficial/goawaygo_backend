@@ -41,11 +41,12 @@ Google Cloud.
       request IDs in every log line and error.
 - [x] **4.0b Health and uptime** — `GET /actuator/health` (status only, nothing else exposed); Better Stack checks
       the API and the website every 3 min and emails on downtime; public status page `status.goawaygo.com`.
-- [ ] **4.0c Legal and privacy** — Privacy Policy, Terms of Use, and Delete-my-data page on the website (DPDP Act
+- [x] **4.0c Legal and privacy** — Privacy Policy, Terms of Use, and Delete-my-data page on the website (DPDP Act
       2023 / Rules 2025 based: notice, consent, purposes, rights, retention, grievance contact); links in the website
       footer, the sign-up screens and the app's Profile. Contact addresses `privacy@` and `support@goawaygo.com` via
-      Cloudflare Email Routing (forward to the team Gmail). Lawyer review before launch.
-- [ ] **4.0d Analytics with consent** — Cloudflare Web Analytics on the website (cookieless, aggregate, no consent
+      Cloudflare Email Routing (forward to the team Gmail). Written for international law (GDPR, US state laws, DPDP,
+      LGPD). **Still to do before launch: lawyer review.**
+- [x] **4.0d Analytics with consent** — Cloudflare Web Analytics on the website (cookieless, aggregate, no consent
       needed); PostHog (product analytics + feature flags) in website and app, **only after the user agrees**, with a
       short event list and no personal data in events; consent choice changeable in Profile.
 - [ ] **4.0e API toolkit (backend)** — one way to call outside APIs: timeouts, retries and circuit breaker
