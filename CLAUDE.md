@@ -1,22 +1,22 @@
 <!-- Copy of Goaway/CLAUDE.md (workspace root, shared by all repos). Keep the copies in sync. -->
 
-# Goaway
+# GoAwayGo
 
-Workspace with three separate git repos. Start Claude sessions in this `Goaway` folder so all of them are available.
+Workspace with three separate git repos. Start Claude sessions in this `GoAwayGo` folder so all of them are available.
 
 | Folder          | Stack                                                                                                                        | GitHub repo (private)                |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `app_frontend/` | Flutter (Dart SDK ^3.7), provider, http, google_sign_in, flutter_dotenv                                                      | `goawayofficial/goaway_app_frontend` |
-| `web_frontend/` | React 19, TypeScript (strict), Vite 8, react-router-dom 7, CSS Modules — web version of the app, mirrors it screen by screen | `goawayofficial/goaway_web_frontend` |
-| `backend/`      | Spring Boot 4.1, Java 17, Maven (`mvnw`), PostgreSQL 17 (Docker Compose locally, Testcontainers in tests), Flyway            | `goawayofficial/goaway_backend`      |
+| `app_frontend/` | Flutter (Dart SDK ^3.7), provider, http, google_sign_in, flutter_dotenv                                                      | `goawaygoofficial/goawaygo_app_frontend` |
+| `web_frontend/` | React 19, TypeScript (strict), Vite 8, react-router-dom 7, CSS Modules — web version of the app, mirrors it screen by screen | `goawaygoofficial/goawaygo_web_frontend` |
+| `backend/`      | Spring Boot 4.1, Java 17, Maven (`mvnw`), PostgreSQL 17 (Docker Compose locally, Testcontainers in tests), Flyway            | `goawaygoofficial/goawaygo_backend`      |
 
 This parent folder is NOT a git repo — run git/gh commands inside `app_frontend/`, `web_frontend/` or `backend/`.
 
 ## GitHub
 
-- Account: `goawayofficial` (the user's 2nd account; the global git identity `02priyeshraj` is their 1st account — don't use it here).
-- Each repo has local git config `user.name=goawayofficial`, `user.email=teamofficialgoaway@gmail.com`.
-- `gh` CLI is logged in as `goawayofficial` with ADMIN on all repos.
+- Account: `goawaygoofficial` (the user's 2nd account; the global git identity `02priyeshraj` is their 1st account — don't use it here).
+- Each repo has local git config `user.name=goawaygoofficial`, `user.email=teamofficialgoaway@gmail.com`.
+- `gh` CLI is logged in as `goawaygoofficial` with ADMIN on all repos.
 - Default branch: `develop`.
 
 ## Branching (all repos)
@@ -32,7 +32,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 - Commit messages: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`).
 - Squash-merge work PRs into `develop`; use a merge commit for `develop → main` release PRs.
 - Merge via the API — `gh pr merge --squash` produced merge commits here:
-  `gh api -X PUT repos/goawayofficial/<repo>/pulls/<n>/merge -f merge_method=squash -f commit_title="<PR title> (#<n>)"`
+  `gh api -X PUT repos/goawaygoofficial/<repo>/pulls/<n>/merge -f merge_method=squash -f commit_title="<PR title> (#<n>)"`
   then verify the new commit on `develop` has a single parent.
 - GitHub Free: no branch protection on private repos. The rules above are enforced by discipline, the `pre-push` hook, and the **Branch guard** workflow (fails if a commit lands on `main`/`develop` without a merged PR). See `CONTRIBUTING.md` in each repo.
 

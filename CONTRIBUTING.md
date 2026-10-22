@@ -1,9 +1,9 @@
-# Contributing to Goaway
+# Contributing to GoAwayGo
 
-These rules apply to all Goaway repositories:
-[app](https://github.com/goawayofficial/goaway_app_frontend) ·
-[web](https://github.com/goawayofficial/goaway_web_frontend) ·
-[backend](https://github.com/goawayofficial/goaway_backend).
+These rules apply to all GoAwayGo repositories:
+[app](https://github.com/goawaygoofficial/goawaygo_app_frontend) ·
+[web](https://github.com/goawaygoofficial/goawaygo_web_frontend) ·
+[backend](https://github.com/goawaygoofficial/goawaygo_backend).
 
 ## First-time setup
 

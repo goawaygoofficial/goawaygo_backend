@@ -11,7 +11,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
-/** A Goaway account. Table: {@code users} (see V2 migration). */
+/** A GoAwayGo account. Table: {@code users} (see V2 migration). */
 @Entity
 @Table(name = "users")
 public class User {

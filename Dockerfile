@@ -1,4 +1,4 @@
-# Production image for the Goaway backend (deployed to Google Cloud Run; see docs/deployment.md).
+# Production image for the GoAwayGo backend (deployed to Google Cloud Run; see docs/deployment.md).
 #   Build:  docker build -t goaway-backend .
 #   Run:    docker run --rm -p 8080:8080 --env-file .env goaway-backend   (local check only)
 # Tests are not run here: CI runs the full test suite before anything is deployed.

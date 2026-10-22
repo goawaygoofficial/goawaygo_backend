@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup of a hosted PostgreSQL database (Neon now, Cloud SQL at launch) for a Goaway environment:
+# One-time setup of a hosted PostgreSQL database (Neon now, Cloud SQL at launch) for a GoAwayGo environment:
 # creates the goaway database and its two least-privilege roles with fresh random passwords, and stores the
 # passwords straight into Google Secret Manager. No password is printed or written to disk.
 #
