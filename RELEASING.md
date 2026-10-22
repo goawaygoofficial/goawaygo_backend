@@ -1,15 +1,15 @@
 <!-- Copy of Goaway/RELEASING.md (workspace root, shared by all repos). Keep the copies in sync. -->
 
-# Releasing Goaway
+# Releasing GoAwayGo
 
 What happens after a merge to `develop`, and how to publish a new Android build. Applies to all three repos
-(`goaway_backend`, `goaway_web_frontend`, `goaway_app_frontend`). Setup details: each repo's `docs/`.
+(`goawaygo_backend`, `goawaygo_web_frontend`, `goawaygo_app_frontend`). Setup details: each repo's `docs/`.
 
 ## After every merge to `develop`
 
 | Part        | You do                                | Happens automatically                                                                                          | Check                                                                |
 | ----------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Backend     | Nothing                               | CI tests → deploy to Google Cloud Run (`api.goawaygo.com`) → smoke test; Flyway applies DB migrations (~5 min) | GitHub → goaway_backend → Actions → **Deploy staging** ✅            |
+| Backend     | Nothing                               | CI tests → deploy to Google Cloud Run (`api.goawaygo.com`) → smoke test; Flyway applies DB migrations (~5 min) | GitHub → goawaygo_backend → Actions → **Deploy staging** ✅            |
 | Website     | Nothing                               | Cloudflare Pages builds and publishes `staging.goawaygo.com` (~2 min)                                          | Cloudflare → Workers & Pages → **goaway-web-frontend** → Deployments |
 | Android app | Release it (below) when worth testing | Nothing: it is signed with the upload key that exists only on the release PC                                   | `https://staging.goawaygo.com/download` shows the new version        |
 

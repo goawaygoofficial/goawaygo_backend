@@ -7,7 +7,7 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * {@code goaway.mail.*}.
- * @param from sender address, e.g. {@code Goaway <no-reply@example.com>}
+ * @param from sender address, e.g. {@code GoAwayGo <no-reply@example.com>}
  * @param async send from a background thread after the request (false by default: Cloud Run gives CPU only during
  *     requests, see EmailOutbox)
  */

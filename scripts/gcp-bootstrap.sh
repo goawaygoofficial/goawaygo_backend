@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time Google Cloud setup for a Goaway backend environment (see docs/deployment.md).
+# One-time Google Cloud setup for a GoAwayGo backend environment (see docs/deployment.md).
 # Safe to re-run: every step skips what already exists.
 #
 #   Usage:  scripts/gcp-bootstrap.sh <project-id>        e.g. scripts/gcp-bootstrap.sh goawaygo-staging
@@ -10,13 +10,15 @@
 #   - Artifact Registry repository "goaway" (Docker images), keeping only the newest images
 #   - service account goaway-backend: the identity the running backend uses (reads its secrets, nothing else)
 #   - service account goaway-deployer: what GitHub Actions deploys as
-#   - Workload Identity Federation: GitHub Actions in goawayofficial/goaway_backend can act as goaway-deployer
+#   - Workload Identity Federation: GitHub Actions in goawaygoofficial/goawaygo_backend can act as goaway-deployer
 #     without any stored key (short-lived tokens only)
 set -euo pipefail
 
 PROJECT_ID="${1:?Usage: scripts/gcp-bootstrap.sh <project-id>}"
 REGION="${REGION:-asia-southeast1}"
-GITHUB_REPO="${GITHUB_REPO:-goawayofficial/goaway_backend}"
+GITHUB_REPO="${GITHUB_REPO:-goawaygoofficial/goawaygo_backend}"
+# GitHub's numeric repository ID: unlike the name, it survives renames of the repo or the account.
+GITHUB_REPO_ID="${GITHUB_REPO_ID:?Set GITHUB_REPO_ID first: gh api repos/$GITHUB_REPO --jq .id}"
 REPOSITORY=goaway
 POOL=github
 PROVIDER=goaway-backend
@@ -33,7 +35,7 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com secret
 echo "==> Artifact Registry repository '$REPOSITORY' in $REGION"
 if ! gcloud artifacts repositories describe "$REPOSITORY" --location "$REGION" >/dev/null 2>&1; then
   gcloud artifacts repositories create "$REPOSITORY" --repository-format docker --location "$REGION" \
-    --description "Goaway container images"
+    --description "GoAwayGo container images"
 fi
 # Keep storage inside the free 0.5 GB: only the 3 newest images are kept.
 policy="$(mktemp)"
@@ -46,9 +48,9 @@ rm -f "$policy"
 
 echo "==> Service accounts"
 gcloud iam service-accounts describe "$RUNTIME_SA" >/dev/null 2>&1 \
-  || gcloud iam service-accounts create goaway-backend --display-name "Goaway backend (runtime)"
+  || gcloud iam service-accounts create goaway-backend --display-name "GoAwayGo backend (runtime)"
 gcloud iam service-accounts describe "$DEPLOY_SA" >/dev/null 2>&1 \
-  || gcloud iam service-accounts create goaway-deployer --display-name "Goaway deployer (GitHub Actions)"
+  || gcloud iam service-accounts create goaway-deployer --display-name "GoAwayGo deployer (GitHub Actions)"
 
 echo "==> Deployer permissions: push images, deploy Cloud Run, run the service as goaway-backend"
 gcloud artifacts repositories add-iam-policy-binding "$REPOSITORY" --location "$REGION" \
@@ -64,15 +66,15 @@ if ! gcloud iam workload-identity-pools describe "$POOL" --location global >/dev
 fi
 if ! gcloud iam workload-identity-pools providers describe "$PROVIDER" --location global \
   --workload-identity-pool "$POOL" >/dev/null 2>&1; then
-  # Only tokens from this exact repository are accepted.
+  # Only tokens from this exact repository are accepted, matched by ID so renames don't break deploys.
   gcloud iam workload-identity-pools providers create-oidc "$PROVIDER" --location global \
-    --workload-identity-pool "$POOL" --display-name "goaway_backend" \
+    --workload-identity-pool "$POOL" --display-name "goawaygo_backend" \
     --issuer-uri "https://token.actions.githubusercontent.com" \
-    --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
-    --attribute-condition "assertion.repository == '${GITHUB_REPO}'"
+    --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_id=assertion.repository_id,attribute.ref=assertion.ref" \
+    --attribute-condition "assertion.repository_id == '${GITHUB_REPO_ID}'"
 fi
 gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SA" --role roles/iam.workloadIdentityUser \
-  --member "principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}/attribute.repository/${GITHUB_REPO}" \
+  --member "principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}/attribute.repository_id/${GITHUB_REPO_ID}" \
   >/dev/null
 
 cat <<EOF

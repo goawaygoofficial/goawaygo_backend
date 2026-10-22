@@ -1,6 +1,6 @@
 <!-- Copy of Goaway/ROADMAP.md (workspace root, shared by all repos). Keep the copies in sync. -->
 
-# Goaway roadmap
+# GoAwayGo roadmap
 
 Where the project stands and what comes next. Tick items as they ship (merged to `develop` and live on staging).
 Shared by all three repos; how to ship is in `RELEASING.md`.

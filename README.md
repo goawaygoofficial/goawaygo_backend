@@ -1,9 +1,9 @@
-# Goaway — Backend
+# GoAwayGo — Backend
 
-REST API for **Goaway**, a travel app. Built with Spring Boot and PostgreSQL.
+REST API for **GoAwayGo**, a travel app. Built with Spring Boot and PostgreSQL.
 
-Frontends: [app](https://github.com/goawayofficial/goaway_app_frontend) (Flutter) ·
-[web](https://github.com/goawayofficial/goaway_web_frontend) (React).
+Frontends: [app](https://github.com/goawaygoofficial/goawaygo_app_frontend) (Flutter) ·
+[web](https://github.com/goawaygoofficial/goawaygo_web_frontend) (React).
 
 > **Status:** email/password and Google Sign-In are implemented. Password reset by email is next.
 
@@ -147,8 +147,8 @@ trusted, so behind a reverse proxy configure Spring's forwarded-header support f
 ### 1. Clone
 
 ```bash
-git clone https://github.com/goawayofficial/goaway_backend.git
-cd goaway_backend
+git clone https://github.com/goawaygoofficial/goawaygo_backend.git
+cd goawaygo_backend
 ```
 
 ### 2. Create `.env`

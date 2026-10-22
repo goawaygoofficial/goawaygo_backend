@@ -1,5 +1,5 @@
 #!/bin/bash
-# Creates the Goaway database and its least-privilege roles.
+# Creates the GoAwayGo database and its least-privilege roles.
 # Runs once, when the Postgres data volume is first initialised (docker-entrypoint-initdb.d).
 # Used by compose.yaml (local dev) and by the Testcontainers tests, so both get the same setup, and by
 # scripts/setup-hosted-db.sh for hosted databases (Neon, later Cloud SQL), where it runs as the provider's admin
