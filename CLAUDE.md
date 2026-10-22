@@ -4,8 +4,8 @@
 
 Workspace with three separate git repos. Start Claude sessions in this `GoAwayGo` folder so all of them are available.
 
-| Folder          | Stack                                                                                                                        | GitHub repo (private)                |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Folder          | Stack                                                                                                                        | GitHub repo (private)                    |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | `app_frontend/` | Flutter (Dart SDK ^3.7), provider, http, google_sign_in, flutter_dotenv                                                      | `goawaygoofficial/goawaygo_app_frontend` |
 | `web_frontend/` | React 19, TypeScript (strict), Vite 8, react-router-dom 7, CSS Modules — web version of the app, mirrors it screen by screen | `goawaygoofficial/goawaygo_web_frontend` |
 | `backend/`      | Spring Boot 4.1, Java 17, Maven (`mvnw`), PostgreSQL 17 (Docker Compose locally, Testcontainers in tests), Flyway            | `goawaygoofficial/goawaygo_backend`      |
@@ -86,7 +86,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 ## Google Sign-In
 
-- App ID (Android `applicationId`/`namespace`, iOS/macOS bundle ID): **`com.goawayofficial.app`**. Permanent once on Google Play.
+- App ID (Android `applicationId`/`namespace`, iOS/macOS bundle ID): **`com.goawaygo.app`**. Permanent once on Google Play.
 - App minimum OS: **Android 8.0** (API 26, `minSdk = 26` in `android/app/build.gradle.kts`), **iOS 15.0**, macOS 12.0, required by `sentry_flutter` 10. Don't lower them.
 - Google Cloud project `goaway-483709` (number `1018541563002`), consent screen in **Testing** (only listed test users can sign in). OAuth clients (IDs are public; never handle client secrets):
   - Web `1018541563002-sft2jld5f3n6lnenvt0pk8hknk7hfq9n.apps.googleusercontent.com`: website, and the ID-token audience (`serverClientId`) for the mobile app. Origins: `http://localhost:5173`, `http://localhost`.
