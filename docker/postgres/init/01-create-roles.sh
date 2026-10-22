@@ -5,16 +5,16 @@
 # scripts/setup-hosted-db.sh for hosted databases (Neon, later Cloud SQL), where it runs as the provider's admin
 # role instead of a superuser.
 #
-#   goaway_owner  owns the database and schema; used only by Flyway to run migrations (DDL)
-#   goaway_app    used by the running backend; can read/write table data, cannot create/alter/drop
+#   goawaygo_owner  owns the database and schema; used only by Flyway to run migrations (DDL)
+#   goawaygo_app    used by the running backend; can read/write table data, cannot create/alter/drop
 set -euo pipefail
 
-: "${GOAWAY_DB_NAME:?}" "${GOAWAY_OWNER_USER:?}" "${GOAWAY_OWNER_PASSWORD:?}" "${GOAWAY_APP_USER:?}" "${GOAWAY_APP_PASSWORD:?}"
+: "${GOAWAYGO_DB_NAME:?}" "${GOAWAYGO_OWNER_USER:?}" "${GOAWAYGO_OWNER_PASSWORD:?}" "${GOAWAYGO_APP_USER:?}" "${GOAWAYGO_APP_PASSWORD:?}"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "${POSTGRES_DB:-postgres}" \
-  -v db="$GOAWAY_DB_NAME" \
-  -v owner="$GOAWAY_OWNER_USER" -v owner_pw="$GOAWAY_OWNER_PASSWORD" \
-  -v app="$GOAWAY_APP_USER" -v app_pw="$GOAWAY_APP_PASSWORD" <<'SQL'
+  -v db="$GOAWAYGO_DB_NAME" \
+  -v owner="$GOAWAYGO_OWNER_USER" -v owner_pw="$GOAWAYGO_OWNER_PASSWORD" \
+  -v app="$GOAWAYGO_APP_USER" -v app_pw="$GOAWAYGO_APP_PASSWORD" <<'SQL'
 CREATE ROLE :"owner" LOGIN PASSWORD :'owner_pw';
 CREATE ROLE :"app" LOGIN PASSWORD :'app_pw';
 -- Hosted Postgres has no superuser: the admin role must be a member of the owner role to create a database owned

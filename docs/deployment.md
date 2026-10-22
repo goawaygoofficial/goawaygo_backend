@@ -33,7 +33,7 @@ Run workflow). It:
 3. Deploys it to Cloud Run with plain settings as environment variables and secrets from Secret Manager.
 4. Checks that `GET /api/users/me` answers 401 (the app is up and security is on).
 
-On start the backend runs any new Flyway migrations as `goaway_owner`, then serves requests as `goaway_app`.
+On start the backend runs any new Flyway migrations as `goawaygo_owner`, then serves requests as `goawaygo_app`.
 
 Cloud Run settings and why:
 
@@ -42,7 +42,7 @@ Cloud Run settings and why:
 - `max-instances 1`: rate limits are kept in memory, so they only hold with a single instance.
 - `cpu-throttling` (request-based billing): CPU is given, and billed, only while a request is being handled. An
   instance kept up between uptime checks costs nothing. So nothing may run after the response: emails are sent inside
-  the request (`goaway.mail.async=false`), and forgot-password always takes at least 1.5 s so its timing doesn't
+  the request (`goawaygo.mail.async=false`), and forgot-password always takes at least 1.5 s so its timing doesn't
   reveal whether the account exists.
 - `cpu-boost`: extra CPU during startup, shorter cold starts.
 
@@ -90,7 +90,7 @@ Done once by a project owner. Commands run from the `backend` folder in Git Bash
    scripts/setup-hosted-db.sh goawaygo-staging
    ```
 
-   It creates the `goaway` database with the `goaway_owner` / `goaway_app` roles (same script as local
+   It creates the `goawaygo` database with the `goawaygo_owner` / `goawaygo_app` roles (same script as local
    development) and stores their new random passwords in Secret Manager.
 
 ### 3. Secrets
@@ -139,6 +139,7 @@ Settings → Secrets and variables → Actions → **Variables** (identifiers an
 | `CORS_ALLOWED_ORIGINS`     | `https://staging.goawaygo.com`                                         |
 | `WEB_BASE_URL`             | `https://staging.goawaygo.com`                                         |
 | `API_BASE_URL`             | `https://api.goawaygo.com`                                             |
+| `DB_NAME`, `DB_OWNER_USER`, `DB_APP_USER` | optional; only to override the default names `goawaygo` / `goawaygo_owner` / `goawaygo_app` |
 | `GOOGLE_CODE_FLOW_ENABLED` | `true` once `goaway-google-client-secret` exists                       |
 | `MAIL_FROM`                | `GoAwayGo <no-reply@goawaygo.com>` once Resend is set up (empty = no mail) |
 
@@ -207,7 +208,7 @@ status page: `status.goawaygo.com` (CNAME in Cloudflare, DNS only).
 
 ## Outside APIs
 
-Every call to an outside API (places, photos, flights, AI, ...) goes through `com.goaway.backend.external`:
+Every call to an outside API (places, photos, flights, AI, ...) goes through `com.goawaygo.backend.external`:
 timeouts, retries for temporary failures, a circuit breaker that pauses a failing provider for a minute, per-day and
 per-month usage limits kept in the database (`external_api_usage`) that refuse calls before a free tier is exceeded,
 and a database cache (`external_api_cache`) that also serves the last answer when the provider is down. When nothing
@@ -219,9 +220,9 @@ To add a provider:
 2. Add its settings to `application.properties`, limits **below** the free tier:
 
    ```properties
-   goaway.external.providers.opentripmap.base-url=https://api.opentripmap.com/0.1
-   goaway.external.providers.opentripmap.daily-limit=4500
-   goaway.external.providers.opentripmap.cache-ttl=7d
+   goawaygo.external.providers.opentripmap.base-url=https://api.opentripmap.com/0.1
+   goawaygo.external.providers.opentripmap.daily-limit=4500
+   goawaygo.external.providers.opentripmap.cache-ttl=7d
    ```
 
    Names are lowercase letters and digits only. Optional: `connect-timeout` (3s), `read-timeout` (10s),
@@ -233,7 +234,7 @@ To add a provider:
    ```
 
 4. Add the name to the repo variable `EXTERNAL_API_PROVIDERS` (space-separated, e.g. `opentripmap unsplash`). The deploy
-   passes the key as `GOAWAY_EXTERNAL_PROVIDERS_<NAME>_APIKEY`. Locally, put that variable in `.env`.
+   passes the key as `GOAWAYGO_EXTERNAL_PROVIDERS_<NAME>_APIKEY`. Locally, put that variable in `.env`.
 5. Use it from a feature: `externalApis.client("opentripmap").cached(key, Type.class, (http, apiKey) -> ...)`.
 
 Calls so far are in the database: `SELECT * FROM external_api_usage ORDER BY period_start DESC;`. Reaching a limit

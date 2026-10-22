@@ -111,6 +111,6 @@ Database rules:
 
 - Schema changes are **Flyway migrations** in `src/main/resources/db/migration` (`V<n>__<description>.sql`).
   Never edit a migration after it has been merged; add a new one.
-- The backend connects as `goaway_app` (data only). Only Flyway, as `goaway_owner`, changes the schema.
+- The backend connects as `goawaygo_app` (data only). Only Flyway, as `goawaygo_owner`, changes the schema.
 - Secrets (database passwords) go in `.env` locally and in environment variables when deployed, never in
   `application.properties`.

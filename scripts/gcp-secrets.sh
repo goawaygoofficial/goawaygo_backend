@@ -5,7 +5,7 @@
 #   Usage:  scripts/gcp-secrets.sh <project-id> jwt              new ES256 key pair for login tokens
 #           scripts/gcp-secrets.sh <project-id> google           Google Web client secret (website Google button)
 #           scripts/gcp-secrets.sh <project-id> resend           Resend API key (email)
-#           scripts/gcp-secrets.sh <project-id> provider <name>  an outside API's key (goaway-api-<name>), readable by
+#           scripts/gcp-secrets.sh <project-id> provider <name>  an outside API's key (goawaygo-api-<name>), readable by
 #                                                                the backend right away; then add <name> to the repo
 #                                                                variable EXTERNAL_API_PROVIDERS (docs/deployment.md)
 #           scripts/gcp-secrets.sh <project-id> access           let the backend's service account read them all
@@ -39,7 +39,7 @@ read_hidden() { # prompt -> value
 
 case "$WHAT" in
   jwt)
-    # ES256 (P-256) pair, base64 DER: PKCS#8 private, X.509 public, as goaway.auth.jwt.* expects.
+    # ES256 (P-256) pair, base64 DER: PKCS#8 private, X.509 public, as goawaygo.auth.jwt.* expects.
     key="$(openssl ecparam -name prime256v1 -genkey -noout)"
     printf '%s\n' "$key" | openssl pkcs8 -topk8 -nocrypt -outform DER | base64 | tr -d '\n' \
       | store_secret goaway-jwt-private-key
@@ -55,9 +55,9 @@ case "$WHAT" in
   provider)
     PROVIDER="${3:?Usage: scripts/gcp-secrets.sh <project-id> provider <name>   (e.g. opentripmap)}"
     [[ "$PROVIDER" =~ ^[a-z0-9]+$ ]] || { echo "Provider names are lowercase letters and digits only." >&2; exit 1; }
-    read_hidden "$PROVIDER API key" | store_secret "goaway-api-$PROVIDER"
-    gcloud secrets add-iam-policy-binding "goaway-api-$PROVIDER" --project "$PROJECT_ID"       --member "serviceAccount:$RUNTIME_SA" --role roles/secretmanager.secretAccessor >/dev/null
-    echo "goaway-backend can read goaway-api-$PROVIDER"
+    read_hidden "$PROVIDER API key" | store_secret "goawaygo-api-$PROVIDER"
+    gcloud secrets add-iam-policy-binding "goawaygo-api-$PROVIDER" --project "$PROJECT_ID"       --member "serviceAccount:$RUNTIME_SA" --role roles/secretmanager.secretAccessor >/dev/null
+    echo "goaway-backend can read goawaygo-api-$PROVIDER"
     ;;
   access)
     for name in "${ALL_SECRETS[@]}"; do

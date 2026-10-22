@@ -1,6 +1,6 @@
 # Production image for the GoAwayGo backend (deployed to Google Cloud Run; see docs/deployment.md).
-#   Build:  docker build -t goaway-backend .
-#   Run:    docker run --rm -p 8080:8080 --env-file .env goaway-backend   (local check only)
+#   Build:  docker build -t goawaygo-backend .
+#   Run:    docker run --rm -p 8080:8080 --env-file .env goawaygo-backend   (local check only)
 # Tests are not run here: CI runs the full test suite before anything is deployed.
 
 # ---- Build: compile the Spring Boot jar and split it into cache-friendly layers ----
@@ -21,7 +21,7 @@ RUN ./mvnw --batch-mode --no-transfer-progress -DskipTests package \
 FROM eclipse-temurin:17-jre-noble
 WORKDIR /app
 
-RUN groupadd --system goaway && useradd --system --gid goaway --no-create-home goaway
+RUN groupadd --system goawaygo && useradd --system --gid goawaygo --no-create-home goawaygo
 
 # Least-changing layers first, so a code change only replaces the small application layer.
 COPY --from=build /workspace/extracted/dependencies/ ./
@@ -29,7 +29,7 @@ COPY --from=build /workspace/extracted/spring-boot-loader/ ./
 COPY --from=build /workspace/extracted/snapshot-dependencies/ ./
 COPY --from=build /workspace/extracted/application/ ./
 
-USER goaway
+USER goawaygo
 
 # Cloud Run sends traffic to $PORT (8080 by default); server.port reads it.
 EXPOSE 8080

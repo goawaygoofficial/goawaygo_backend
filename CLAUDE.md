@@ -67,7 +67,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 ## Database (backend)
 
-- Roles: `postgres` (container superuser, setup only) · `goaway_owner` (owns schema; Flyway only) · `goaway_app` (runtime; SELECT/INSERT/UPDATE/DELETE, no DDL). Created by `docker/postgres/init/01-create-roles.sh`, reused by tests; `DatabaseSetupTests` verifies it.
+- Roles: `postgres` (container superuser, setup only) · `goawaygo_owner` (owns schema; Flyway only) · `goawaygo_app` (runtime; SELECT/INSERT/UPDATE/DELETE, no DDL). Created by `docker/postgres/init/01-create-roles.sh`, reused by tests; `DatabaseSetupTests` verifies it.
 - Schema changes only via new Flyway migrations `src/main/resources/db/migration/V<n>__<desc>.sql`; never edit a merged migration.
 - Backend runs in UTC (`BackendApplication.main` + surefire `-Duser.timezone=UTC`): Windows reports the legacy zone `Asia/Calcutta`, which PostgreSQL 17 (Debian 13 image) rejects.
 - Keep the `postgres:` image tag in `compose.yaml` and `PostgresIntegrationTest` in sync.
@@ -76,7 +76,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 - Access token: ES256 JWT, **20 min**, `Authorization: Bearer`; not stored. Keys: `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` (base64 DER) in `backend/.env`; each environment has its own pair; never print or commit them.
 - Refresh token: random, **30 days**, stored only as SHA-256 in `refresh_tokens`; rotated on every use; reuse of a rotated token revokes the whole family.
-- Mobile sends `X-Client-Type: mobile` → refresh token in JSON body (store in Keychain/Keystore). Web → refresh token only in `HttpOnly; Secure; SameSite=Strict` cookie `goaway_refresh` on `/api/auth`; keep access token in memory, never `localStorage`.
+- Mobile sends `X-Client-Type: mobile` → refresh token in JSON body (store in Keychain/Keystore). Web → refresh token only in `HttpOnly; Secure; SameSite=Strict` cookie `goawaygo_refresh` on `/api/auth`; keep access token in memory, never `localStorage`.
 - Profile: `GET /api/users/me` (own profile only). There is no `GET /api/auth/users/{id}`: the old frontend code that calls it must be replaced.
 - Errors: always `{status, error, message[, fieldErrors]}`; clients branch on `error`.
 - Never trust identity from the client; derive the user from the access token (`jwt.getSubject()`).

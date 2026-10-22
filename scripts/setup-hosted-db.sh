@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time setup of a hosted PostgreSQL database (Neon now, Cloud SQL at launch) for a GoAwayGo environment:
-# creates the goaway database and its two least-privilege roles with fresh random passwords, and stores the
+# creates the goawaygo database and its two least-privilege roles with fresh random passwords, and stores the
 # passwords straight into Google Secret Manager. No password is printed or written to disk.
 #
 #   Usage:  scripts/setup-hosted-db.sh <project-id>
@@ -8,8 +8,8 @@
 #   Asks:   the database host and the provider's admin user + password (Neon: Dashboard -> Connect).
 #
 # Uses the same role script as local development (docker/postgres/init/01-create-roles.sh):
-#   goaway_owner  owns the schema, used only by Flyway migrations
-#   goaway_app    used by the running backend: reads/writes data, cannot change the schema
+#   goawaygo_owner  owns the schema, used only by Flyway migrations
+#   goawaygo_app    used by the running backend: reads/writes data, cannot change the schema
 set -euo pipefail
 
 PROJECT_ID="${1:?Usage: scripts/setup-hosted-db.sh <project-id>}"
@@ -27,15 +27,15 @@ random_password() { openssl rand -base64 33 | tr '+/' '-_' | tr -d '='; }
 OWNER_PASSWORD="$(random_password)"
 APP_PASSWORD="$(random_password)"
 
-echo "==> Creating database 'goaway' and roles goaway_owner / goaway_app on $DB_HOST"
+echo "==> Creating database 'goawaygo' and roles goawaygo_owner / goawaygo_app on $DB_HOST"
 # Values go in as environment variables (not command-line arguments), so they don't show up in process lists.
 MSYS_NO_PATHCONV=1 \
-PGPASSWORD="$ADMIN_PASSWORD" GOAWAY_OWNER_PASSWORD="$OWNER_PASSWORD" GOAWAY_APP_PASSWORD="$APP_PASSWORD" \
+PGPASSWORD="$ADMIN_PASSWORD" GOAWAYGO_OWNER_PASSWORD="$OWNER_PASSWORD" GOAWAYGO_APP_PASSWORD="$APP_PASSWORD" \
 docker run --rm \
   -e PGHOST="$DB_HOST" -e PGSSLMODE=require -e PGPASSWORD \
   -e POSTGRES_USER="$ADMIN_USER" -e POSTGRES_DB="$ADMIN_DB" \
-  -e GOAWAY_DB_NAME=goaway -e GOAWAY_OWNER_USER=goaway_owner -e GOAWAY_OWNER_PASSWORD \
-  -e GOAWAY_APP_USER=goaway_app -e GOAWAY_APP_PASSWORD \
+  -e GOAWAYGO_DB_NAME=goawaygo -e GOAWAYGO_OWNER_USER=goawaygo_owner -e GOAWAYGO_OWNER_PASSWORD \
+  -e GOAWAYGO_APP_USER=goawaygo_app -e GOAWAYGO_APP_PASSWORD \
   -v "$PWD/docker/postgres/init:/init:ro" \
   postgres:17.11 bash /init/01-create-roles.sh
 

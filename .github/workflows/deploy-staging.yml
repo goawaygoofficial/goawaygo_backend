@@ -70,16 +70,19 @@ jobs:
           cat > env.yaml <<EOF
           DB_HOST: "${{ vars.DB_HOST }}"
           DB_PORT: "5432"
-          DB_NAME: "goaway"
+          # Database and role names: repo variables override the defaults (used while renaming an environment).
+          DB_NAME: "${{ vars.DB_NAME || 'goawaygo' }}"
+          DB_OWNER_USER: "${{ vars.DB_OWNER_USER || 'goawaygo_owner' }}"
+          DB_APP_USER: "${{ vars.DB_APP_USER || 'goawaygo_app' }}"
           DB_SSL_MODE: "verify-full"
           FORWARD_HEADERS_STRATEGY: "native"
           CORS_ALLOWED_ORIGINS: "${{ vars.CORS_ALLOWED_ORIGINS }}"
           WEB_BASE_URL: "${{ vars.WEB_BASE_URL }}"
           GOOGLE_CLOUD_PROJECT: "${{ vars.GCP_PROJECT_ID }}"
-          LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goaway.backend.logging.CloudLoggingFormatter"
+          LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goawaygo.backend.logging.CloudLoggingFormatter"
           SENTRY_DSN: "${{ vars.SENTRY_DSN }}"
           SENTRY_ENVIRONMENT: "staging"
-          SENTRY_RELEASE: "goaway-backend@${{ github.event.workflow_run.head_sha || github.sha }}"
+          SENTRY_RELEASE: "goawaygo-backend@${{ github.event.workflow_run.head_sha || github.sha }}"
           EOF
 
           # Secrets come from Secret Manager at runtime; GitHub never sees them.
@@ -100,15 +103,15 @@ jobs:
             secrets="$secrets,MAIL_PASSWORD=goaway-resend-api-key:latest"
           fi
 
-          # Outside API keys (com.goaway.backend.external): repo variable EXTERNAL_API_PROVIDERS lists the providers
-          # with a key, e.g. "opentripmap unsplash"; each key is the secret goaway-api-<name>
+          # Outside API keys (com.goawaygo.backend.external): repo variable EXTERNAL_API_PROVIDERS lists the providers
+          # with a key, e.g. "opentripmap unsplash"; each key is the secret goawaygo-api-<name>
           # (scripts/gcp-secrets.sh <project> provider <name>).
           for provider in $EXTERNAL_API_PROVIDERS; do
             case "$provider" in
               *[!a-z0-9]*) echo "Provider names are lowercase letters and digits only: $provider" >&2; exit 1 ;;
             esac
             upper="$(echo "$provider" | tr '[:lower:]' '[:upper:]')"
-            secrets="$secrets,GOAWAY_EXTERNAL_PROVIDERS_${upper}_APIKEY=goaway-api-${provider}:latest"
+            secrets="$secrets,GOAWAYGO_EXTERNAL_PROVIDERS_${upper}_APIKEY=goawaygo-api-${provider}:latest"
           done
 
           # max-instances 1: rate limits are kept in memory (one instance). min-instances 0: free when idle.
