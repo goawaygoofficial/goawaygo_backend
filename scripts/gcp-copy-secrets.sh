@@ -18,9 +18,12 @@ for suffix in db-owner-password db-app-password jwt-private-key jwt-public-key g
     gcloud secrets create "$new" --project "$PROJECT_ID" --replication-policy automatic >/dev/null
   fi
   # Byte-exact copy (Google's documented way): the raw payload, base64url-decoded; no newline is added.
-  gcloud secrets versions access latest --secret "$old" --project "$PROJECT_ID" --format 'get(payload.data)' \
-    | tr '_-' '/+' | base64 -d \
-    | gcloud secrets versions add "$new" --project "$PROJECT_ID" --data-file=- >/dev/null
+  # The payload comes without "=" padding, which base64 -d needs. It stays encoded in memory, never printed.
+  data="$(gcloud secrets versions access latest --secret "$old" --project "$PROJECT_ID" --format 'get(payload.data)' \
+    | tr '_-' '/+')"
+  while (( ${#data} % 4 )); do data+="="; done
+  printf '%s' "$data" | base64 -d | gcloud secrets versions add "$new" --project "$PROJECT_ID" --data-file=- >/dev/null
+  unset data
   echo "copied $old -> $new"
 done
 echo "Done. Tell Claude \"secrets copied\"."
