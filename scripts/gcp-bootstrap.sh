@@ -7,10 +7,10 @@
 #
 # Creates:
 #   - the APIs the backend uses
-#   - Artifact Registry repository "goaway" (Docker images), keeping only the newest images
-#   - service account goaway-backend: the identity the running backend uses (reads its secrets, nothing else)
-#   - service account goaway-deployer: what GitHub Actions deploys as
-#   - Workload Identity Federation: GitHub Actions in goawaygoofficial/goawaygo_backend can act as goaway-deployer
+#   - Artifact Registry repository "goawaygo" (Docker images), keeping only the newest images
+#   - service account goawaygo-backend: the identity the running backend uses (reads its secrets, nothing else)
+#   - service account goawaygo-deployer: what GitHub Actions deploys as
+#   - Workload Identity Federation: GitHub Actions in goawaygoofficial/goawaygo_backend can act as goawaygo-deployer
 #     without any stored key (short-lived tokens only)
 set -euo pipefail
 
@@ -19,11 +19,11 @@ REGION="${REGION:-asia-southeast1}"
 GITHUB_REPO="${GITHUB_REPO:-goawaygoofficial/goawaygo_backend}"
 # GitHub's numeric repository ID: unlike the name, it survives renames of the repo or the account.
 GITHUB_REPO_ID="${GITHUB_REPO_ID:?Set GITHUB_REPO_ID first: gh api repos/$GITHUB_REPO --jq .id}"
-REPOSITORY=goaway
+REPOSITORY=goawaygo
 POOL=github
-PROVIDER=goaway-backend
-RUNTIME_SA="goaway-backend@${PROJECT_ID}.iam.gserviceaccount.com"
-DEPLOY_SA="goaway-deployer@${PROJECT_ID}.iam.gserviceaccount.com"
+PROVIDER=goawaygo-backend
+RUNTIME_SA="goawaygo-backend@${PROJECT_ID}.iam.gserviceaccount.com"
+DEPLOY_SA="goawaygo-deployer@${PROJECT_ID}.iam.gserviceaccount.com"
 
 gcloud config set project "$PROJECT_ID" >/dev/null
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
@@ -48,11 +48,11 @@ rm -f "$policy"
 
 echo "==> Service accounts"
 gcloud iam service-accounts describe "$RUNTIME_SA" >/dev/null 2>&1 \
-  || gcloud iam service-accounts create goaway-backend --display-name "GoAwayGo backend (runtime)"
+  || gcloud iam service-accounts create goawaygo-backend --display-name "GoAwayGo backend (runtime)"
 gcloud iam service-accounts describe "$DEPLOY_SA" >/dev/null 2>&1 \
-  || gcloud iam service-accounts create goaway-deployer --display-name "GoAwayGo deployer (GitHub Actions)"
+  || gcloud iam service-accounts create goawaygo-deployer --display-name "GoAwayGo deployer (GitHub Actions)"
 
-echo "==> Deployer permissions: push images, deploy Cloud Run, run the service as goaway-backend"
+echo "==> Deployer permissions: push images, deploy Cloud Run, run the service as goawaygo-backend"
 gcloud artifacts repositories add-iam-policy-binding "$REPOSITORY" --location "$REGION" \
   --member "serviceAccount:$DEPLOY_SA" --role roles/artifactregistry.writer >/dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:$DEPLOY_SA" \

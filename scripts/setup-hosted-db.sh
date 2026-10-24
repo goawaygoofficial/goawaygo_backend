@@ -49,8 +49,8 @@ store_secret() { # name, value (from stdin, never echoed)
 }
 
 echo "==> Storing the role passwords in Secret Manager ($PROJECT_ID)"
-printf '%s' "$OWNER_PASSWORD" | store_secret goaway-db-owner-password
-printf '%s' "$APP_PASSWORD" | store_secret goaway-db-app-password
+printf '%s' "$OWNER_PASSWORD" | store_secret goawaygo-db-owner-password
+printf '%s' "$APP_PASSWORD" | store_secret goawaygo-db-app-password
 
 cat <<EOF
 

@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SERVICE: goaway-backend
-  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/goaway/backend
+  SERVICE: goawaygo-backend
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/goawaygo/backend
 
 jobs:
   deploy:
@@ -86,10 +86,10 @@ jobs:
           EOF
 
           # Secrets come from Secret Manager at runtime; GitHub never sees them.
-          secrets="DB_OWNER_PASSWORD=goaway-db-owner-password:latest,DB_APP_PASSWORD=goaway-db-app-password:latest"
-          secrets="$secrets,JWT_PRIVATE_KEY=goaway-jwt-private-key:latest,JWT_PUBLIC_KEY=goaway-jwt-public-key:latest"
+          secrets="DB_OWNER_PASSWORD=goawaygo-db-owner-password:latest,DB_APP_PASSWORD=goawaygo-db-app-password:latest"
+          secrets="$secrets,JWT_PRIVATE_KEY=goawaygo-jwt-private-key:latest,JWT_PUBLIC_KEY=goawaygo-jwt-public-key:latest"
           if [ "$GOOGLE_CODE_FLOW" = "true" ]; then
-            secrets="$secrets,GOOGLE_CLIENT_SECRET=goaway-google-client-secret:latest"
+            secrets="$secrets,GOOGLE_CLIENT_SECRET=goawaygo-google-client-secret:latest"
           fi
           if [ -n "$MAIL_FROM" ]; then
             cat >> env.yaml <<EOF
@@ -100,7 +100,7 @@ jobs:
           MAIL_SMTP_STARTTLS: "true"
           MAIL_FROM: "${MAIL_FROM}"
           EOF
-            secrets="$secrets,MAIL_PASSWORD=goaway-resend-api-key:latest"
+            secrets="$secrets,MAIL_PASSWORD=goawaygo-resend-api-key:latest"
           fi
 
           # Outside API keys (com.goawaygo.backend.external): repo variable EXTERNAL_API_PROVIDERS lists the providers
