@@ -5,7 +5,25 @@ REST API for **GoAwayGo**, a travel app. Built with Spring Boot and PostgreSQL.
 Frontends: [app](https://github.com/goawaygoofficial/goawaygo_app_frontend) (Flutter) ·
 [web](https://github.com/goawaygoofficial/goawaygo_web_frontend) (React).
 
-> **Status:** email/password and Google Sign-In are implemented. Password reset by email is next.
+> **Status (beta):** accounts (email/password, Google Sign-In, email verification, password reset), health check,
+> error tracking and the outside-API toolkit are live on staging. Travel features arrive from Phase 4.1 (`ROADMAP.md`).
+
+## Documentation
+
+New here? Read these in order:
+
+| File | What it's for |
+| --- | --- |
+| `README.md` (this file) | What this part does and how to run it locally |
+| `CONTRIBUTING.md` | Branches, commits, PRs and checks |
+| `FOUNDATIONS.md` | Every service and tool GoAwayGo uses, what it's for, free limits, where it's configured |
+| `LINKS.md` | Every dashboard and console, a weekly checklist, and how to give a new developer access |
+| `CLAUDE.md` | Project facts and conventions (also read by Claude Code) |
+| `RELEASING.md` | What happens after a merge, how to release, version numbers, rollbacks |
+| `ROADMAP.md` | What's done and what's next |
+| `docs/` | Details for this repo (deployment, outside APIs) |
+
+`CLAUDE.md`, `FOUNDATIONS.md`, `LINKS.md`, `RELEASING.md` and `ROADMAP.md` are the same in all three repos.
 
 ## Tech stack
 
