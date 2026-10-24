@@ -57,7 +57,7 @@ Google Cloud.
 ### Later sub-phases
 
 Detailed checklists are added when each sub-phase starts. Accounts expected: OpenTripMap, Unsplash (4.1);
-Travelpayouts and partner programs (4.2); R2 bucket `goaway-user-media` (4.3); Anthropic, ~$5 credit (4.5); Firebase
+Travelpayouts and partner programs (4.2); R2 bucket `goawaygo-user-media` (4.3); Anthropic, ~$5 credit (4.5); Firebase
 config for push (4.6).
 
 ## Phase 5 — Launch
