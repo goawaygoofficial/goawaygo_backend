@@ -2,13 +2,13 @@
 
 # GoAwayGo
 
-Workspace with three separate git repos. Start Claude sessions in this `GoAwayGo` folder so all of them are available.
+Workspace with three separate git repos. Start Claude sessions in this folder (on disk: `Dev/Goaway`) so all of them are available.
 
 | Folder          | Stack                                                                                                                        | GitHub repo (private)                    |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `app_frontend/` | Flutter (Dart SDK ^3.7), provider, http, google_sign_in, flutter_dotenv                                                      | `goawaygoofficial/goawaygo_app_frontend` |
+| `app_frontend/` | Flutter 3.47 (Dart ^3.13), provider, http, google_sign_in, flutter_secure_storage, Sentry, PostHog                           | `goawaygoofficial/goawaygo_app_frontend` |
 | `web_frontend/` | React 19, TypeScript (strict), Vite 8, react-router-dom 7, CSS Modules — web version of the app, mirrors it screen by screen | `goawaygoofficial/goawaygo_web_frontend` |
-| `backend/`      | Spring Boot 4.1, Java 17, Maven (`mvnw`), PostgreSQL 17 (Docker Compose locally, Testcontainers in tests), Flyway            | `goawaygoofficial/goawaygo_backend`      |
+| `backend/`      | Spring Boot 4.1, Java 17, Maven (`mvnw`), PostgreSQL 17 (Docker Compose locally, Testcontainers in tests), Flyway, Sentry    | `goawaygoofficial/goawaygo_backend`      |
 
 This parent folder is NOT a git repo — run git/gh commands inside `app_frontend/`, `web_frontend/` or `backend/`.
 
@@ -105,3 +105,4 @@ Domain `goawaygo.com` (Cloudflare Registrar + DNS). Website and API must stay on
 - Cloud Run: min 0 instances (cold start ~7–10 s after idle), max 1 (in-memory rate limits), request-based billing (CPU only during requests; emails sent inside the request). Health: `GET /actuator/health` (no DB check, so Neon can sleep).
 - Google free trial ends 90 days after sign-up: upgrade billing before then or the project stops.
 - After a merge: backend and website deploy themselves; Android builds are released by hand with `app_frontend/scripts/release-android.sh` (upload key on the release PC only). Step by step: `RELEASING.md` (copy in every repo). What's next: `ROADMAP.md` (copy in every repo; tick items as they ship).
+- Shared docs, identical in the workspace root and every repo (edit the root copy, then copy it into the three repos with their `<!-- Copy of ... -->` header): `CLAUDE.md`, `RELEASING.md`, `ROADMAP.md`, `FOUNDATIONS.md` (what each service is for) and `LINKS.md` (dashboards, routine, onboarding).
