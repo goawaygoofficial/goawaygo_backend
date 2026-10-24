@@ -65,7 +65,7 @@ Add a row for every release.
 | New backend secret (API key etc.) | Stored with a hidden-input script into Google Secret Manager (`backend/scripts/gcp-secrets.sh`)                                       |
 | New website setting (`VITE_*`)    | Cloudflare → goaway-web-frontend → Settings → Variables, then redeploy                                                                |
 | Database change                   | Nothing: Flyway migrates on deploy. Keep migrations additive so a rollback still works.                                               |
-| Backend broken on staging         | `gcloud run services update-traffic goaway-backend --region asia-southeast1 --to-revisions REVISION=100` (backend/docs/deployment.md) |
+| Backend broken on staging         | `gcloud run services update-traffic goawaygo-backend --region asia-southeast1 --to-revisions REVISION=100` (backend/docs/deployment.md) |
 | Website broken on staging         | Cloudflare → goaway-web-frontend → Deployments → earlier deployment → **Rollback**                                                    |
 | Bad app build                     | Release a fixed build with a higher build number; delete the bad files from R2 and purge their URLs in Cloudflare cache               |
 
