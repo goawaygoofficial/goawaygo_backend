@@ -15,20 +15,21 @@ Shared by all three repos; how to ship is in `RELEASING.md`.
 
 ## Phase 4 — Features
 
-Decisions (recommended; to confirm after 4.0): partner links now (Travelpayouts), own booking after the company is
-registered · AI planner on Claude Haiku 5.5 · Wanderbook beta = posts + photos + follow + likes (comments later) ·
-phone number optional, no SMS · India-first (INR default).
+Direction (confirmed 2026-10-25): **free resources only** until launch · **global market** (English first, every
+currency) · bookings through **affiliate partners** (commission; users book on the partner's site) · Wanderbook like
+Instagram · phone sign-in with SMS. Each sub-phase's own choices (providers, limits) are decided when it starts and
+recorded in its section below.
 
-| Sub-phase                        | What users get                                                                                 | Status  |
-| -------------------------------- | ---------------------------------------------------------------------------------------------- | ------- |
-| **4.0 Foundations**              | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                | Done    |
-| **4.1 Destinations & discovery** | Real destination info (facts, visa, weather, currency, attractions, photos, map), smart search | Next    |
-| **4.2 Flights, Stays, Rentals**  | Real prices; "Book" opens the partner (affiliate commission)                                   | Planned |
-| **4.3 Personal**                 | Saved, Recently Viewed, My Trips, edit profile, profile photo, delete account                  | Planned |
-| **4.4 Wanderbook**               | Posts with photos, follow, likes, feed, search, report and block                               | Planned |
-| **4.5 AI trip planner**          | Day-by-day itinerary, saved to My Trips                                                        | Planned |
-| **4.6 Notifications**            | Push notifications and the bell on Home                                                        | Planned |
-| **4.7 Launch readiness**         | Beta fixes, speed, accessibility, security review                                              | Planned |
+| Sub-phase                 | What users get                                                                                                                                           | Status  |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
+| **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Next    |
+| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Planned |
+| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Planned |
+| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Planned |
+| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Planned |
+| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
+| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
 
 ### 4.0 Foundations
 
@@ -56,9 +57,14 @@ Google Cloud.
 
 ### Later sub-phases
 
-Detailed checklists are added when each sub-phase starts. Accounts expected: OpenTripMap, Unsplash (4.1);
-Travelpayouts and partner programs (4.2); R2 bucket `goawaygo-user-media` (4.3); Anthropic, ~$5 credit (4.5); Firebase
-config for push (4.6).
+A detailed checklist (and that sub-phase's decisions) is added when it starts. Notes so far:
+
+- **4.3 Book:** start with Travelpayouts (free, accepts new apps: Trip.com, Kiwi.com, Agoda, DiscoverCars,
+  EconomyBookings, ...); apply directly to Skyscanner, Booking.com, Expedia, KAYAK/Momondo once there is traffic
+  (they ask for an existing audience). Vistara no longer exists (merged into Air India, Nov 2024).
+- **4.4 AI:** a free tier that doesn't train on our data (e.g. Cloudflare Workers AI) until there is a budget.
+- **4.6 Me:** SMS is never free (Firebase: ~10/day free, then billed per SMS by country): cap it during the beta.
+- Wanderbook photos: R2 bucket `goawaygo-user-media`. Push: Firebase Cloud Messaging (free).
 
 ## Phase 5 — Launch
 
