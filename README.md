@@ -61,7 +61,7 @@ Either way, the backend then:
 
 1. **Verifies the token**: RS256 signature against Google's published keys
    (`https://www.googleapis.com/oauth2/v3/certs`, cached), issuer `accounts.google.com`, not expired, and the
-   audience is one of **our** client IDs (`goaway.auth.google.client-ids`: Web and iOS). Tokens issued to other
+   audience is one of **our** client IDs (`goawaygo.auth.google.client-ids`: Web and iOS). Tokens issued to other
    apps are rejected.
 2. **Requires `email_verified`** from Google (`403 google_email_not_verified` otherwise).
 3. **Finds or creates the account**:
@@ -132,7 +132,7 @@ The public auth endpoints are rate limited (token buckets, refilled gradually). 
 | `reset-password`, `verify-email`      | 20 / minute per IP                                                                         |
 | `resend-verification`                 | 3 / hour per user                                                                          |
 
-Limits are settings (`goaway.rate-limit.*` in `application.properties`); `RATE_LIMIT_ENABLED=false` turns them
+Limits are settings (`goawaygo.rate-limit.*` in `application.properties`); `RATE_LIMIT_ENABLED=false` turns them
 off. They are kept **in memory per backend instance**; with several instances, move them to a shared store
 (Bucket4j supports Redis and PostgreSQL). The client IP is the connection address. `X-Forwarded-For` is not
 trusted, so behind a reverse proxy configure Spring's forwarded-header support for the proxy.
@@ -164,7 +164,7 @@ docker compose up -d
 
 This starts PostgreSQL 17 on `127.0.0.1:5433` (only reachable from your machine) and **Mailpit**, which catches
 every email the backend sends: open **http://localhost:8025** to read them. On first start it creates the
-`goaway` database and its roles (see [Database](#database)).
+`goawaygo` database and its roles (see [Database](#database)).
 
 ### 4. Run the backend
 
@@ -181,8 +181,8 @@ Flyway applies any pending migrations, then the API starts at `http://localhost:
 | Role           | Used by              | Can                                                           |
 | -------------- | -------------------- | ------------------------------------------------------------- |
 | `postgres`     | Container setup only | Everything (superuser). Never used by the backend.            |
-| `goaway_owner` | Flyway migrations    | Create / alter / drop tables in the `goaway` database         |
-| `goaway_app`   | The running backend  | Read and write data. **Cannot** create, alter or drop tables. |
+| `goawaygo_owner` | Flyway migrations    | Create / alter / drop tables in the `goawaygo` database         |
+| `goawaygo_app`   | The running backend  | Read and write data. **Cannot** create, alter or drop tables. |
 
 Created by [`docker/postgres/init/01-create-roles.sh`](docker/postgres/init/01-create-roles.sh). The tests use the
 same script, and `DatabaseSetupTests` verifies these permissions.
@@ -195,8 +195,8 @@ Schema changes are SQL files in `src/main/resources/db/migration`, named `V<numb
 
 ### Connect with pgAdmin
 
-Add a server: **Host** `localhost`, **Port** `5433`, **Database** `goaway`, **Username** `goaway_owner`
-(or `goaway_app` for read/write-only), **Password** from your `.env`.
+Add a server: **Host** `localhost`, **Port** `5433`, **Database** `goawaygo`, **Username** `goawaygo_owner`
+(or `goawaygo_app` for read/write-only), **Password** from your `.env`.
 
 ### Useful commands
 

@@ -8,7 +8,7 @@
 		<version>4.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.goaway</groupId>
+	<groupId>com.goawaygo</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
@@ -81,7 +81,7 @@
 		</dependency>
 
 		<!-- Error tracking (Sentry). Off unless SENTRY_DSN is set; ERROR logs become Sentry events. -->
-		<!-- Outside APIs (com.goaway.backend.external): circuit breaker and retries. Core modules only; the Spring
+		<!-- Outside APIs (com.goawaygo.backend.external): circuit breaker and retries. Core modules only; the Spring
 		     Boot starter targets Boot 3. -->
 		<dependency>
 			<groupId>io.github.resilience4j</groupId>
