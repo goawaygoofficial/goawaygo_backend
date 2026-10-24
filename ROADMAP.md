@@ -21,8 +21,8 @@ phone number optional, no SMS · India-first (INR default).
 
 | Sub-phase                        | What users get                                                                                 | Status  |
 | -------------------------------- | ---------------------------------------------------------------------------------------------- | ------- |
-| **4.0 Foundations**              | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                | Next    |
-| **4.1 Destinations & discovery** | Real destination info (facts, visa, weather, currency, attractions, photos, map), smart search | Planned |
+| **4.0 Foundations**              | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                | Done    |
+| **4.1 Destinations & discovery** | Real destination info (facts, visa, weather, currency, attractions, photos, map), smart search | Next    |
 | **4.2 Flights, Stays, Rentals**  | Real prices; "Book" opens the partner (affiliate commission)                                   | Planned |
 | **4.3 Personal**                 | Saved, Recently Viewed, My Trips, edit profile, profile photo, delete account                  | Planned |
 | **4.4 Wanderbook**               | Posts with photos, follow, likes, feed, search, report and block                               | Planned |
@@ -49,7 +49,7 @@ Google Cloud.
 - [x] **4.0d Analytics with consent** — Cloudflare Web Analytics on the website (cookieless, aggregate, no consent
       needed); PostHog (product analytics + feature flags) in website and app, **only after the user agrees**, with a
       short event list and no personal data in events; consent choice changeable in Profile.
-- [ ] **4.0e API toolkit (backend)** — one way to call outside APIs: timeouts, retries and circuit breaker
+- [x] **4.0e API toolkit (backend)** — one way to call outside APIs: timeouts, retries and circuit breaker
       (Resilience4j), a database cache table with expiry, per-provider usage counters that stop before a free limit
       is exceeded, keys from Secret Manager. Plus a vulnerability scan of dependencies in CI (OSV-Scanner) for all
       repos.

@@ -52,9 +52,10 @@ Check `https://staging.goawaygo.com/download`, then install it on a phone over t
 
 ### Release history
 
-| Date       | Version | Build | Notes                                                   |
-| ---------- | ------- | ----- | ------------------------------------------------------- |
-| 2026-10-17 | 1.0.0   | 4     | First public beta (build 3 withdrawn: version-code bug) |
+| Date       | Version | Build | Notes                                                                                                                                                                                                                                                                  |
+| ---------- | ------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-17 | 1.0.0   | 4     | First public beta (build 3 withdrawn: version-code bug)                                                                                                                                                                                                                |
+| 2026-10-24 | 1.0.0   | 6     | First GoAwayGo build: new name and app ID `com.goawaygo.app` (testers install it, then remove the old Goaway app); legal links, optional usage statistics, Sentry 10, Android 8.0+. Build 5 skipped (an untracked upload with placeholder notes, 2026-10-17, replaced) |
 
 Add a row for every release.
 
