@@ -7,11 +7,11 @@ What happens after a merge to `develop`, and how to publish a new Android build.
 
 ## After every merge to `develop`
 
-| Part        | You do                                | Happens automatically                                                                                          | Check                                                         |
-| ----------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Backend     | Nothing                               | CI tests → deploy to Google Cloud Run (`api.goawaygo.com`) → smoke test; Flyway applies DB migrations (~5 min) | GitHub → goawaygo_backend → Actions → **Deploy staging** ✅   |
-| Website     | Nothing                               | Cloudflare Pages builds and publishes `staging.goawaygo.com` (~2 min)                                          | Cloudflare → Workers & Pages → **goawaygo-web** → Deployments |
-| Android app | Release it (below) when worth testing | Nothing: it is signed with the upload key that exists only on the release PC                                   | `https://staging.goawaygo.com/download` shows the new version |
+| Part        | You do                                | Happens automatically                                                                                          | Check                                                                  |
+| ----------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Backend     | Nothing                               | CI tests → deploy to Google Cloud Run (`api.goawaygo.com`) → smoke test; Flyway applies DB migrations (~5 min) | GitHub → goawaygo_backend → Actions → **Deploy staging** ✅            |
+| Website     | Nothing                               | Cloudflare Pages builds and publishes `staging.goawaygo.com` (~2 min)                                          | Cloudflare → Workers & Pages → **goawaygo-web-frontend** → Deployments |
+| Android app | Release it (below) when worth testing | Nothing: it is signed with the upload key that exists only on the release PC                                   | `https://staging.goawaygo.com/download` shows the new version          |
 
 The app doesn't need a release after every merge: release at the end of a feature or when testers should try
 something.
@@ -63,10 +63,10 @@ Add a row for every release.
 | Situation                         | What to do                                                                                                                              |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | New backend secret (API key etc.) | Stored with a hidden-input script into Google Secret Manager (`backend/scripts/gcp-secrets.sh`)                                         |
-| New website setting (`VITE_*`)    | Cloudflare → goawaygo-web → Settings → Variables, then redeploy                                                                         |
+| New website setting (`VITE_*`)    | Cloudflare → goawaygo-web-frontend → Settings → Variables, then redeploy                                                                |
 | Database change                   | Nothing: Flyway migrates on deploy. Keep migrations additive so a rollback still works.                                                 |
 | Backend broken on staging         | `gcloud run services update-traffic goawaygo-backend --region asia-southeast1 --to-revisions REVISION=100` (backend/docs/deployment.md) |
-| Website broken on staging         | Cloudflare → goawaygo-web → Deployments → earlier deployment → **Rollback**                                                             |
+| Website broken on staging         | Cloudflare → goawaygo-web-frontend → Deployments → earlier deployment → **Rollback**                                                    |
 | Bad app build                     | Release a fixed build with a higher build number; delete the bad files from R2 and purge their URLs in Cloudflare cache                 |
 
 ## Production (`main`)
