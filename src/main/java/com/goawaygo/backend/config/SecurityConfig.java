@@ -48,6 +48,11 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers(HttpMethod.GET, "/actuator/health")
 				.permitAll()
+				// Discover is public; a signed-in user's token is still read (their searches become recent searches).
+				.requestMatchers(HttpMethod.GET, "/api/discover/places", "/api/discover/destination", "/api/discover/ideas")
+				.permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/discover/photos")
+				.permitAll()
 				.anyRequest()
 				.authenticated())
 			.oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults())
