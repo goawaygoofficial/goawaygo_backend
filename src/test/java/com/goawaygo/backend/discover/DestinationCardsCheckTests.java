@@ -17,9 +17,11 @@ class DestinationCardsCheckTests {
 				new RawItem("Exchange rate", "About 1 USD = 0.9 EUR", false, null),
 				new RawItem("Metro fare", "A single ticket costs about €2", false, null),
 				new RawItem("Opening hours", "Usually open 9:00 to 18:00", false, null),
-				new RawItem("Tipping", "Service is included; rounding up is appreciated", false, null)));
+				new RawItem("Tipping", "Service is included; rounding up is appreciated", false, null),
+				new RawItem("Time zone", "UTC+5:30, no daylight saving", false, null)));
 
-		assertThat(card.items()).extracting(DestinationCards.Item::mayChange).containsExactly(true, true, true, false);
+		assertThat(card.items()).extracting(DestinationCards.Item::mayChange)
+			.containsExactly(true, true, true, false, false);
 	}
 
 	@Test
