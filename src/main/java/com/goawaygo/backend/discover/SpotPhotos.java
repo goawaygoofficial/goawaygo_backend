@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 import com.goawaygo.backend.external.ExternalApis;
 
@@ -77,7 +78,15 @@ public class SpotPhotos {
 	 * the place (Unsplash photos). Spots without a photo are left out.
 	 */
 	public List<Spot> forDestination(Place place, List<String> aiSpots, List<String> wikidataSpots) {
-		List<String> fromAi = aiSpots.stream().limit(6).toList();
+		List<String> fromAi = new ArrayList<>();
+		if ("place".equals(place.type())) {
+			// A landmark's page starts with the landmark itself; its "attractions" are often parts of it ("The Summit").
+			fromAi.add(place.name());
+		}
+		aiSpots.stream()
+			.filter(spot -> fromAi.stream().noneMatch(s -> NameMatch.similar(s, spot)))
+			.limit(6 - fromAi.size())
+			.forEach(fromAi::add);
 		List<String> fromWikidata = wikidataSpots.stream()
 			.filter(hint -> fromAi.stream().noneMatch(spot -> NameMatch.similar(spot, hint)))
 			.limit(4)
@@ -308,7 +317,7 @@ public class SpotPhotos {
 		if (value == null || value.value() == null) {
 			return "";
 		}
-		String text = value.value().replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
+		String text = HtmlUtils.htmlUnescape(value.value().replaceAll("<[^>]+>", " ")).replaceAll("\\s+", " ").trim();
 		return (text.length() > 80) ? text.substring(0, 80).trim() + "…" : text;
 	}
 

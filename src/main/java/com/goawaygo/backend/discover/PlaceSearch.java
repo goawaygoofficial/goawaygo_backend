@@ -3,6 +3,7 @@ package com.goawaygo.backend.discover;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -48,11 +49,14 @@ public class PlaceSearch {
 		return places;
 	}
 
-	/** The place with this Geoapify id, or null if it doesn't exist. */
+	/**
+	 * The place with this Geoapify id, or null if it doesn't exist. Asks for the place's names in other languages
+	 * too (one more credit), because details give the local name ("日本") where suggestions gave the English one.
+	 */
 	public Place byId(String id) {
 		DetailsResponse response = this.apis.client(PROVIDER)
 			.call((http, key) -> http.get()
-				.uri("/v2/place-details?id={id}&lang=en&apiKey={key}", id, key)
+				.uri("/v2/place-details?id={id}&features=details,details.names&lang=en&apiKey={key}", id, key)
 				.retrieve()
 				.body(DetailsResponse.class));
 		if (response == null || response.features() == null || response.features().isEmpty()) {
@@ -81,9 +85,10 @@ public class PlaceSearch {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	record Result(@JsonProperty("place_id") String placeId, String name, @JsonProperty("result_type") String resultType,
-			String city, String state, String country, @JsonProperty("country_code") String countryCode, Double lat,
-			Double lon, String formatted) {
+	record Result(@JsonProperty("place_id") String placeId, String name,
+			@JsonProperty("name_international") Map<String, Object> names,
+			@JsonProperty("result_type") String resultType, String city, String state, String country,
+			@JsonProperty("country_code") String countryCode, Double lat, Double lon, String formatted) {
 
 		/**
 		 * @param resultType Geoapify's type when known (search results); for place details it is worked out from
@@ -95,7 +100,8 @@ public class PlaceSearch {
 			}
 			String city = blank(this.city);
 			String region = blank(this.state);
-			String name = firstNonBlank(this.name, city, region, this.country);
+			String english = (this.names != null && this.names.get("en") instanceof String en) ? en : null;
+			String name = firstNonBlank(english, this.name, city, region, this.country);
 			String type = type(resultType, name, city, region);
 			// "Paris, Ile-de-France, France": each part once (whole parts compared, so "France" isn't taken as
 			// already in "Ile-de-France")

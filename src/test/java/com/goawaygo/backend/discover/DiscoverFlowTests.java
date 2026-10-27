@@ -102,10 +102,33 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 		List<String> spots = JsonPath.read(page, "$.spots[*].name");
 		assertThat(spots).containsExactly("Eiffel Tower", "Louvre Museum", "Sainte-Chapelle");
 		assertThat((String) JsonPath.read(page, "$.spots[0].photo.credit"))
-			.isEqualTo("Photo: Jane Doe, CC BY-SA 4.0, Wikimedia Commons");
+			.isEqualTo("Photo: Jane & Doe, CC BY-SA 4.0, Wikimedia Commons");
 		assertThat((String) JsonPath.read(page, "$.spots[2].photo.credit")).isEqualTo("Photo by Sam on Unsplash");
 		assertThat((String) JsonPath.read(page, "$.spots[2].photo.creditUrl"))
 			.isEqualTo("https://unsplash.com/@sam?utm_source=goawaygo&utm_medium=referral");
+	}
+
+	@Test
+	void placesOpenedByIdUseTheirEnglishName() throws Exception {
+		this.mvc.perform(get("/api/discover/destination").param("placeId", "pid-japan"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.place.name").value("Japan"))
+			.andExpect(jsonPath("$.place.type").value("country"))
+			.andExpect(jsonPath("$.place.label").value("Japan"));
+	}
+
+	@Test
+	void aLandmarksPageStartsWithTheLandmarkItself() throws Exception {
+		String page = this.mvc.perform(get("/api/discover/destination").param("placeId", "pid-eiffel"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.place.name").value("Eiffel Tower"))
+			.andExpect(jsonPath("$.place.type").value("place"))
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		// The AI also lists the Eiffel Tower as an attraction: shown once.
+		List<String> spots = JsonPath.read(page, "$.spots[*].name");
+		assertThat(spots).containsExactly("Eiffel Tower", "Louvre Museum", "Sainte-Chapelle");
 	}
 
 	@Test
@@ -254,8 +277,13 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 						: results(place("pid-paris", "Paris", "city", "", "Ile-de-France", "France", "fr", 48.8566, 2.3522));
 			}
 			else if (path.equals("/v2/place-details")) {
-				answer = query.contains("id=pid-paris") ? "{\"features\":[{\"properties\":"
-						+ place("pid-paris", "Paris", null, "Paris", "Ile-de-France", "France", "fr", 48.8566, 2.3522) + "}]}"
+				// Details give the local name; the English one only in name_international
+				answer = query.contains("id=pid-paris") ? details(place("pid-paris", "Paris", null, "Paris",
+						"Ile-de-France", "France", "fr", 48.8566, 2.3522), "Paris")
+						: query.contains("id=pid-japan") ? details(place("pid-japan", "日本", null, "", "", "Japan", "jp",
+								36.57, 139.24), "Japan")
+						: query.contains("id=pid-eiffel") ? details(place("pid-eiffel", "Tour Eiffel", null, "Paris",
+								"Ile-de-France", "France", "fr", 48.8583, 2.2945), "Eiffel Tower")
 						: "{\"features\":[]}";
 			}
 			else if (path.startsWith("/models/")) {
@@ -267,7 +295,7 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 			else if (path.equals("/w/api.php") && query.contains("prop=imageinfo")) {
 				answer = """
 						{"query":{"pages":[{"title":"File:Eiffel.jpg","imageinfo":[{"extmetadata":{
-						  "Artist":{"value":"<a href=\\"x\\">Jane Doe</a>"},"LicenseShortName":{"value":"CC BY-SA 4.0"}}}]}]}}""";
+						  "Artist":{"value":"<a href=\\"x\\">Jane &amp; Doe</a>"},"LicenseShortName":{"value":"CC BY-SA 4.0"}}}]}]}}""";
 			}
 			else if (path.equals("/w/api.php")) {
 				answer = query.contains("gsrsearch=Eiffel") ? wiki("Eiffel Tower", 48.8584, 2.2945, "eiffel.jpg", "Eiffel.jpg")
@@ -308,6 +336,11 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 					 "lat":%s,"lon":%s,"formatted":"%s, %s"}""".formatted(id, name,
 					(type != null) ? "\"result_type\":\"" + type + "\"," : "", city, state, country, code, lat, lon,
 					name, country);
+		}
+
+		private static String details(String place, String englishName) {
+			String withNames = "{\"name_international\":{\"en\":\"" + englishName + "\"}," + place.strip().substring(1);
+			return "{\"features\":[{\"properties\":" + withNames + "}]}";
 		}
 
 		private static String wiki(String title, double lat, double lon, String image, String file) {

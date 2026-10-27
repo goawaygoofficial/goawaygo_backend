@@ -45,11 +45,11 @@ public class DestinationCards {
 	private static final Pattern URL_IN_TEXT = Pattern.compile("(https?://|www\\.)\\S+", Pattern.CASE_INSENSITIVE);
 
 	/**
-	 * Details that change over time: amounts with a currency, times of day, years, percentages. Items containing
-	 * them are tagged "may vary" even if the AI forgot to say so.
+	 * Details that change over time: amounts with a currency, times of day (not time zones like UTC+5:30), years,
+	 * percentages. Items containing them are tagged "may vary" even if the AI forgot to say so.
 	 */
 	private static final Pattern CHANGING = Pattern.compile("(\\d[\\d.,]*\\s?(%|percent|(?-i:[A-Z]{3})\\b|dollars?|euros?|"
-			+ "rupees?|yen|pounds?))|([$€£¥₹₩₽]\\s?\\d)|(\\b\\d{1,2}(:\\d{2})?\\s?(am|pm)\\b)|(\\b\\d{1,2}:\\d{2}\\b)|"
+			+ "rupees?|yen|pounds?))|([$€£¥₹₩₽]\\s?\\d)|(\\b\\d{1,2}(:\\d{2})?\\s?(am|pm)\\b)|((?<![+−-])\\b\\d{1,2}:\\d{2}\\b)|"
 			+ "(\\b(19|20)\\d{2}\\b)", Pattern.CASE_INSENSITIVE);
 
 	private final AiClient ai;
