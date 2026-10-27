@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 import com.goawaygo.backend.external.ExternalApis;
 
@@ -316,7 +317,7 @@ public class SpotPhotos {
 		if (value == null || value.value() == null) {
 			return "";
 		}
-		String text = value.value().replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
+		String text = HtmlUtils.htmlUnescape(value.value().replaceAll("<[^>]+>", " ")).replaceAll("\\s+", " ").trim();
 		return (text.length() > 80) ? text.substring(0, 80).trim() + "…" : text;
 	}
 

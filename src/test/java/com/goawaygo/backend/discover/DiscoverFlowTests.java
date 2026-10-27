@@ -102,7 +102,7 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 		List<String> spots = JsonPath.read(page, "$.spots[*].name");
 		assertThat(spots).containsExactly("Eiffel Tower", "Louvre Museum", "Sainte-Chapelle");
 		assertThat((String) JsonPath.read(page, "$.spots[0].photo.credit"))
-			.isEqualTo("Photo: Jane Doe, CC BY-SA 4.0, Wikimedia Commons");
+			.isEqualTo("Photo: Jane & Doe, CC BY-SA 4.0, Wikimedia Commons");
 		assertThat((String) JsonPath.read(page, "$.spots[2].photo.credit")).isEqualTo("Photo by Sam on Unsplash");
 		assertThat((String) JsonPath.read(page, "$.spots[2].photo.creditUrl"))
 			.isEqualTo("https://unsplash.com/@sam?utm_source=goawaygo&utm_medium=referral");
@@ -295,7 +295,7 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 			else if (path.equals("/w/api.php") && query.contains("prop=imageinfo")) {
 				answer = """
 						{"query":{"pages":[{"title":"File:Eiffel.jpg","imageinfo":[{"extmetadata":{
-						  "Artist":{"value":"<a href=\\"x\\">Jane Doe</a>"},"LicenseShortName":{"value":"CC BY-SA 4.0"}}}]}]}}""";
+						  "Artist":{"value":"<a href=\\"x\\">Jane &amp; Doe</a>"},"LicenseShortName":{"value":"CC BY-SA 4.0"}}}]}]}}""";
 			}
 			else if (path.equals("/w/api.php")) {
 				answer = query.contains("gsrsearch=Eiffel") ? wiki("Eiffel Tower", 48.8584, 2.2945, "eiffel.jpg", "Eiffel.jpg")
