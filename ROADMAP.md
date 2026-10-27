@@ -78,8 +78,8 @@ Decided 2026-10-26. Design and reasons: `backend/docs/destination-prompts.md`.
   minute with category and "hidden gem" tags, **Save to My Trips**; tap to open.
 - **My Trips:** saved places (sign-in needed).
 - [x] Accounts: billing-free Google project + Gemini key, Geoapify key, Unsplash app (keys in Secret Manager)
-- [ ] Backend: place search, recent searches, AI cards, tourist spots and photos, random ideas, saved places
-- [ ] Website · [ ] App · [ ] Privacy Policy (stored search history, place names sent to Google for AI)
+- [x] Backend: place search, recent searches, AI cards, tourist spots and photos, random ideas, saved places
+- [x] Website · [x] App · [x] Privacy Policy (stored search history, place names sent to Google for AI)
 
 ### Later sub-phases
 
