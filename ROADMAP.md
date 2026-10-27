@@ -55,6 +55,32 @@ Google Cloud.
       is exceeded, keys from Secret Manager. Plus a vulnerability scan of dependencies in CI (OSV-Scanner) for all
       repos.
 
+### 4.1 Discover
+
+Decided 2026-10-26. Design and reasons: `backend/docs/destination-prompts.md`.
+
+- **Search:** type a place (country, region, city, landmark), pick or search, open its destination page. Place
+  search: **Geoapify** (free, worldwide OpenStreetMap data). Unknown places: "We couldn't find that place".
+- **Destination page:** shown all at once when ready (a travel animation until then). A sliding banner of up to 8
+  tourist spots: the AI's top attractions with their **Wikipedia/Wikimedia Commons** photos (same name and nearby,
+  so a wrong place can't appear), plus spots **Wikidata** lists nearby with **Unsplash** photos (only if the photo's
+  description names the spot). Credit on every photo; fetched live, never stored.
+- **9 info cards** (Quick Facts, Visa & Entry Rules, Best Time to Visit, Top Attractions, Best Areas to Stay, Food &
+  Dining, Getting Around, Travel Insurance, Money & Connectivity): **one AI request per page open** returning the 9
+  cards as separate JSON fields; nothing stored. Models in order: **Gemini 3 Flash** (free: 5/min, 20/day) →
+  **Gemini 3.1 Flash Lite** (15/min) → **Gemini 3.5 Flash Lite** (15/min, 500/day), from a no-billing Google
+  project; paid Gemini at launch. Temperature 0.1, fixed seed, response schema; each card checked on its own;
+  changing details tagged "may vary"; links checked before showing; tap a card to expand.
+- **Home banner:** the user's own last searches, up to 5 (account when signed in, the device otherwise), each with a
+  live tourist-spot photo, sliding; tap to open. None yet: "No recent searches".
+- **Ideas for your next trip:** every hour the AI suggests 30 varied places worldwide (beaches, mountains, heritage,
+  cities, hidden gems and popular places), each confirmed on Wikipedia, kept in memory only; a random 6 every
+  minute with category and "hidden gem" tags, **Save to My Trips**; tap to open.
+- **My Trips:** saved places (sign-in needed).
+- [x] Accounts: billing-free Google project + Gemini key, Geoapify key, Unsplash app (keys in Secret Manager)
+- [ ] Backend: place search, recent searches, AI cards, tourist spots and photos, random ideas, saved places
+- [ ] Website · [ ] App · [ ] Privacy Policy (stored search history, place names sent to Google for AI)
+
 ### Later sub-phases
 
 A detailed checklist (and that sub-phase's decisions) is added when it starts. Notes so far:

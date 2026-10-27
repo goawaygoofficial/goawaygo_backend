@@ -237,5 +237,11 @@ To add a provider:
    passes the key as `GOAWAYGO_EXTERNAL_PROVIDERS_<NAME>_APIKEY`. Locally, put that variable in `.env`.
 5. Use it from a feature: `externalApis.client("opentripmap").cached(key, Type.class, (http, apiKey) -> ...)`.
 
+Providers in use (4.1 Discover, `docs/destination-prompts.md`): `gemini`, `geminilite`, `geminilite35` (one per AI
+model, all with the one Gemini key, secret `goawaygo-api-gemini`), `geoapify` (`goawaygo-api-geoapify`), `unsplash`
+(`goawaygo-api-unsplash`), and `wikipedia`, `commons`, `wikidata` (no key). `EXTERNAL_API_PROVIDERS` is
+`gemini geoapify unsplash`. Destination pages can take up to a minute on the free AI tier, so Cloud Run's request
+timeout is 120 s (`deploy-staging.yml`).
+
 Calls so far are in the database: `SELECT * FROM external_api_usage ORDER BY period_start DESC;`. Reaching a limit
 or a provider failing repeatedly is logged as an error, so it shows up in Sentry.
