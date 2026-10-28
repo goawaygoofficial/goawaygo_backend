@@ -1,6 +1,7 @@
 package com.goawaygo.backend.discover;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -47,14 +48,15 @@ public class SearchHistory {
 			String city = rs.getString("city");
 			String region = rs.getString("region");
 			String country = rs.getString("country");
-			StringBuilder label = new StringBuilder(name);
+			// Each part once, compared whole ("France" isn't already in "Ile-de-France"), as in PlaceSearch.
+			List<String> parts = new ArrayList<>(List.of(name));
 			for (String part : List.of(city, region, country)) {
-				if (!part.isBlank() && label.indexOf(part) < 0) {
-					label.append(", ").append(part);
+				if (!part.isBlank() && parts.stream().noneMatch(part::equalsIgnoreCase)) {
+					parts.add(part);
 				}
 			}
 			Place place = new Place(rs.getString("place_id"), name, rs.getString("type"), city, region, country,
-					rs.getString("country_code"), rs.getDouble("lat"), rs.getDouble("lon"), label.toString());
+					rs.getString("country_code"), rs.getDouble("lat"), rs.getDouble("lon"), String.join(", ", parts));
 			return new Entry(place, rs.getString("top_spot"), rs.getTimestamp("searched_at").toInstant());
 		}, userId, KEEP);
 	}
