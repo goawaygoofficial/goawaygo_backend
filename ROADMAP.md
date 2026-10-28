@@ -90,17 +90,21 @@ Decided 2026-10-28. After 4.2 (before 4.3): enhancements and fixes from testing,
 - **Profiles:** account name and photo, cover photo, bio, home town, counts, post grid; a random public id in links.
   **Public or private:** following a private profile sends a request the owner approves or declines; only approved
   followers see its posts and lists; making it public approves waiting requests.
-- **Posts:** 1-10 photos, caption, optional place tag (Discover place search; opens the destination page); edit
-  caption, delete. Likes and comments (delete your own, and comments on your posts).
+- **Posts:** 1-10 photos, caption, place tag filled in from the photo's location (place, state, country; editable,
+  or added by hand; opens the destination page); edit caption, delete. Likes and comments (delete your own, and
+  comments on your posts).
 - **Feed:** one shared timeline of the newest posts from all public profiles, private profiles you follow, and yours.
 - **People search** by name.
 - **Safety:** every photo and text checked by **OpenAI omni-moderation** (free) before it appears; report posts,
   comments and users; block (hides both ways, removes follows); reports emailed to the team plus an admin page on
   the website.
-- **Photos:** resized on the device (about 1600 px), location data removed, stored in Cloudflare R2
-  (`goawaygo-media`, `media.goawaygo.com`; 10 GB free), uploaded through the backend, which checks them first.
+- **Photos:** originals, never resized or recompressed (a scrapbook of memories), shown as they are everywhere.
+  Exact coordinates are never published or stored: the backend turns the photo's GPS into the place tag and removes
+  the GPS from the file without touching the picture. iPhone HEIC photos become full-size JPEGs on the phone
+  (browsers can't show HEIC). Uploaded one by one through the backend (checked first) into Cloudflare R2
+  (`goawaygo-media`, `media.goawaygo.com`); uploads stop before the free 10 GB (about 2,000 photos) is used up.
 - **Legal:** Terms (rules for user content), Community Guidelines page, Privacy Policy and Delete my data updated.
-- [ ] Accounts: OpenAI key (Secret Manager), R2 bucket and access key
+- [ ] Accounts: OpenAI key (Secret Manager) ✓, R2 bucket `goawaygo-media` ✓, R2 access key
 - [ ] Backend: profiles, follows and requests, private profiles, blocks, people search
 - [ ] Backend: photos and moderation, posts, likes, comments, feed, reports, admin
 - [ ] Website · [ ] App · [ ] Legal pages
