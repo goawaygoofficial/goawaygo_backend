@@ -8,17 +8,19 @@
 #           scripts/gcp-secrets.sh <project-id> provider <name>  an outside API's key (goawaygo-api-<name>), readable by
 #                                                                the backend right away; then add <name> to the repo
 #                                                                variable EXTERNAL_API_PROVIDERS (docs/deployment.md)
+#           scripts/gcp-secrets.sh <project-id> r2               Cloudflare R2 access key for Wanderbook photos
+#                                                                (Access Key ID and Secret Access Key)
 #           scripts/gcp-secrets.sh <project-id> access           let the backend's service account read them all
 #
 # Running "jwt" again rotates the key pair: everyone has to sign in again (access tokens last 20 minutes and refresh
 # tokens are checked against the database, so the effect is limited to that).
 set -euo pipefail
 
-PROJECT_ID="${1:?Usage: scripts/gcp-secrets.sh <project-id> jwt|google|resend|provider <name>|access}"
-WHAT="${2:?Usage: scripts/gcp-secrets.sh <project-id> jwt|google|resend|provider <name>|access}"
+PROJECT_ID="${1:?Usage: scripts/gcp-secrets.sh <project-id> jwt|google|resend|provider <name>|r2|access}"
+WHAT="${2:?Usage: scripts/gcp-secrets.sh <project-id> jwt|google|resend|provider <name>|r2|access}"
 RUNTIME_SA="goawaygo-backend@${PROJECT_ID}.iam.gserviceaccount.com"
 ALL_SECRETS=(goawaygo-db-owner-password goawaygo-db-app-password goawaygo-jwt-private-key goawaygo-jwt-public-key
-  goawaygo-google-client-secret goawaygo-resend-api-key)
+  goawaygo-google-client-secret goawaygo-resend-api-key goawaygo-r2-access-key-id goawaygo-r2-secret-access-key)
 
 store_secret() { # name; value on stdin
   local name="$1"
@@ -59,6 +61,14 @@ case "$WHAT" in
     gcloud secrets add-iam-policy-binding "goawaygo-api-$PROVIDER" --project "$PROJECT_ID"       --member "serviceAccount:$RUNTIME_SA" --role roles/secretmanager.secretAccessor >/dev/null
     echo "goawaygo-backend can read goawaygo-api-$PROVIDER"
     ;;
+  r2)
+    read_hidden "R2 Access Key ID" | store_secret goawaygo-r2-access-key-id
+    read_hidden "R2 Secret Access Key" | store_secret goawaygo-r2-secret-access-key
+    for name in goawaygo-r2-access-key-id goawaygo-r2-secret-access-key; do
+      gcloud secrets add-iam-policy-binding "$name" --project "$PROJECT_ID"         --member "serviceAccount:$RUNTIME_SA" --role roles/secretmanager.secretAccessor >/dev/null
+      echo "goawaygo-backend can read $name"
+    done
+    ;;
   access)
     for name in "${ALL_SECRETS[@]}"; do
       if gcloud secrets describe "$name" --project "$PROJECT_ID" >/dev/null 2>&1; then
@@ -71,7 +81,7 @@ case "$WHAT" in
     done
     ;;
   *)
-    echo "Unknown option: $WHAT (use jwt, google, resend, provider or access)" >&2
+    echo "Unknown option: $WHAT (use jwt, google, resend, provider, r2 or access)" >&2
     exit 1
     ;;
 esac
