@@ -53,6 +53,9 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/discover/photos")
 				.permitAll()
+				// Wanderbook can be viewed signed out (decided for 4.2); a token still shows the viewer's relationship.
+				.requestMatchers(HttpMethod.GET, "/api/wanderbook/profiles/**", "/api/wanderbook/people")
+				.permitAll()
 				.anyRequest()
 				.authenticated())
 			.oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults())
