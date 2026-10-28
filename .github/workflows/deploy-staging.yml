@@ -65,6 +65,7 @@ jobs:
           GOOGLE_CODE_FLOW: ${{ vars.GOOGLE_CODE_FLOW_ENABLED }}
           MAIL_FROM: ${{ vars.MAIL_FROM }}
           EXTERNAL_API_PROVIDERS: ${{ vars.EXTERNAL_API_PROVIDERS }}
+          WANDERBOOK_PHOTOS: ${{ vars.WANDERBOOK_PHOTOS }}
         run: |
           # Plain settings (not secrets). One file avoids escaping commas in the CORS list.
           cat > env.yaml <<EOF
@@ -101,6 +102,13 @@ jobs:
           MAIL_FROM: "${MAIL_FROM}"
           EOF
             secrets="$secrets,MAIL_PASSWORD=goawaygo-resend-api-key:latest"
+          fi
+
+          # Wanderbook photo storage (Cloudflare R2): set the repo variable WANDERBOOK_PHOTOS to true once the access
+          # key is in Secret Manager (scripts/gcp-secrets.sh <project> r2). Without it, photo uploads are refused.
+          if [ "$WANDERBOOK_PHOTOS" = "true" ]; then
+            secrets="$secrets,R2_ACCESS_KEY_ID=goawaygo-r2-access-key-id:latest"
+            secrets="$secrets,R2_SECRET_ACCESS_KEY=goawaygo-r2-secret-access-key:latest"
           fi
 
           # Outside API keys (com.goawaygo.backend.external): repo variable EXTERNAL_API_PROVIDERS lists the providers

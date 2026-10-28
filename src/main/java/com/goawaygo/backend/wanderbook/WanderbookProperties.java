@@ -22,10 +22,16 @@ public record WanderbookProperties(@NotNull @Valid Limits limits) {
 	 * @param viewPerIp profile and list views per IP
 	 * @param searchPerIp people searches per IP
 	 * @param changesPerUser follows, blocks, approvals and profile edits per signed-in user
+	 * @param uploadsPerUser photo uploads per user
+	 * @param contentPerUser posts, edits, comments, likes and profile photos per user
+	 * @param reportsPerUser reports per user
 	 */
 	public record Limits(@NotNull @Valid RateLimitProperties.Limit viewPerIp,
 			@NotNull @Valid RateLimitProperties.Limit searchPerIp,
-			@NotNull @Valid RateLimitProperties.Limit changesPerUser) {
+			@NotNull @Valid RateLimitProperties.Limit changesPerUser,
+			@NotNull @Valid RateLimitProperties.Limit uploadsPerUser,
+			@NotNull @Valid RateLimitProperties.Limit contentPerUser,
+			@NotNull @Valid RateLimitProperties.Limit reportsPerUser) {
 	}
 
 }

@@ -66,6 +66,37 @@ public class PlaceSearch {
 		return details.toPlace(null);
 	}
 
+	/** A place tag: names only (no coordinates). */
+	public record PlaceName(String name, String region, String country) {
+	}
+
+	/**
+	 * The town or place at a photo's location, for its place tag (Wanderbook). The coordinates are only sent to
+	 * Geoapify for this lookup and never stored. Null if nothing is there (the sea) or the lookup fails.
+	 */
+	public PlaceName nameAt(double lat, double lon) {
+		try {
+			AutocompleteResponse response = this.apis.client(PROVIDER)
+				.call((http, key) -> http.get()
+					.uri("/v1/geocode/reverse?lat={lat}&lon={lon}&format=json&lang=en&apiKey={key}", lat, lon, key)
+					.retrieve()
+					.body(AutocompleteResponse.class));
+			if (response == null || response.results() == null || response.results().isEmpty()) {
+				return null;
+			}
+			Result place = response.results().get(0);
+			String name = Result.firstNonBlank(place.city(), place.name(), place.state(), place.country());
+			if (name.isBlank() || place.country() == null) {
+				return null;
+			}
+			String region = (place.state() != null && !place.state().equalsIgnoreCase(name)) ? place.state().trim() : "";
+			return new PlaceName(name, region, place.country().trim());
+		}
+		catch (RuntimeException ex) {
+			return null;
+		}
+	}
+
 	/** The best match for free text (when the user pressed Search without picking a suggestion). */
 	public Place bestMatch(String text) {
 		List<Place> places = suggest(text);

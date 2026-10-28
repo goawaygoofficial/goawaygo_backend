@@ -55,6 +55,26 @@ public final class EmailTemplates {
 		return new EmailMessage(to, subject, text, html);
 	}
 
+	/** To the team: someone reported something in Wanderbook. */
+	public static EmailMessage wanderbookReport(String to, String what, String reason, String details, String link) {
+		String subject = "Wanderbook report: " + what + " (" + reason + ")";
+		String text = """
+				A %s was reported in Wanderbook.
+
+				Reason: %s
+				Details: %s
+
+				Review it: %s
+				""".formatted(what, reason, details.isBlank() ? "-" : details, link);
+		String html = layout(subject, """
+				<p>A %s was reported in Wanderbook.</p>
+				<p><strong>Reason:</strong> %s<br><strong>Details:</strong> %s</p>
+				%s
+				""".formatted(HtmlUtils.htmlEscape(what), HtmlUtils.htmlEscape(reason),
+				details.isBlank() ? "-" : HtmlUtils.htmlEscape(details), button("Review reports", link)));
+		return new EmailMessage(to, subject, text, html);
+	}
+
 	private static String button(String label, String link) {
 		String href = HtmlUtils.htmlEscape(link);
 		return """
