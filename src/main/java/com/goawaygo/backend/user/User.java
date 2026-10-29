@@ -42,6 +42,10 @@ public class User {
 	@Column(length = 32)
 	private String phone;
 
+	/** Reviews Wanderbook reports (set by hand in the database). */
+	@Column(name = "is_admin", nullable = false)
+	private boolean admin;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -146,6 +150,10 @@ public class User {
 
 	public String getPhone() {
 		return this.phone;
+	}
+
+	public boolean isAdmin() {
+		return this.admin;
 	}
 
 	public Instant getCreatedAt() {

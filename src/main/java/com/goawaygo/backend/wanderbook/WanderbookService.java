@@ -33,8 +33,11 @@ public class WanderbookService {
 
 	private final WanderbookRepository repository;
 
-	public WanderbookService(WanderbookRepository repository) {
+	private final PostService posts;
+
+	public WanderbookService(WanderbookRepository repository, PostService posts) {
 		this.repository = repository;
+		this.posts = posts;
 	}
 
 	/** Viewer's relation to a profile. */
@@ -63,9 +66,9 @@ public class WanderbookService {
 	 * (and for someone the viewer blocked). {@code followRequests}: waiting requests, only on the viewer's own
 	 * profile.
 	 */
-	public record Profile(String publicId, String name, String photoUrl, String bio, String homeTown,
-			boolean isPrivate, long followers, long following, Relationship relationship, boolean followsYou,
-			boolean blockedByYou, boolean canSeePosts, Long followRequests) {
+	public record Profile(String publicId, String name, String photoUrl, String coverUrl, String bio,
+			String homeTown, boolean isPrivate, long posts, long followers, long following, Relationship relationship,
+			boolean followsYou, boolean blockedByYou, boolean canSeePosts, Long followRequests) {
 	}
 
 	public record Page<T>(List<T> items, Long nextCursor) {
@@ -111,6 +114,20 @@ public class WanderbookService {
 		ProfileRow target = visible(publicId, viewerId);
 		this.repository.unfollow(viewerId, target.userId());
 		return view(target, viewerId);
+	}
+
+	/** A profile's posts, if the viewer may see them. */
+	public Page<PostService.Post> posts(String publicId, Long viewerId, Long before) {
+		ProfileRow owner = visible(publicId, viewerId);
+		if (!view(owner, viewerId).canSeePosts()) {
+			throw new ApiException(HttpStatus.FORBIDDEN, "private_profile", "This profile is private.");
+		}
+		return this.posts.postsBy(owner.userId(), viewerId, before);
+	}
+
+	/** The account the public id belongs to, unless it blocked the viewer (for reports). */
+	long userIdOf(String publicId, Long viewerId) {
+		return visible(publicId, viewerId).userId();
 	}
 
 	public Page<Person> followRequests(long userId, Long before) {
@@ -181,9 +198,10 @@ public class WanderbookService {
 						: WanderbookRepository.PENDING.equals(status) ? Relationship.REQUESTED : Relationship.NONE;
 		boolean canSeePosts = !blockedByYou
 				&& (self || !profile.isPrivate() || relationship == Relationship.FOLLOWING);
-		return new Profile(profile.publicId(), profile.name(), profile.photoUrl(), profile.bio(), profile.homeTown(),
-				profile.isPrivate(), this.repository.followerCount(id), this.repository.followingCount(id),
-				relationship, followsYou, blockedByYou, canSeePosts, self ? this.repository.requestCount(id) : null);
+		return new Profile(profile.publicId(), profile.name(), profile.photoUrl(), this.posts.coverUrl(id),
+				profile.bio(), profile.homeTown(), profile.isPrivate(), this.posts.postCount(id),
+				this.repository.followerCount(id), this.repository.followingCount(id), relationship, followsYou,
+				blockedByYou, canSeePosts, self ? this.repository.requestCount(id) : null);
 	}
 
 	/** The profile, unless its owner blocked the viewer (then it doesn't exist for them). */

@@ -245,3 +245,15 @@ timeout is 120 s (`deploy-staging.yml`).
 
 Calls so far are in the database: `SELECT * FROM external_api_usage ORDER BY period_start DESC;`. Reaching a limit
 or a provider failing repeatedly is logged as an error, so it shows up in Sentry.
+
+## Wanderbook photos, moderation and reports (4.2)
+
+- **Photos** go to the Cloudflare R2 bucket `goawaygo-media` (public at `media.goawaygo.com`) through the backend,
+  which keeps the original file and only removes its location data. Setup: create an R2 API token (Object Read &
+  Write, bucket `goawaygo-media` only), store it with `scripts/gcp-secrets.sh goawaygo-staging r2`, then set the repo
+  variable `WANDERBOOK_PHOTOS` to `true` and redeploy. Without it, uploads answer "Photos can't be saved right now".
+  Uploads stop at 9.5 GB in total (`goawaygo.media.max-total-bytes`) to stay inside the free 10 GB.
+- **Moderation**: OpenAI omni-moderation checks every photo and text (`openai` provider; key `goawaygo-api-openai`,
+  add `openai` to `EXTERNAL_API_PROVIDERS`). If it can't answer, nothing is posted (users are asked to try again).
+- **Reports** are emailed to `team@goawaygo.com` and reviewed by admins on the website (`/admin/reports`). Make
+  someone an admin in the Neon SQL editor: `UPDATE users SET is_admin = true WHERE email = 'name@example.com';`
