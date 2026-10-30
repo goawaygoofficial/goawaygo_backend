@@ -86,7 +86,7 @@ public class WanderbookService {
 	@Transactional
 	public Profile update(long userId, String bio, String homeTown, boolean isPrivate) {
 		ProfileRow before = profileOf(userId);
-		this.repository.update(userId, clean(bio), clean(homeTown), isPrivate);
+		this.repository.update(userId, UserText.clean(bio), UserText.clean(homeTown), isPrivate);
 		if (before.isPrivate() && !isPrivate) {
 			this.repository.approveAllRequests(userId);
 		}
@@ -225,10 +225,6 @@ public class WanderbookService {
 		List<Person> people = rows.stream().map(row -> Person.of(row.profile())).toList();
 		Long next = (rows.size() == PAGE_SIZE) ? rows.get(rows.size() - 1).cursor() : null;
 		return new Page<>(people, next);
-	}
-
-	private static String clean(String text) {
-		return (text == null) ? "" : text.strip().replaceAll("[\\p{Cntrl}&&[^\\n]]", "").replaceAll("\\n{3,}", "\n\n");
 	}
 
 	private static ApiException notFound() {

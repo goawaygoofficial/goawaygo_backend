@@ -93,7 +93,7 @@ public class ReportService {
 		if (targetUserId == reporterId) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "cannot_report_self", "You can't report yourself.");
 		}
-		String text = PostService.clean(details);
+		String text = UserText.clean(details);
 		int added = this.jdbc.update("""
 				INSERT INTO wanderbook_reports (reporter_id, target_type, target_id, target_user_id, reason, details)
 				VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (reporter_id, target_type, target_id) DO NOTHING""",

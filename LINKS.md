@@ -89,6 +89,8 @@ Postgres 17, AWS Singapore, database `goawaygo`. Check **Monitoring** (compute h
 | Website hosting (Pages: deploys, previews)      | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/pages/view/goawaygo-web-frontend      |
 | DNS records for goawaygo.com                    | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/dns/records              |
 | App downloads storage (R2 `goawaygo-downloads`) | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-downloads |
+| Wanderbook photos (R2 `goawaygo-media`)         | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-media     |
+| R2 API tokens (photo access key)                | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/api-tokens                         |
 | Email forwarding (privacy@, support@)           | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/email/routing/routes     |
 | Domain registration and renewal                 | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/domains                               |
 
@@ -115,17 +117,29 @@ forward to the team Gmail.
 
 ## 10. Public pages users see
 
-| Page           | Link                                        |
-| -------------- | ------------------------------------------- |
-| Website        | https://staging.goawaygo.com                |
-| Get the app    | https://staging.goawaygo.com/download       |
-| Privacy Policy | https://staging.goawaygo.com/privacy        |
-| Terms of Use   | https://staging.goawaygo.com/terms          |
-| Delete my data | https://staging.goawaygo.com/delete-my-data |
-| Status page    | https://status.goawaygo.com                 |
-| Contact        | support@goawaygo.com · privacy@goawaygo.com |
+| Page                        | Link                                              |
+| --------------------------- | ------------------------------------------------- |
+| Website                     | https://staging.goawaygo.com                      |
+| Get the app                 | https://staging.goawaygo.com/download             |
+| Privacy Policy              | https://staging.goawaygo.com/privacy              |
+| Terms of Use                | https://staging.goawaygo.com/terms                |
+| Delete my data              | https://staging.goawaygo.com/delete-my-data       |
+| Community Guidelines        | https://staging.goawaygo.com/community-guidelines |
+| Wanderbook reports (admins) | https://staging.goawaygo.com/admin/reports        |
+| Status page                 | https://status.goawaygo.com                       |
+| Contact                     | support@goawaygo.com · privacy@goawaygo.com       |
 
-## 11. Reference
+## 11. Feature services (Discover, Wanderbook)
+
+| What                                             | Link                                                           |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| Gemini API keys and usage (Google AI Studio)     | https://aistudio.google.com/apikey                             |
+| Geoapify projects and usage                      | https://myprojects.geoapify.com                                |
+| Unsplash app (demo limits, apply for production) | https://unsplash.com/oauth/applications                        |
+| OpenAI API keys and usage                        | https://platform.openai.com/api-keys                           |
+| Outside API calls so far (Neon SQL editor)       | `SELECT * FROM external_api_usage ORDER BY period_start DESC;` |
+
+## 12. Reference
 
 | What                                   | Link                                                      |
 | -------------------------------------- | --------------------------------------------------------- |
@@ -138,7 +152,8 @@ forward to the team Gmail.
 - **When an alert email arrives** (Better Stack or Sentry): status page → Sentry issue → Logs Explorer with the
   request ID.
 - **Weekly (5 min):** Sentry new issues · GitHub Actions (any red, Monday dependency scan) · Neon compute hours ·
-  Google Cloud billing/credits · PostHog and Cloudflare stats if curious.
+  Google Cloud billing/credits · R2 `goawaygo-media` size · open Wanderbook reports · PostHog and Cloudflare stats if
+  curious.
 - **Before each Android release:** latest.json and the download page show the new build; Firebase shows it sent.
 
 ## Giving a new developer access

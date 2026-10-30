@@ -12,16 +12,16 @@ Frontends: [app](https://github.com/goawaygoofficial/goawaygo_app_frontend) (Flu
 
 New here? Read these in order:
 
-| File | What it's for |
-| --- | --- |
-| `README.md` (this file) | What this part does and how to run it locally |
-| `CONTRIBUTING.md` | Branches, commits, PRs and checks |
-| `FOUNDATIONS.md` | Every service and tool GoAwayGo uses, what it's for, free limits, where it's configured |
-| `LINKS.md` | Every dashboard and console, a weekly checklist, and how to give a new developer access |
-| `CLAUDE.md` | Project facts and conventions (also read by Claude Code) |
-| `RELEASING.md` | What happens after a merge, how to release, version numbers, rollbacks |
-| `ROADMAP.md` | What's done and what's next |
-| `docs/` | Details for this repo (deployment, outside APIs) |
+| File                    | What it's for                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `README.md` (this file) | What this part does and how to run it locally                                           |
+| `CONTRIBUTING.md`       | Branches, commits, PRs and checks                                                       |
+| `FOUNDATIONS.md`        | Every service and tool GoAwayGo uses, what it's for, free limits, where it's configured |
+| `LINKS.md`              | Every dashboard and console, a weekly checklist, and how to give a new developer access |
+| `CLAUDE.md`             | Project facts and conventions (also read by Claude Code)                                |
+| `RELEASING.md`          | What happens after a merge, how to release, version numbers, rollbacks                  |
+| `ROADMAP.md`            | What's done and what's next                                                             |
+| `docs/`                 | Details for this repo (deployment, outside APIs)                                        |
 
 `CLAUDE.md`, `FOUNDATIONS.md`, `LINKS.md`, `RELEASING.md` and `ROADMAP.md` are the same in all three repos.
 
@@ -48,6 +48,23 @@ New here? Read these in order:
 | `POST` | `/api/auth/reset-password`      | none          | `{"token", "newPassword"}` → `204`. Verifies the email and signs out every device.                 |
 | `POST` | `/api/auth/verify-email`        | none          | `{"token"}` → `204`. Marks the email verified.                                                     |
 | `POST` | `/api/auth/resend-verification` | access token  | `202`: emails a new verification link (`409` if already verified).                                 |
+
+### Discover (4.1) and Wanderbook (4.2)
+
+Viewing is public (rate limited per IP); everything that changes something needs an access token. Design and
+reasons: [`docs/destination-prompts.md`](docs/destination-prompts.md) (Discover) and `ROADMAP.md` 4.2 (Wanderbook);
+setup of photo storage, moderation and admins: [`docs/deployment.md`](docs/deployment.md).
+
+| Area                    | Endpoints                                                                                                                                                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Places and destinations | `GET /api/discover/places?q=`, `GET /api/discover/destination?placeId=` or `?q=`                                                                                                                                                  |
+| Home banner and ideas   | `GET /api/discover/recent` (signed in), `POST /api/discover/photos`, `GET /api/discover/ideas`                                                                                                                                    |
+| My Trips                | `GET`/`POST /api/me/saved-places`, `DELETE /api/me/saved-places/{id}`                                                                                                                                                             |
+| Wanderbook profiles     | `GET`/`PUT /api/wanderbook/me`, `PUT /api/wanderbook/me/avatar` and `/cover`, `GET /api/wanderbook/profiles/{id}` (+ `/followers`, `/following`, `/posts`), `GET /api/wanderbook/people?q=`                                       |
+| Follows and blocks      | `POST`/`DELETE /api/wanderbook/profiles/{id}/follow` and `/block`, `GET /api/wanderbook/me/follow-requests`, `POST`/`DELETE …/follow-requests/{id}`, `DELETE /api/wanderbook/me/followers/{id}`, `GET /api/wanderbook/me/blocked` |
+| Photos and posts        | `POST /api/wanderbook/photos` (multipart `file`), `POST /api/wanderbook/posts`, `GET`/`PUT`/`DELETE /api/wanderbook/posts/{id}`, `GET /api/wanderbook/feed`                                                                       |
+| Likes and comments      | `POST`/`DELETE …/posts/{id}/like`, `GET …/posts/{id}/likes`, `GET`/`POST …/posts/{id}/comments`, `DELETE /api/wanderbook/comments/{id}`                                                                                           |
+| Reports and review      | `POST /api/wanderbook/reports`; admins: `GET /api/admin/wanderbook/reports`, `POST …/reports/{id}/resolve`                                                                                                                        |
 
 ### Emails: password reset and verification
 
@@ -129,7 +146,11 @@ Sign-in / refresh response:
 Every error has the same shape. Clients should branch on `error` and may show `message`:
 
 ```json
-{ "status": 401, "error": "invalid_credentials", "message": "Incorrect email or password." }
+{
+  "status": 401,
+  "error": "invalid_credentials",
+  "message": "Incorrect email or password."
+}
 ```
 
 Validation errors (`400`, `validation_failed`) also include `fieldErrors`, for example
@@ -137,18 +158,20 @@ Validation errors (`400`, `validation_failed`) also include `fieldErrors`, for e
 
 ### Rate limits
 
-The public auth endpoints are rate limited (token buckets, refilled gradually). Over the limit the API answers
+The public endpoints are rate limited (token buckets, refilled gradually). Over the limit the API answers
 `429 too_many_requests` with a `Retry-After` header (seconds).
 
-| Endpoint                              | Limit                                                                                      |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `signin`                              | 10 / minute per IP **and** 10 / 15 minutes per email (stops guessing spread over many IPs) |
-| `signup`                              | 10 / hour per IP                                                                           |
-| `google-signin`, `google-signin/code` | 20 / minute per IP                                                                         |
-| `refresh`                             | 60 / minute per IP                                                                         |
-| `forgot-password`                     | 5 / hour per IP, 3 / hour per email (whether or not the account exists)                    |
-| `reset-password`, `verify-email`      | 20 / minute per IP                                                                         |
-| `resend-verification`                 | 3 / hour per user                                                                          |
+| Endpoint                              | Limit                                                                                                                                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signin`                              | 10 / minute per IP **and** 10 / 15 minutes per email (stops guessing spread over many IPs)                                                                                         |
+| `signup`                              | 10 / hour per IP                                                                                                                                                                   |
+| `google-signin`, `google-signin/code` | 20 / minute per IP                                                                                                                                                                 |
+| `refresh`                             | 60 / minute per IP                                                                                                                                                                 |
+| `forgot-password`                     | 5 / hour per IP, 3 / hour per email (whether or not the account exists)                                                                                                            |
+| `reset-password`, `verify-email`      | 20 / minute per IP                                                                                                                                                                 |
+| `resend-verification`                 | 3 / hour per user                                                                                                                                                                  |
+| Discover                              | search 60 / minute, destination pages 10 / 10 minutes, photos 20 / minute, ideas 30 / minute per IP                                                                                |
+| Wanderbook                            | views 120 / minute and people search 60 / minute per IP; follows, blocks and edits 60 / minute, uploads 100 / day, posts, comments and likes 120 / hour, reports 20 / day per user |
 
 Limits are settings (`goawaygo.rate-limit.*` in `application.properties`); `RATE_LIMIT_ENABLED=false` turns them
 off. They are kept **in memory per backend instance**; with several instances, move them to a shared store
@@ -196,10 +219,10 @@ Flyway applies any pending migrations, then the API starts at `http://localhost:
 
 ### Roles (least privilege)
 
-| Role           | Used by              | Can                                                           |
-| -------------- | -------------------- | ------------------------------------------------------------- |
-| `postgres`     | Container setup only | Everything (superuser). Never used by the backend.            |
-| `goawaygo_owner` | Flyway migrations    | Create / alter / drop tables in the `goawaygo` database         |
+| Role             | Used by              | Can                                                           |
+| ---------------- | -------------------- | ------------------------------------------------------------- |
+| `postgres`       | Container setup only | Everything (superuser). Never used by the backend.            |
+| `goawaygo_owner` | Flyway migrations    | Create / alter / drop tables in the `goawaygo` database       |
 | `goawaygo_app`   | The running backend  | Read and write data. **Cannot** create, alter or drop tables. |
 
 Created by [`docker/postgres/init/01-create-roles.sh`](docker/postgres/init/01-create-roles.sh). The tests use the
