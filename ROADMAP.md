@@ -104,10 +104,10 @@ Decided 2026-10-28. After 4.2 (before 4.3): enhancements and fixes from testing,
   (browsers can't show HEIC). Uploaded one by one through the backend (checked first) into Cloudflare R2
   (`goawaygo-media`, `media.goawaygo.com`); uploads stop before the free 10 GB (about 2,000 photos) is used up.
 - **Legal:** Terms (rules for user content), Community Guidelines page, Privacy Policy and Delete my data updated.
-- [ ] Accounts: OpenAI key (Secret Manager) ✓, R2 bucket `goawaygo-media` ✓, R2 access key
-- [ ] Backend: profiles, follows and requests, private profiles, blocks, people search
-- [ ] Backend: photos and moderation, posts, likes, comments, feed, reports, admin
-- [ ] Website · [ ] App · [ ] Legal pages
+- [x] Accounts: OpenAI key, R2 bucket `goawaygo-media` and access key (Secret Manager)
+- [x] Backend: profiles, follows and requests, private profiles, blocks, people search
+- [x] Backend: photos and moderation, posts, likes, comments, feed, reports, admin
+- [x] Website · [x] App · [x] Legal pages (Terms, Community Guidelines, Privacy Policy, Delete my data)
 
 ### Later sub-phases
 
