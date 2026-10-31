@@ -150,7 +150,7 @@ public class PostService {
 		if (ids.isEmpty() || ids.size() > MAX_PHOTOS || ids.size() != photoIds.size()) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "invalid_photos", "A post has 1 to 10 different photos.");
 		}
-		String text = clean(caption);
+		String text = UserText.clean(caption);
 		PlaceTag tag = cleanPlace(place);
 		this.moderation.checkText(textToCheck(text, tag));
 		String publicId = this.transactions.execute(status -> {
@@ -176,7 +176,7 @@ public class PostService {
 	/** Changes the caption and place tag (your own posts). */
 	public Post edit(long userId, String publicId, String caption, PlaceTag place) {
 		PostRow row = own(publicId, userId);
-		String text = clean(caption);
+		String text = UserText.clean(caption);
 		PlaceTag tag = cleanPlace(place);
 		this.moderation.checkText(textToCheck(text, tag));
 		this.posts.updatePost(row.id(), text, name(tag), region(tag), country(tag));
@@ -237,7 +237,7 @@ public class PostService {
 
 	public Comment comment(long userId, String publicId, String text) {
 		PostRow post = this.posts.visiblePost(publicId, userId).orElseThrow(PostService::postNotFound);
-		String clean = clean(text);
+		String clean = UserText.clean(text);
 		if (clean.isEmpty()) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "empty_comment", "Write something first.");
 		}
@@ -351,11 +351,11 @@ public class PostService {
 	}
 
 	private static PlaceTag cleanPlace(PlaceTag place) {
-		if (place == null || clean(place.name()).isEmpty()) {
+		if (place == null || UserText.clean(place.name()).isEmpty()) {
 			return null;
 		}
-		return new PlaceTag(limit(clean(place.name()), 200), limit(clean(place.region()), 200),
-				limit(clean(place.country()), 100));
+		return new PlaceTag(limit(UserText.clean(place.name()), 200), limit(UserText.clean(place.region()), 200),
+				limit(UserText.clean(place.country()), 100));
 	}
 
 	private static String name(PlaceTag tag) {
@@ -372,10 +372,6 @@ public class PostService {
 
 	private static String limit(String text, int max) {
 		return (text.length() > max) ? text.substring(0, max) : text;
-	}
-
-	static String clean(String text) {
-		return (text == null) ? "" : text.strip().replaceAll("[\\p{Cntrl}&&[^\\n]]", "").replaceAll("\\n{3,}", "\n\n");
 	}
 
 	private static String randomId() {

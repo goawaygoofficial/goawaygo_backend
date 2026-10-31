@@ -31,6 +31,9 @@ recorded in its section below.
 | **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
 | **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
 
+**How we build (decided 2026-10-31):** in MVP rounds. **MVP 1** builds every sub-phase below (4.1 to 4.7) without
+stopping for fix rounds; fixes, changes and new ideas are collected for **MVP 2, 3, 4, ...** after that.
+
 ### 4.0 Foundations
 
 Accounts (team Gmail, free): Sentry, PostHog, Better Stack. Existing: Cloudflare (Web Analytics, Email Routing),
@@ -83,7 +86,7 @@ Decided 2026-10-26. Design and reasons: `backend/docs/destination-prompts.md`.
 
 ### 4.2 Wanderbook
 
-Decided 2026-10-28. After 4.2 (before 4.3): enhancements and fixes from testing, then the next app release.
+Decided 2026-10-28.
 
 - **Viewing:** anyone can view public profiles and posts, signed in or not (rate limited per IP against scraping);
   posting, liking, commenting and following need an account.
