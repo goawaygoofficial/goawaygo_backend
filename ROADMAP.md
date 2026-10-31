@@ -24,7 +24,7 @@ recorded in its section below.
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
 | **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
-| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Next    |
+| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
 | **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Planned |
 | **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Planned |
 | **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Planned |
