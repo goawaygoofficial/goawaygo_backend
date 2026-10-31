@@ -93,6 +93,12 @@ Postgres 17, AWS Singapore, database `goawaygo`. Check **Monitoring** (compute h
 | R2 API tokens (photo access key)                | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/api-tokens                         |
 | Email forwarding (privacy@, support@)           | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/email/routing/routes     |
 | Domain registration and renewal                 | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/domains                               |
+| Redirect `goawaygo.com` → website (Rules)       | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/rules/overview           |
+
+`goawaygo.com` and `www.goawaygo.com` redirect (302, path and query kept) to `staging.goawaygo.com` until launch:
+Redirect Rule "goawaygo.com to website" plus two proxied placeholder A records (`@`, `www` → `192.0.2.1`). Partner
+applications use `https://goawaygo.com`. **At launch (Phase 5):** delete the rule and both records, then add
+`goawaygo.com` to the production site.
 
 ## 8. Email sending (Resend)
 

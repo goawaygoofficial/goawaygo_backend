@@ -126,5 +126,5 @@ A detailed checklist (and that sub-phase's decisions) is added when it starts. N
 ## Phase 5 — Launch
 
 Company registration · Play Console + Android developer verification (before the 2027 rule reaches India) · production
-environment (`goawaygo.com`, Cloud SQL) · Google billing upgraded before the trial ends (2027-01-14) · DPDP compliance
-review (substantive obligations from 13 May 2027).
+environment (`goawaygo.com`, Cloud SQL; remove its temporary redirect to staging first, see LINKS.md) · Google billing
+upgraded before the trial ends (2027-01-14) · DPDP compliance review (substantive obligations from 13 May 2027).
