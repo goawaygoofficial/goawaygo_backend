@@ -32,6 +32,8 @@ bash scripts/release-android.sh 1.0.0 <next-build> "What changed in this version
 - Ends with `Live: https://staging.goawaygo.com/download`. If it asks for Cloudflare, run
   `npx --yes wrangler@4.145.0 login` once and repeat.
 - It refuses to run without the upload key (`android/key.properties`), so nothing debug-signed is ever published.
+- Fails with `cannot find symbol ... Plugin` in `GeneratedPluginRegistrant.java` (usually after a dependency
+  update): an old partial build of that plugin is left on this PC. Run `flutter clean` and run the command again.
 
 Then send it to the beta testers:
 
@@ -56,6 +58,7 @@ Check `https://staging.goawaygo.com/download`, then install it on a phone over t
 | ---------- | ------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-10-17 | 1.0.0   | 4     | First public beta (build 3 withdrawn: version-code bug)                                                                                                                                                                                                                |
 | 2026-10-24 | 1.0.0   | 6     | First GoAwayGo build: new name and app ID `com.goawaygo.app` (testers install it, then remove the old Goaway app); legal links, optional usage statistics, Sentry 10, Android 8.0+. Build 5 skipped (an untracked upload with placeholder notes, 2026-10-17, replaced) |
+| 2026-10-31 | 1.1.0   | 7     | Discover (search any place: photos and nine travel info cards) and Wanderbook (share trip photos, follow travellers, like and comment); smoother navigation and photo animations                                                                                       |
 
 Add a row for every release.
 
