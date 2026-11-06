@@ -30,7 +30,7 @@
 		<java.version>17</java.version>
 		<bucket4j.version>8.21.0</bucket4j.version>
 		<resilience4j.version>2.4.0</resilience4j.version>
-		<sentry.version>8.61.1</sentry.version>
+		<sentry.version>8.62.0</sentry.version>
 	</properties>
 	<dependencies>
 		<dependency>
