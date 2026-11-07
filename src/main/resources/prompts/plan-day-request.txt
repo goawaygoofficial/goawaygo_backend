@@ -1,0 +1,13 @@
+Rewrite one day of a trip plan.
+
+Destination: {place}
+Day {day} of {days}: {date} ({weekday})
+Travellers: {travellers}
+Pace: {pace}
+Budget level: {budget}
+Interests: {interests}
+Currency for all costs: {currency}
+The other days already include: {otherDays}
+Traveller's wish for this day: {wish}
+
+Give a different plan for this one day that doesn't repeat places from the other days.
