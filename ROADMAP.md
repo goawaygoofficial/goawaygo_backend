@@ -25,7 +25,7 @@ recorded in its section below.
 | **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
 | **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
 | **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
-| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Next    |
+| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
 | **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Planned |
 | **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Planned |
 | **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
@@ -127,7 +127,7 @@ prices when a partner approves us, without new screens. Full comparison: the fou
   rejected 2026-11-07, reapply once `goawaygo.com` is the real site with crawlable travel content).
 - [x] Accounts: Travelpayouts (Aviasales, EconomyBookings connected; Trip.com, DiscoverCars in review), KAYAK sandbox
 - [x] Backend: airports, recent flight prices and calendar, partner links, stays and cars partners
-- [ ] Website · [ ] App · [ ] Legal pages (affiliate disclosure in Terms and Privacy Policy)
+- [x] Website · [x] App · [x] Legal pages (affiliate disclosure in Terms and Privacy Policy) · [x] Released in 1.2.0 build 8
 
 ### Later sub-phases
 
