@@ -25,8 +25,8 @@ recorded in its section below.
 | **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
 | **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
 | **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
-| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Next    |
-| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Planned |
+| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
+| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Next    |
 | **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Planned |
 | **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
 | **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
@@ -127,13 +127,30 @@ prices when a partner approves us, without new screens. Full comparison: the fou
   rejected 2026-11-07, reapply once `goawaygo.com` is the real site with crawlable travel content).
 - [x] Accounts: Travelpayouts (Aviasales, EconomyBookings connected; Trip.com, DiscoverCars in review), KAYAK sandbox
 - [x] Backend: airports, recent flight prices and calendar, partner links, stays and cars partners
-- [ ] Website · [ ] App · [ ] Legal pages (affiliate disclosure in Terms and Privacy Policy)
+- [x] Website · [x] App · [x] Legal pages (affiliate disclosure in Terms and Privacy Policy) · [x] Released in 1.2.0 build 8
+
+### 4.4 AI trip planner
+
+Decided 2026-11-08.
+
+- **Plan:** from a destination page or a saved place in My Trips: start date, 1-10 days, travellers (solo, couple,
+  family, friends), pace, budget level and interests. Each day has a morning, afternoon and evening (place, what to
+  do, rough cost), food picks and a tip; plus a title, summary and trip tips.
+- **Budget estimate:** about X a day for food, transport and activities and Y a night for stays, for the whole group;
+  labelled an AI estimate, flights never included.
+- **Change a day:** rewrite one day, optionally with a wish ("more street food"); the other days stay.
+- **Share by link:** read-only page anyone can open, after an OpenAI moderation check (also for changes to a
+  shared plan).
+- **Booking shortcuts:** Stays and Car rentals open for the plan's place and dates; Flights opens with the destination.
+- **AI:** Gemini (3.1 Flash Lite → 3.5 Flash Lite → 3 Flash), like Discover; a better model later. Signed-in users
+  only: 5 new plans and 20 day changes a day per account, 50 saved plans.
+- [x] Backend: plans, change a day, share, budget estimate
+- [ ] Website · [ ] App
 
 ### Later sub-phases
 
 A detailed checklist (and that sub-phase's decisions) is added when it starts. Notes so far:
 
-- **4.4 AI:** a free tier that doesn't train on our data (e.g. Cloudflare Workers AI) until there is a budget.
 - **4.6 Me:** SMS is never free (Firebase: ~10/day free, then billed per SMS by country): cap it during the beta.
 - Wanderbook photos: R2 bucket `goawaygo-user-media`. Push: Firebase Cloud Messaging (free).
 

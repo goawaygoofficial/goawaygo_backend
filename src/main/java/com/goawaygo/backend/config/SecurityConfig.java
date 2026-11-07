@@ -53,6 +53,9 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/discover/photos")
 				.permitAll()
+				// A shared trip plan opens for anyone with its link; making plans needs an account.
+				.requestMatchers(HttpMethod.GET, "/api/plans/shared/**")
+				.permitAll()
 				// Book is public: prices and partner links, no account needed.
 				.requestMatchers(HttpMethod.GET, "/api/book/**")
 				.permitAll()

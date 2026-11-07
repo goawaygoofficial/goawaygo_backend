@@ -49,7 +49,7 @@ New here? Read these in order:
 | `POST` | `/api/auth/verify-email`        | none          | `{"token"}` → `204`. Marks the email verified.                                                     |
 | `POST` | `/api/auth/resend-verification` | access token  | `202`: emails a new verification link (`409` if already verified).                                 |
 
-### Discover (4.1), Wanderbook (4.2) and Book (4.3)
+### Discover (4.1), Wanderbook (4.2), Book (4.3) and the trip planner (4.4)
 
 Viewing is public (rate limited per IP); everything that changes something needs an access token. Design and
 reasons: [`docs/destination-prompts.md`](docs/destination-prompts.md) (Discover) and `ROADMAP.md` 4.2 (Wanderbook);
@@ -66,6 +66,7 @@ setup of photo storage, moderation and admins: [`docs/deployment.md`](docs/deplo
 | Likes and comments      | `POST`/`DELETE …/posts/{id}/like`, `GET …/posts/{id}/likes`, `GET`/`POST …/posts/{id}/comments`, `DELETE /api/wanderbook/comments/{id}`                                                                                           |
 | Reports and review      | `POST /api/wanderbook/reports`; admins: `GET /api/admin/wanderbook/reports`, `POST …/reports/{id}/resolve`                                                                                                                        |
 | Book: flights           | `GET /api/book/airports?q=`, `GET /api/book/flights?from=&to=&depart=&return=&adults=&direct=&currency=&channel=`, `GET /api/book/flights/calendar?from=&to=&month=`                                                              |
+| Trip plans              | `POST /api/plans` (signed in; 10-40 s), `GET /api/plans`, `GET`/`DELETE /api/plans/{id}`, `POST /api/plans/{id}/days/{n}` (`{"wish"}`), `PUT /api/plans/{id}/share`, `GET /api/plans/shared/{id}` (public)                        |
 | Book: stays and cars    | `GET /api/book/stays?place=&checkin=&checkout=&adults=&rooms=&channel=`, `GET /api/book/cars?place=&airport=&pickup=&dropoff=&channel=`                                                                                           |
 
 Book is public. Flight prices are Aviasales' **recent** prices (Travelpayouts Data API: cheapest fares travellers
@@ -178,6 +179,7 @@ The public endpoints are rate limited (token buckets, refilled gradually). Over 
 | `reset-password`, `verify-email`      | 20 / minute per IP                                                                                                                                                                 |
 | `resend-verification`                 | 3 / hour per user                                                                                                                                                                  |
 | Discover                              | search 60 / minute, destination pages 10 / 10 minutes, photos 20 / minute, ideas 30 / minute per IP                                                                                |
+| Trip planner                          | 5 new plans / day and 20 day changes / day per user; shared plans 60 / minute per IP                                                                                               |
 | Book                                  | airport search 60 / minute, flights and calendars 30 / minute, stays and cars 30 / minute per IP                                                                                   |
 | Wanderbook                            | views 120 / minute and people search 60 / minute per IP; follows, blocks and edits 60 / minute, uploads 100 / day, posts, comments and likes 120 / hour, reports 20 / day per user |
 
