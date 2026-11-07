@@ -135,7 +135,7 @@ forward to the team Gmail.
 | Status page                 | https://status.goawaygo.com                       |
 | Contact                     | support@goawaygo.com · privacy@goawaygo.com       |
 
-## 11. Feature services (Discover, Wanderbook)
+## 11. Feature services (Discover, Wanderbook, Book)
 
 | What                                             | Link                                                           |
 | ------------------------------------------------ | -------------------------------------------------------------- |
@@ -143,6 +143,8 @@ forward to the team Gmail.
 | Geoapify projects and usage                      | https://myprojects.geoapify.com                                |
 | Unsplash app (demo limits, apply for production) | https://unsplash.com/oauth/applications                        |
 | OpenAI API keys and usage                        | https://platform.openai.com/api-keys                           |
+| Travelpayouts (programs, statistics, payouts)    | https://app.travelpayouts.com                                  |
+| KAYAK Affiliate Network (API keys, approval)     | https://affiliates.kayak.com                                   |
 | Outside API calls so far (Neon SQL editor)       | `SELECT * FROM external_api_usage ORDER BY period_start DESC;` |
 
 ## 12. Reference
