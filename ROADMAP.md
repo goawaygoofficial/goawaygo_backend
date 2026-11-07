@@ -25,7 +25,7 @@ recorded in its section below.
 | **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
 | **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
 | **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
-| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Planned |
+| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Next    |
 | **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Planned |
 | **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Planned |
 | **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
@@ -112,13 +112,27 @@ Decided 2026-10-28.
 - [x] Backend: photos and moderation, posts, likes, comments, feed, reports, admin
 - [x] Website · [x] App · [x] Legal pages (Terms, Community Guidelines, Privacy Policy, Delete my data)
 
+### 4.3 Book
+
+Decided 2026-11-01 ("option E"): build now with what is open to a pre-launch app; each category moves to live
+prices when a partner approves us, without new screens. Full comparison: the founders' findings doc.
+
+- **Flights:** Aviasales' recent prices (Travelpayouts Data API, free): the cheapest fare on the date asked, cheaper
+  dates that month, a price calendar, and "See all flights" (Aviasales' live search). Labelled "recent, may change".
+- **Stays and cars:** partner cards opened on the traveller's search (no free price source exists). App: brands that
+  allow apps only (Trip.com; DiscoverCars, EconomyBookings, QEEQ); website: those plus website-only brands later.
+- **Links:** every partner page becomes our affiliate link (Travelpayouts links API, marker 798632, project
+  597168); a partner that hasn't approved us yet gets its plain page. Commission disclosure on every results page.
+- **Live prices later:** KAYAK (flights, hotels, cars; sandbox received, production pending) and Agoda (hotels;
+  rejected 2026-11-07, reapply once `goawaygo.com` is the real site with crawlable travel content).
+- [x] Accounts: Travelpayouts (Aviasales, EconomyBookings connected; Trip.com, DiscoverCars in review), KAYAK sandbox
+- [x] Backend: airports, recent flight prices and calendar, partner links, stays and cars partners
+- [ ] Website · [ ] App · [ ] Legal pages (affiliate disclosure in Terms and Privacy Policy)
+
 ### Later sub-phases
 
 A detailed checklist (and that sub-phase's decisions) is added when it starts. Notes so far:
 
-- **4.3 Book:** start with Travelpayouts (free, accepts new apps: Trip.com, Kiwi.com, Agoda, DiscoverCars,
-  EconomyBookings, ...); apply directly to Skyscanner, Booking.com, Expedia, KAYAK/Momondo once there is traffic
-  (they ask for an existing audience). Vistara no longer exists (merged into Air India, Nov 2024).
 - **4.4 AI:** a free tier that doesn't train on our data (e.g. Cloudflare Workers AI) until there is a budget.
 - **4.6 Me:** SMS is never free (Firebase: ~10/day free, then billed per SMS by country): cap it during the beta.
 - Wanderbook photos: R2 bucket `goawaygo-user-media`. Push: Firebase Cloud Messaging (free).

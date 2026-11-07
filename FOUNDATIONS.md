@@ -102,7 +102,7 @@ Every service, library and tool GoAwayGo uses, what it does for us, and which pa
 | Website | React 19, TypeScript, Vite, React Router, Sentry, PostHog (loaded only after consent), Roboto (bundled)                                                      |
 | App     | Flutter 3.47, provider, http, google_sign_in, flutter_secure_storage, shared_preferences, url_launcher, flutter_dotenv, Sentry 10, PostHog                   |
 
-## 9. Feature services (4.1 Discover, 4.2 Wanderbook)
+## 9. Feature services (4.1 Discover, 4.2 Wanderbook, 4.3 Book)
 
 All called by the backend through the API toolkit (section 6), with daily limits below the free tiers. Keys live in
 Secret Manager (`goawaygo-api-<name>`); the repo variable `EXTERNAL_API_PROVIDERS` lists the ones the deploy passes.
@@ -115,6 +115,8 @@ Secret Manager (`goawaygo-api-<name>`); the repo variable `EXTERNAL_API_PROVIDER
 | **Unsplash**                                                        | Backup spot photos (credited, with referral links).                                                                   | B (W, A load the photos) | demo app: 50 requests/hour                                                  | `goawaygo.external.providers.unsplash.*`                                         |
 | **OpenAI moderation** (`omni-moderation-latest`)                    | Checks every Wanderbook photo and text before it appears; nothing is posted if it can't check.                        | B                        | free                                                                        | Secret `goawaygo-api-openai`, `ContentModeration`                                |
 | **Cloudflare R2** (`goawaygo-media`)                                | Stores Wanderbook photos (originals, location removed) behind `media.goawaygo.com`.                                   | B (W, A show them)       | 10 GB; uploads stop at 9.5 GB                                               | Secrets `goawaygo-r2-*`, repo variable `WANDERBOOK_PHOTOS`, `docs/deployment.md` |
+| **Travelpayouts** (marker 798632, project 597168)                   | Recent flight prices (Aviasales Data API) and affiliate links for flights, hotels and car rentals (links API).        | B (W, A open the links)  | free; we earn commission on bookings                                        | Secret `goawaygo-api-travelpayouts`, `goawaygo.book.*`                           |
+| **KAYAK API** (sandbox)                                             | Live flight, hotel and car prices once production is approved (not used yet).                                         | B (later)                | free sandbox; production by approval                                        | Secret `goawaygo-api-kayak`                                                      |
 | **Admin flag** (`users.is_admin`)                                   | Who may review Wanderbook reports on `/admin/reports`; reports are also emailed to `team@goawaygo.com`.               | B, W                     | —                                                                           | Set by hand in Neon (`docs/deployment.md`)                                       |
 
 ## Deadlines and limits to watch
