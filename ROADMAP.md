@@ -145,7 +145,7 @@ Decided 2026-11-08.
 - **AI:** Gemini (3.1 Flash Lite → 3.5 Flash Lite → 3 Flash), like Discover; a better model later. Signed-in users
   only: 5 new plans and 20 day changes a day per account, 50 saved plans.
 - [x] Backend: plans, change a day, share, budget estimate
-- [ ] Website · [ ] App
+- [x] Website · [x] App
 
 ### Later sub-phases
 
