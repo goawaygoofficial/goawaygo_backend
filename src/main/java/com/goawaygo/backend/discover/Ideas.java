@@ -1,5 +1,10 @@
 package com.goawaygo.backend.discover;
 
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+
+import com.goawaygo.backend.common.i18n.Lang;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -59,6 +64,11 @@ public class Ideas {
 
 	private volatile Pool pool;
 
+	/** Each language's copy of the current pool (area, country and summary translated; names stay as on Wikipedia). */
+	private final Map<Lang, Pool> translated = new ConcurrentHashMap<>();
+
+	private final Map<Lang, ReentrantLock> translating = new ConcurrentHashMap<>();
+
 	public Ideas(AiClient ai, SpotPhotos photos, ObjectMapper json, DiscoverProperties properties,
 			@Qualifier("discoverExecutor") Executor executor, Clock clock) {
 		this.ai = ai;
@@ -82,11 +92,14 @@ public class Ideas {
 	private record Pool(List<Idea> ideas, Instant madeAt) {
 	}
 
-	/** {@code count} random ideas (empty if none could be made right now). */
-	public List<Idea> random(int count) {
+	/** {@code count} random ideas (empty if none could be made right now), in {@code lang} when translated. */
+	public List<Idea> random(int count, Lang lang) {
 		Pool current = currentPool();
 		if (current == null || current.ideas().isEmpty()) {
 			return List.of();
+		}
+		if (!lang.isEnglish()) {
+			current = translatedPool(current, lang);
 		}
 		List<Idea> shuffled = new ArrayList<>(current.ideas());
 		Collections.shuffle(shuffled, new Random(ThreadLocalRandom.current().nextLong()));
@@ -124,6 +137,97 @@ public class Ideas {
 		finally {
 			this.refreshing.unlock();
 		}
+	}
+
+	/**
+	 * The pool in {@code lang}: translated once per pool (one AI request); the English pool meanwhile, or if the
+	 * translation fails.
+	 */
+	private Pool translatedPool(Pool english, Lang lang) {
+		Pool done = this.translated.get(lang);
+		if (done != null && done.madeAt().equals(english.madeAt())) {
+			return done;
+		}
+		ReentrantLock lock = this.translating.computeIfAbsent(lang, l -> new ReentrantLock());
+		if (!lock.tryLock()) {
+			return english;
+		}
+		try {
+			done = this.translated.get(lang);
+			if (done != null && done.madeAt().equals(english.madeAt())) {
+				return done;
+			}
+			Pool made = new Pool(translate(english.ideas(), lang), english.madeAt());
+			this.translated.put(lang, made);
+			return made;
+		}
+		finally {
+			lock.unlock();
+		}
+	}
+
+	private List<Idea> translate(List<Idea> ideas, Lang lang) {
+		StringBuilder request = new StringBuilder("Translate the area, country and summary of each place into ")
+			.append(lang.englishName())
+			.append(". Keep the ids. Reply with the same number of places, in the same order.\n");
+		for (Idea idea : ideas) {
+			request.append("- id: ").append(idea.id()).append(" | area: ").append(idea.area())
+				.append(" | country: ").append(idea.country()).append(" | summary: ").append(idea.summary())
+				.append('\n');
+		}
+		AiClient.Answer answer = this.ai.generateJson(this.properties.ideaModels(), TRANSLATE_SYSTEM,
+				request.toString(), translationSchema(), 0.2, MAX_OUTPUT_TOKENS);
+		if (answer == null) {
+			return ideas;
+		}
+		try {
+			RawTranslations raw = this.json.readValue(answer.json(), RawTranslations.class);
+			Map<String, Translation> byId = new HashMap<>();
+			for (Translation t : (raw.places() != null) ? raw.places() : List.<Translation>of()) {
+				if (t != null && t.id() != null) {
+					byId.put(t.id(), t);
+				}
+			}
+			List<Idea> out = new ArrayList<>();
+			for (Idea idea : ideas) {
+				Translation t = byId.get(idea.id());
+				out.add((t == null) ? idea : new Idea(idea.id(), idea.name(), or(t.area(), idea.area()),
+						or(t.country(), idea.country()), idea.category(), idea.kind(), or(t.summary(), idea.summary()),
+						idea.lat(), idea.lon(), idea.photo()));
+			}
+			log.info("Ideas translated into {} ({} of {})", lang.code(), byId.size(), ideas.size());
+			return List.copyOf(out);
+		}
+		catch (RuntimeException ex) {
+			log.warn("Ideas translation into {} not usable: {}", lang.code(), ex.toString());
+			return ideas;
+		}
+	}
+
+	private static final String TRANSLATE_SYSTEM = """
+			You translate short travel texts for GoAwayGo's travellers. Translate faithfully and naturally, in plain words,
+			no marketing language, no emojis. Write place names the way they are usually written in the target language.
+			Reply only with the JSON object described.""";
+
+	static Map<String, Object> translationSchema() {
+		Map<String, Object> place = Map.of("type", "OBJECT", "properties",
+				Map.of("id", Map.of("type", "STRING"), "area", Map.of("type", "STRING"), "country",
+						Map.of("type", "STRING"), "summary", Map.of("type", "STRING")),
+				"required", List.of("id", "area", "country", "summary"));
+		return Map.of("type", "OBJECT", "properties", Map.of("places", Map.of("type", "ARRAY", "items", place)),
+				"required", List.of("places"));
+	}
+
+	private static String or(String value, String fallback) {
+		return (value == null || value.isBlank()) ? fallback : value.strip();
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	record RawTranslations(List<Translation> places) {
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	record Translation(String id, String area, String country, String summary) {
 	}
 
 	private Pool make(Pool previous) {

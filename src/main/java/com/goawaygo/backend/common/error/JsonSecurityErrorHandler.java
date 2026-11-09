@@ -1,5 +1,8 @@
 package com.goawaygo.backend.common.error;
 
+import com.goawaygo.backend.common.i18n.Lang;
+import com.goawaygo.backend.common.i18n.T;
+
 import java.io.IOException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,14 +41,16 @@ public class JsonSecurityErrorHandler implements AuthenticationEntryPoint, Acces
 	public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException ex)
 			throws IOException {
 		this.bearerEntryPoint.commence(request, response, ex);
-		write(response, HttpStatus.UNAUTHORIZED, "unauthorized", "You need to sign in to do this.");
+		write(response, HttpStatus.UNAUTHORIZED, "unauthorized",
+				T.t(Lang.of(request), "You need to sign in to do this."));
 	}
 
 	@Override
 	public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex)
 			throws IOException {
 		this.bearerAccessDenied.handle(request, response, ex);
-		write(response, HttpStatus.FORBIDDEN, "forbidden", "You don't have permission to do this.");
+		write(response, HttpStatus.FORBIDDEN, "forbidden",
+				T.t(Lang.of(request), "You don't have permission to do this."));
 	}
 
 	private void write(HttpServletResponse response, HttpStatus status, String code, String message) throws IOException {

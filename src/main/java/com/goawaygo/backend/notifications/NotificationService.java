@@ -1,5 +1,8 @@
 package com.goawaygo.backend.notifications;
 
+import com.goawaygo.backend.common.i18n.Lang;
+import com.goawaygo.backend.common.i18n.T;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -69,7 +72,7 @@ public class NotificationService {
 
 	public Page list(long userId, Long before) {
 		List<Row> rows = this.notifications.list(userId, before, PAGE_SIZE);
-		List<Item> items = rows.stream().map(NotificationService::item).toList();
+		List<Item> items = rows.stream().map(row -> item(row, Lang.current())).toList();
 		Long next = (rows.size() == PAGE_SIZE) ? rows.get(rows.size() - 1).id() : null;
 		return new Page(items, next, this.notifications.unread(userId));
 	}
@@ -202,10 +205,11 @@ public class NotificationService {
 		queue(userId, id);
 	}
 
-	/** Pushes the notification as the bell will show it. */
+	/** Pushes the notification as the bell will show it, in the recipient's language. */
 	private void queue(long userId, long id) {
 		this.notifications.find(id).ifPresent(row -> {
-			Item item = item(row);
+			Lang lang = Lang.orEnglish(this.notifications.language(userId));
+			Item item = item(row, lang);
 			Map<String, String> data = new LinkedHashMap<>();
 			data.put("type", item.type());
 			data.put("notificationId", String.valueOf(item.id()));
@@ -220,8 +224,8 @@ public class NotificationService {
 			}
 			String body = item.detail().isEmpty() ? item.message() : item.message() + " " + item.detail();
 			String heading = switch (row.type()) {
-				case "trip_reminder" -> "Trip reminder";
-				case "plan_opened" -> "Your shared trip plan";
+				case "trip_reminder" -> T.t(lang, "Trip reminder");
+				case "plan_opened" -> T.t(lang, "Your shared trip plan");
 				case "announcement" -> row.title();
 				default -> "Wanderbook";
 			};
@@ -239,21 +243,26 @@ public class NotificationService {
 		};
 	}
 
-	/** The bell's line for a notification, written now so a renamed person shows their new name. */
-	static Item item(Row row) {
-		String actor = (row.actorName() != null) ? row.actorName() : "Someone";
-		String place = (row.planPlace() != null) ? row.planPlace() : "your trip";
+	/**
+	 * The bell's line for a notification in {@code lang}, written now so a renamed person shows their new name.
+	 * Announcements are shown as the team wrote them.
+	 */
+	static Item item(Row row, Lang lang) {
+		String actor = (row.actorName() != null) ? row.actorName() : T.t(lang, "Someone");
+		String place = (row.planPlace() != null) ? row.planPlace() : T.t(lang, "your trip");
 		String message = switch (row.type()) {
-			case "follow" -> actor + " started following you.";
-			case "follow_request" -> actor + " asked to follow you.";
-			case "follow_accepted" -> actor + " accepted your follow request.";
-			case "like" -> (row.count() <= 1) ? actor + " liked your post."
-					: actor + " and " + others(row.count() - 1) + " liked your post.";
-			case "comment" -> actor + " commented on your post:";
-			case "trip_reminder" -> "1".equals(row.text()) ? "Your trip to " + place + " starts tomorrow."
-					: "Your trip to " + place + " starts in " + row.text() + " days.";
-			case "plan_opened" -> "Someone opened your shared plan"
-					+ ((row.planTitle() != null) ? " “" + row.planTitle() + "”." : ".");
+			case "follow" -> T.t(lang, "{0} started following you.", actor);
+			case "follow_request" -> T.t(lang, "{0} asked to follow you.", actor);
+			case "follow_accepted" -> T.t(lang, "{0} accepted your follow request.", actor);
+			case "like" -> (row.count() <= 1) ? T.t(lang, "{0} liked your post.", actor)
+					: (row.count() == 2) ? T.t(lang, "{0} and 1 other liked your post.", actor)
+							: T.t(lang, "{0} and {1} others liked your post.", actor, row.count() - 1);
+			case "comment" -> T.t(lang, "{0} commented on your post:", actor);
+			case "trip_reminder" -> "1".equals(row.text()) ? T.t(lang, "Your trip to {0} starts tomorrow.", place)
+					: T.t(lang, "Your trip to {0} starts in {1} days.", place, row.text());
+			case "plan_opened" -> (row.planTitle() != null)
+					? T.t(lang, "Someone opened your shared plan “{0}”.", row.planTitle())
+					: T.t(lang, "Someone opened your shared plan.");
 			case "announcement" -> row.title();
 			default -> "";
 		};
@@ -265,10 +274,6 @@ public class NotificationService {
 				? new Actor(row.actorPublicId(), row.actorName(), row.actorPhotoUrl()) : null;
 		return new Item(row.id(), row.type(), message, detail, row.readAt() != null, row.createdAt(), who,
 				row.postPublicId(), row.planPublicId());
-	}
-
-	private static String others(int count) {
-		return (count == 1) ? "1 other" : count + " others";
 	}
 
 	private static String clean(String text, int max) {

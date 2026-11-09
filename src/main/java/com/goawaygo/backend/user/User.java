@@ -50,6 +50,10 @@ public class User {
 	@Column(length = 3)
 	private String currency;
 
+	/** The language GoAwayGo speaks to this user ({@code Lang} code), for pushes and emails. */
+	@Column(nullable = false, length = 5)
+	private String language = "en";
+
 	/** A new email waiting for its confirmation link. */
 	@Column(name = "pending_email", length = 320)
 	private String pendingEmail;
@@ -133,6 +137,11 @@ public class User {
 		this.profilePictureUrl = url;
 	}
 
+	/** A supported language code ({@code Lang#code}). */
+	public void setLanguage(String language) {
+		this.language = language;
+	}
+
 	public void requestEmailChange(String newEmail) {
 		this.pendingEmail = normalizeEmail(newEmail);
 	}
@@ -208,6 +217,10 @@ public class User {
 
 	public String getCurrency() {
 		return this.currency;
+	}
+
+	public String getLanguage() {
+		return this.language;
 	}
 
 	public String getPendingEmail() {

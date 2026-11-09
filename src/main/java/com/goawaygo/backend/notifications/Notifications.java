@@ -123,6 +123,14 @@ class Notifications {
 	}
 
 	/** Everyone's id, for an announcement. */
+	/** The user's language code (en if unknown). */
+	String language(long userId) {
+		return this.jdbc.queryForList("SELECT language FROM users WHERE id = ?", String.class, userId)
+			.stream()
+			.findFirst()
+			.orElse("en");
+	}
+
 	List<Long> allUsers() {
 		return this.jdbc.queryForList("SELECT id FROM users WHERE deletion_requested_at IS NULL ORDER BY id", Long.class);
 	}
