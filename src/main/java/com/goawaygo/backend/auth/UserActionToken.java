@@ -18,7 +18,7 @@ public class UserActionToken {
 
 	public enum Purpose {
 
-		PASSWORD_RESET, EMAIL_VERIFICATION
+		PASSWORD_RESET, EMAIL_VERIFICATION, EMAIL_CHANGE
 
 	}
 

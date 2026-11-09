@@ -97,7 +97,7 @@ public class AuthService {
 			// Same response for unknown email and wrong password, so attackers can't probe which emails exist.
 			throw new ApiException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Incorrect email or password.");
 		}
-		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent));
+		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent), user.cancelDeletion());
 	}
 
 	/**
@@ -125,7 +125,7 @@ public class AuthService {
 				.orElseGet(() -> createGoogleUser(google));
 		}
 		user.setProfilePictureUrlIfMissing(google.pictureUrl());
-		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent));
+		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent), user.cancelDeletion());
 	}
 
 	private User linkGoogle(User existing, GoogleIdTokenVerifier.GoogleIdentity google) {
@@ -165,7 +165,7 @@ public class AuthService {
 		User user = this.users.findById(rotation.userId())
 			.orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "invalid_refresh_token",
 					"Your session has expired. Please sign in again."));
-		return startSession(user, rotation.refreshToken());
+		return startSession(user, rotation.refreshToken(), false);
 	}
 
 	@Transactional
@@ -175,10 +175,14 @@ public class AuthService {
 		}
 	}
 
-	private Session startSession(User user, IssuedRefreshToken refreshToken) {
+	/** @param restored the sign-in cancelled the account's pending deletion */
+	Session startSession(User user, IssuedRefreshToken refreshToken, boolean restored) {
+		if (restored) {
+			log.info("User {} signed in again: account deletion cancelled", user.getId());
+		}
 		IssuedToken accessToken = this.accessTokens.issue(user.getId());
 		long expiresIn = Duration.between(accessToken.issuedAt(), accessToken.expiresAt()).toSeconds();
-		return new Session(UserResponse.from(user), accessToken.value(), expiresIn, refreshToken);
+		return new Session(UserResponse.from(user), accessToken.value(), expiresIn, refreshToken, restored);
 	}
 
 	private static ApiException emailTaken() {
@@ -186,7 +190,8 @@ public class AuthService {
 				"An account with this email already exists.");
 	}
 
-	public record Session(UserResponse user, String accessToken, long expiresIn, IssuedRefreshToken refreshToken) {
+	public record Session(UserResponse user, String accessToken, long expiresIn, IssuedRefreshToken refreshToken,
+			boolean restored) {
 	}
 
 }

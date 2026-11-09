@@ -80,6 +80,14 @@ class TripPlans {
 		this.jdbc.update("UPDATE trip_plans SET shared = ?, updated_at = now() WHERE id = ?", shared, id);
 	}
 
+	/** A shared plan, unless its owner's account waits to be deleted (hidden from others meanwhile). */
+	Optional<Stored> findShared(String publicId) {
+		return this.jdbc.query("SELECT " + COLUMNS + " FROM trip_plans WHERE public_id = ? AND shared"
+				+ " AND user_id NOT IN (SELECT id FROM users WHERE deletion_requested_at IS NOT NULL)", this::row, publicId)
+			.stream()
+			.findFirst();
+	}
+
 	void delete(long id) {
 		this.jdbc.update("DELETE FROM trip_plans WHERE id = ?", id);
 	}

@@ -18,6 +18,9 @@ public class WanderbookRepository {
 
 	static final String PENDING = "pending";
 
+	/** The account in column {@code %s} isn't waiting to be deleted (hidden from others meanwhile). */
+	private static final String NOT_LEAVING = "%s NOT IN (SELECT id FROM users WHERE deletion_requested_at IS NOT NULL)";
+
 	private final JdbcTemplate jdbc;
 
 	public WanderbookRepository(JdbcTemplate jdbc) {
@@ -41,8 +44,10 @@ public class WanderbookRepository {
 		return this.jdbc.query("SELECT " + PROFILE_COLUMNS + " WHERE p.user_id = ?", PROFILE, userId).stream().findFirst();
 	}
 
+	/** Someone's profile; none while their account waits to be deleted. */
 	Optional<ProfileRow> byPublicId(String publicId) {
-		return this.jdbc.query("SELECT " + PROFILE_COLUMNS + " WHERE p.public_id = ?", PROFILE, publicId)
+		return this.jdbc.query("SELECT " + PROFILE_COLUMNS + " WHERE p.public_id = ? AND u.deletion_requested_at IS NULL",
+				PROFILE, publicId)
 			.stream()
 			.findFirst();
 	}
@@ -93,15 +98,18 @@ public class WanderbookRepository {
 	}
 
 	long followerCount(long userId) {
-		return count("SELECT count(*) FROM wanderbook_follows WHERE followee_id = ? AND status = 'accepted'", userId);
+		return count("SELECT count(*) FROM wanderbook_follows WHERE followee_id = ? AND status = 'accepted' AND "
+				+ NOT_LEAVING.formatted("follower_id"), userId);
 	}
 
 	long followingCount(long userId) {
-		return count("SELECT count(*) FROM wanderbook_follows WHERE follower_id = ? AND status = 'accepted'", userId);
+		return count("SELECT count(*) FROM wanderbook_follows WHERE follower_id = ? AND status = 'accepted' AND "
+				+ NOT_LEAVING.formatted("followee_id"), userId);
 	}
 
 	long requestCount(long userId) {
-		return count("SELECT count(*) FROM wanderbook_follows WHERE followee_id = ? AND status = 'pending'", userId);
+		return count("SELECT count(*) FROM wanderbook_follows WHERE followee_id = ? AND status = 'pending' AND "
+				+ NOT_LEAVING.formatted("follower_id"), userId);
 	}
 
 	/** One person in a list, with the follow row's id as the paging cursor. */
@@ -124,6 +132,7 @@ public class WanderbookRepository {
 				"FROM wanderbook_follows f JOIN wanderbook_profiles p ON p.user_id = f." + other) + """
 
 				WHERE f.%s = ? AND f.status = ? AND (?::bigint IS NULL OR f.id < ?::bigint)
+				  AND u.deletion_requested_at IS NULL
 				  AND NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
 				                  WHERE (b.blocker_id = ? AND b.blocked_id = p.user_id)
 				                     OR (b.blocker_id = p.user_id AND b.blocked_id = ?))
@@ -170,7 +179,7 @@ public class WanderbookRepository {
 		String prefix = pattern.substring(1);
 		return this.jdbc.query("SELECT " + PROFILE_COLUMNS + """
 
-				WHERE lower(u.name) LIKE ?
+				WHERE lower(u.name) LIKE ? AND u.deletion_requested_at IS NULL
 				  AND NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
 				                  WHERE (b.blocker_id = ? AND b.blocked_id = p.user_id)
 				                     OR (b.blocker_id = p.user_id AND b.blocked_id = ?))

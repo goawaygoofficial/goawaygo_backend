@@ -33,7 +33,8 @@ public class AuthRateLimitInterceptor implements HandlerInterceptor {
 				"/api/auth/refresh", new Rule("refresh-ip", limits.refreshPerIp()),
 				"/api/auth/forgot-password", new Rule("forgot-password-ip", limits.forgotPasswordPerIp()),
 				"/api/auth/reset-password", new Rule("token-redeem-ip", limits.tokenRedeemPerIp()),
-				"/api/auth/verify-email", new Rule("token-redeem-ip", limits.tokenRedeemPerIp()));
+				"/api/auth/verify-email", new Rule("token-redeem-ip", limits.tokenRedeemPerIp()),
+				"/api/auth/confirm-email", new Rule("token-redeem-ip", limits.tokenRedeemPerIp()));
 	}
 
 	@Override

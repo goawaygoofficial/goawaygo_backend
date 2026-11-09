@@ -41,11 +41,12 @@ class Notifications {
 			LEFT JOIN trip_plans tp ON tp.id = n.plan_id
 			""";
 
-	/** Hides notifications from someone either side has blocked since. */
+	/** Hides notifications from someone either side has blocked since, or whose account waits to be deleted. */
 	private static final String NOT_BLOCKED = """
 			(n.actor_id IS NULL OR NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
 			    WHERE (b.blocker_id = n.user_id AND b.blocked_id = n.actor_id)
-			       OR (b.blocker_id = n.actor_id AND b.blocked_id = n.user_id)))""";
+			       OR (b.blocker_id = n.actor_id AND b.blocked_id = n.user_id))
+			    AND n.actor_id NOT IN (SELECT id FROM users WHERE deletion_requested_at IS NOT NULL))""";
 
 	long insert(long userId, String type, Long actorId, Long postId, Long commentId, Long planId, String title,
 			String text) {
@@ -123,7 +124,7 @@ class Notifications {
 
 	/** Everyone's id, for an announcement. */
 	List<Long> allUsers() {
-		return this.jdbc.queryForList("SELECT id FROM users ORDER BY id", Long.class);
+		return this.jdbc.queryForList("SELECT id FROM users WHERE deletion_requested_at IS NULL ORDER BY id", Long.class);
 	}
 
 	// ---- settings ----
@@ -216,8 +217,9 @@ class Notifications {
 	List<DueTrip> claimDueTrips(LocalDate today) {
 		return this.jdbc.query("""
 				UPDATE trip_plans SET reminded_days = start_date - ?::date
-				WHERE (start_date - ?::date = 1 AND (reminded_days IS NULL OR reminded_days > 1))
-				   OR (start_date - ?::date BETWEEN 2 AND 3 AND reminded_days IS NULL)
+				WHERE ((start_date - ?::date = 1 AND (reminded_days IS NULL OR reminded_days > 1))
+				    OR (start_date - ?::date BETWEEN 2 AND 3 AND reminded_days IS NULL))
+				  AND user_id NOT IN (SELECT id FROM users WHERE deletion_requested_at IS NOT NULL)
 				RETURNING id, user_id, place_name, reminded_days""",
 				(rs, i) -> new DueTrip(rs.getLong("id"), rs.getLong("user_id"), rs.getString("place_name"),
 						rs.getInt("reminded_days")),
