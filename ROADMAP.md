@@ -27,8 +27,8 @@ recorded in its section below.
 | **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
 | **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
 | **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done    |
-| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Next    |
-| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
+| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Done    |
+| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Next    |
 | **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
 
 **How we build (decided 2026-10-31):** in MVP rounds. **MVP 1** builds every sub-phase below (4.1 to 4.7) without
@@ -165,7 +165,7 @@ Decided 2026-11-09.
   GitHub Actions job at 09:00 IST calls the backend's reminder run. The app reads its Firebase settings from
   `env/staging.env` (public IDs; no `google-services.json`).
 - [x] Backend: notifications, device tokens, settings, push, reminders, announcements
-- [x] Website · [x] App · [x] Legal pages (device tokens and notifications in the Privacy Policy)
+- [x] Website · [x] App · [x] Legal pages (device tokens and notifications in the Privacy Policy) · [x] Released in 1.4.0 build 10
 
 ### Later sub-phases
 
