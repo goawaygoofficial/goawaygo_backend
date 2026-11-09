@@ -165,7 +165,7 @@ Decided 2026-11-09.
   GitHub Actions job at 09:00 IST calls the backend's reminder run. The app reads its Firebase settings from
   `env/staging.env` (public IDs; no `google-services.json`).
 - [x] Backend: notifications, device tokens, settings, push, reminders, announcements
-- [x] Website · [ ] App · [x] Legal pages (device tokens and notifications in the Privacy Policy)
+- [x] Website · [x] App · [x] Legal pages (device tokens and notifications in the Privacy Policy)
 
 ### Later sub-phases
 
