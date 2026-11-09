@@ -26,8 +26,8 @@ recorded in its section below.
 | **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
 | **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
 | **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
-| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Next    |
-| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Planned |
+| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done    |
+| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Next    |
 | **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
 | **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
 
@@ -145,7 +145,7 @@ Decided 2026-11-08.
 - **AI:** Gemini (3.1 Flash Lite → 3.5 Flash Lite → 3 Flash), like Discover; a better model later. Signed-in users
   only: 5 new plans and 20 day changes a day per account, 50 saved plans.
 - [x] Backend: plans, change a day, share, budget estimate
-- [x] Website · [x] App
+- [x] Website · [x] App · [x] Legal pages (trip plans in Privacy Policy and Terms) · [x] Released in 1.3.0 build 9
 
 ### Later sub-phases
 
