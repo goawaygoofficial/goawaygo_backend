@@ -164,8 +164,8 @@ Decided 2026-11-09.
   Cloud Messaging role in project `goaway-483709`, then the repo variable `FCM_PROJECT`). Trip reminders: a daily
   GitHub Actions job at 09:00 IST calls the backend's reminder run. The app reads its Firebase settings from
   `env/staging.env` (public IDs; no `google-services.json`).
-- [ ] Backend: notifications, device tokens, settings, push, reminders, announcements
-- [ ] Website · [ ] App · [ ] Legal pages (device tokens and notifications in the Privacy Policy)
+- [x] Backend: notifications, device tokens, settings, push, reminders, announcements
+- [x] Website · [ ] App · [x] Legal pages (device tokens and notifications in the Privacy Policy)
 
 ### Later sub-phases
 

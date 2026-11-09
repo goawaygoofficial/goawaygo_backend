@@ -21,9 +21,10 @@ jobs:
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
-          # The first call may wait for a cold start.
+          # The first call may wait for a cold start. -d '' sends Content-Length: 0 (Google's front end refuses a POST
+          # without it: 411).
           for attempt in 1 2 3; do
-            if curl -sS -f --max-time 60 -X POST "${API_BASE_URL%/}/api/notifications/reminders"; then
+            if curl -sS -f --max-time 60 -X POST -d '' "${API_BASE_URL%/}/api/notifications/reminders"; then
               echo; exit 0
             fi
             echo "Attempt $attempt failed, retrying"; sleep 20
