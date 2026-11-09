@@ -24,11 +24,13 @@ import org.springframework.stereotype.Repository;
 public class PostRepository {
 
 	/**
-	 * The author of {@code p} is visible to {@code :viewer}: nobody blocked anyone, and the profile is public, or is
-	 * the viewer's own, or the viewer is an approved follower.
+	 * The author of {@code p} is visible to {@code :viewer}: not waiting for their account to be deleted, nobody
+	 * blocked anyone, and the profile is public, or is the viewer's own, or the viewer is an approved follower.
 	 */
 	static final String VISIBLE = """
-			NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
+			NOT EXISTS (SELECT 1 FROM users leaving WHERE leaving.id = p.author_id
+			            AND leaving.deletion_requested_at IS NOT NULL)
+			AND NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
 			            WHERE (b.blocker_id = :viewer AND b.blocked_id = p.author_id)
 			               OR (b.blocker_id = p.author_id AND b.blocked_id = :viewer))
 			AND (NOT pr.is_private OR p.author_id = :viewer
@@ -230,7 +232,7 @@ public class PostRepository {
 				SELECT pr.user_id, pr.public_id, u.name, u.profile_picture_url, pr.bio, pr.home_town, pr.is_private
 				FROM wanderbook_likes l
 				JOIN wanderbook_profiles pr ON pr.user_id = l.user_id JOIN users u ON u.id = l.user_id
-				WHERE l.post_id = :post AND NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
+				WHERE l.post_id = :post AND u.deletion_requested_at IS NULL AND NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
 				      WHERE (b.blocker_id = :viewer AND b.blocked_id = l.user_id)
 				         OR (b.blocker_id = l.user_id AND b.blocked_id = :viewer))
 				ORDER BY l.created_at DESC LIMIT :limit""",
@@ -276,6 +278,7 @@ public class PostRepository {
 	List<CommentRow> comments(long postId, Long viewerId, Long after, int limit) {
 		return this.named.query(COMMENT_SELECT + """
 				WHERE c.post_id = :post AND (CAST(:after AS bigint) IS NULL OR c.id > :after)
+				  AND u.deletion_requested_at IS NULL
 				  AND NOT EXISTS (SELECT 1 FROM wanderbook_blocks b
 				                  WHERE (b.blocker_id = :viewer AND b.blocked_id = c.author_id)
 				                     OR (b.blocker_id = c.author_id AND b.blocked_id = :viewer))

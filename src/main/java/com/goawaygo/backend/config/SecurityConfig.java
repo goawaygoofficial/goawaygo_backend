@@ -42,7 +42,8 @@ public class SecurityConfig {
 			.authorizeHttpRequests(requests -> requests
 				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/signin", "/api/auth/google-signin",
 						"/api/auth/google-signin/code", "/api/auth/refresh", "/api/auth/logout",
-						"/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/verify-email")
+						"/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/verify-email",
+						"/api/auth/confirm-email", "/api/auth/purge-deleted-accounts")
 				.permitAll()
 				.requestMatchers("/error")
 				.permitAll()
@@ -55,6 +56,9 @@ public class SecurityConfig {
 				.permitAll()
 				// A shared trip plan opens for anyone with its link; making plans needs an account.
 				.requestMatchers(HttpMethod.GET, "/api/plans/shared/**")
+				.permitAll()
+				// The countries and currencies a user can pick (UserController).
+				.requestMatchers(HttpMethod.GET, "/api/regions")
 				.permitAll()
 				// The daily trip-reminder run: only sends what is due, once (NotificationController).
 				.requestMatchers(HttpMethod.POST, "/api/notifications/reminders")

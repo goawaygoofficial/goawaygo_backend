@@ -35,7 +35,7 @@ import com.goawaygo.backend.ratelimit.RateLimiter;
 @RequestMapping("/api/discover")
 public class DiscoverController {
 
-	private static final int MAX_PHOTO_REQUESTS = SearchHistory.KEEP;
+	private static final int MAX_PHOTO_REQUESTS = SearchHistory.BANNER;
 
 	private final PlaceSearch places;
 
@@ -99,7 +99,7 @@ public class DiscoverController {
 	/** The signed-in user's last 5 searched places, newest first, each with a live tourist-spot photo. */
 	@GetMapping("/recent")
 	public List<BannerSlide> recent(@AuthenticationPrincipal Jwt jwt) {
-		List<SearchHistory.Entry> entries = this.history.latest(Long.parseLong(jwt.getSubject()));
+		List<SearchHistory.Entry> entries = this.history.latest(Long.parseLong(jwt.getSubject()), SearchHistory.BANNER);
 		List<PhotoRequest> requests = entries.stream()
 			.map(e -> new PhotoRequest((e.topSpot() != null) ? e.topSpot() : e.place().name(), e.place().name(),
 					e.place().type(), e.place().country(), e.place().lat(), e.place().lon()))

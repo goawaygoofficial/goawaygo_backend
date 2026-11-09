@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.util.Map;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -28,10 +31,12 @@ import com.goawaygo.backend.auth.dto.ResetPasswordRequest;
 import com.goawaygo.backend.auth.dto.SigninRequest;
 import com.goawaygo.backend.auth.dto.SignupRequest;
 import com.goawaygo.backend.auth.dto.VerifyEmailRequest;
+import com.goawaygo.backend.ratelimit.RateLimitProperties;
+import com.goawaygo.backend.ratelimit.RateLimiter;
 import com.goawaygo.backend.user.UserResponse;
 
 /**
- * Sign-up, sign-in, token refresh and logout.
+ * Sign-up, sign-in, token refresh and logout; changing the password or email and deleting the account (4.6).
  *
  * <p>Where the refresh token goes depends on the client:
  * <ul>
@@ -54,14 +59,42 @@ public class AuthController {
 
 	private final GoogleAuthorizationCodeExchanger googleCodeExchanger;
 
+	/** The daily deletion run, for everyone together: the daily job plus a few manual runs. */
+	private static final RateLimitProperties.Limit PURGE_RUNS = new RateLimitProperties.Limit(6, Duration.ofHours(1));
+
 	private final AccountEmailService accountEmails;
 
+	private final AccountService accounts;
+
+	private final RateLimiter rateLimiter;
+
 	public AuthController(AuthService authService, AuthProperties properties,
-			GoogleAuthorizationCodeExchanger googleCodeExchanger, AccountEmailService accountEmails) {
+			GoogleAuthorizationCodeExchanger googleCodeExchanger, AccountEmailService accountEmails,
+			AccountService accounts, RateLimiter rateLimiter) {
 		this.authService = authService;
 		this.properties = properties;
 		this.googleCodeExchanger = googleCodeExchanger;
 		this.accountEmails = accountEmails;
+		this.accounts = accounts;
+		this.rateLimiter = rateLimiter;
+	}
+
+	/**
+	 * "Confirm it's you" for the account changes below: the current password, or Google (an ID token from the app,
+	 * or the website's authorization code).
+	 */
+	public record ConfirmRequest(String password, String googleIdToken, String googleCode) {
+	}
+
+	public record ChangePasswordRequest(String password, String googleIdToken, String googleCode,
+			// 72 is BCrypt's input limit.
+			@NotBlank(message = "Password is required.")
+			@Size(min = 8, max = 72, message = "Password must be 8 to 72 characters.") String newPassword) {
+	}
+
+	public record ChangeEmailRequest(String password, String googleIdToken, String googleCode,
+			@NotBlank(message = "Email is required.") @Email(message = "Enter a valid email address.")
+			@Size(max = 320, message = "Email is too long.") String newEmail) {
 	}
 
 	@PostMapping("/signup")
@@ -142,10 +175,68 @@ public class AuthController {
 		return ResponseEntity.accepted().build();
 	}
 
+	/** Signed in. Signs out every device and returns a new session for this one. */
+	@PostMapping("/change-password")
+	public ResponseEntity<AuthResponse> changePassword(@AuthenticationPrincipal Jwt jwt,
+			@Valid @RequestBody ChangePasswordRequest request,
+			@RequestHeader(value = CLIENT_TYPE_HEADER, required = false) String clientType,
+			@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+		AccountService.Proof proof = proof(request.password(), request.googleIdToken(), request.googleCode());
+		return respond(this.accounts.changePassword(userId(jwt), proof, request.newPassword(), userAgent),
+				isMobile(clientType));
+	}
+
+	/** Signed in. Emails a confirmation link to the new address ({@code pending_email} until it is opened). */
+	@PostMapping("/change-email")
+	public UserResponse changeEmail(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangeEmailRequest request) {
+		AccountService.Proof proof = proof(request.password(), request.googleIdToken(), request.googleCode());
+		return this.accounts.requestEmailChange(userId(jwt), proof, request.newEmail());
+	}
+
+	/** The link in the new address's email. */
+	@PostMapping("/confirm-email")
+	public ResponseEntity<Void> confirmEmail(@Valid @RequestBody VerifyEmailRequest request) {
+		this.accounts.confirmEmailChange(request.token());
+		return ResponseEntity.noContent().build();
+	}
+
+	/** Signed in. Deleted for good after 30 days; signing in before then keeps the account. Signs out everywhere. */
+	@PostMapping("/delete-account")
+	public ResponseEntity<Map<String, Instant>> deleteAccount(@AuthenticationPrincipal Jwt jwt,
+			@RequestBody(required = false) ConfirmRequest request) {
+		AccountService.Proof proof = (request == null) ? null
+				: proof(request.password(), request.googleIdToken(), request.googleCode());
+		Instant deleteOn = this.accounts.requestDeletion(userId(jwt), proof);
+		return ResponseEntity.ok()
+			.header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO))
+			.body(Map.of("deleteOn", deleteOn));
+	}
+
+	/**
+	 * Public: deletes the accounts whose 30 days are over, and nothing else, so calling it again does nothing. The
+	 * daily GitHub Actions job calls it (Cloud Run gives the backend no CPU between requests).
+	 */
+	@PostMapping("/purge-deleted-accounts")
+	public Map<String, Integer> purgeDeletedAccounts() {
+		this.rateLimiter.consume("account-purge", "all", PURGE_RUNS);
+		return Map.of("deleted", this.accounts.purgeDue());
+	}
+
+	/** Exchanges the website's Google code outside any transaction, like sign-in. */
+	private AccountService.Proof proof(String password, String googleIdToken, String googleCode) {
+		String idToken = (googleCode != null && !googleCode.isBlank())
+				? this.googleCodeExchanger.exchangeForIdToken(googleCode) : googleIdToken;
+		return new AccountService.Proof(password, idToken);
+	}
+
+	private static long userId(Jwt jwt) {
+		return Long.parseLong(jwt.getSubject());
+	}
+
 	private ResponseEntity<AuthResponse> respond(AuthService.Session session, boolean mobile) {
 		var refresh = session.refreshToken();
 		var body = new AuthResponse(session.user(), session.accessToken(), "Bearer", session.expiresIn(),
-				mobile ? refresh.value() : null);
+				mobile ? refresh.value() : null, session.restored() ? Boolean.TRUE : null);
 		var response = ResponseEntity.ok();
 		if (!mobile) {
 			Duration maxAge = Duration.between(Instant.now(), refresh.expiresAt());
