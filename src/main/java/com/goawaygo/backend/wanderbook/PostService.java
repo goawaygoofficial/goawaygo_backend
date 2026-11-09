@@ -28,6 +28,7 @@ import com.goawaygo.backend.wanderbook.PostRepository.PhotoRow;
 import com.goawaygo.backend.wanderbook.PostRepository.PostRow;
 import com.goawaygo.backend.wanderbook.WanderbookService.Page;
 import com.goawaygo.backend.wanderbook.WanderbookService.Person;
+import com.goawaygo.backend.notifications.NotificationService;
 
 /**
  * Wanderbook photos, posts, likes and comments (decided for 4.2):
@@ -67,8 +68,11 @@ public class PostService {
 
 	private final JdbcTemplate jdbc;
 
+	private final NotificationService notifications;
+
 	public PostService(PostRepository posts, WanderbookRepository profiles, R2Storage storage, MediaProperties media,
-			ContentModeration moderation, PlaceSearch places, TransactionTemplate transactions, JdbcTemplate jdbc) {
+			ContentModeration moderation, PlaceSearch places, TransactionTemplate transactions, JdbcTemplate jdbc,
+			NotificationService notifications) {
 		this.posts = posts;
 		this.profiles = profiles;
 		this.storage = storage;
@@ -77,6 +81,7 @@ public class PostService {
 		this.places = places;
 		this.transactions = transactions;
 		this.jdbc = jdbc;
+		this.notifications = notifications;
 	}
 
 	public record Photo(String id, String url, int width, int height) {
@@ -212,7 +217,9 @@ public class PostService {
 	public Post like(long userId, String publicId, boolean like) {
 		PostRow row = this.posts.visiblePost(publicId, userId).orElseThrow(PostService::postNotFound);
 		if (like) {
-			this.posts.like(row.id(), userId);
+			if (this.posts.like(row.id(), userId)) {
+				this.notifications.liked(userId, row.id(), row.authorId());
+			}
 		}
 		else {
 			this.posts.unlike(row.id(), userId);
@@ -243,6 +250,7 @@ public class PostService {
 		}
 		this.moderation.checkText(clean);
 		long id = this.posts.insertComment(post.id(), userId, clean);
+		this.notifications.commented(userId, post.id(), id, post.authorId(), clean);
 		return toComment(this.posts.comment(id).orElseThrow(), post, userId);
 	}
 

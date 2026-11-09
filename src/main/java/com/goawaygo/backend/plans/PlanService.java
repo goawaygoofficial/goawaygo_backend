@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.goawaygo.backend.book.Airports;
 import com.goawaygo.backend.common.error.ApiException;
 import com.goawaygo.backend.moderation.ContentModeration;
+import com.goawaygo.backend.notifications.NotificationService;
 
 /**
  * The AI trip planner: plans are made by the AI, saved for their owner (My Trips), changed one day at a time and
@@ -30,13 +31,16 @@ public class PlanService {
 
 	private final PlanProperties properties;
 
+	private final NotificationService notifications;
+
 	public PlanService(Planner planner, TripPlans plans, Airports airports, ContentModeration moderation,
-			PlanProperties properties) {
+			PlanProperties properties, NotificationService notifications) {
 		this.planner = planner;
 		this.plans = plans;
 		this.airports = airports;
 		this.moderation = moderation;
 		this.properties = properties;
+		this.notifications = notifications;
 	}
 
 	/** A plan as shown: the trip, every day with its date, and the cost estimate worked out from the days. */
@@ -97,6 +101,7 @@ public class PlanService {
 	/** A shared plan, for anyone with its link (read-only); 404 when it isn't shared. */
 	public PlanView shared(String id, Long viewerId) {
 		TripPlans.Stored plan = this.plans.find(id).filter(TripPlans.Stored::shared).orElseThrow(PlanService::notFound);
+		this.notifications.planOpened(plan.id(), plan.userId(), viewerId);
 		return view(plan, viewerId);
 	}
 

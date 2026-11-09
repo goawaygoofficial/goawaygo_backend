@@ -147,6 +147,26 @@ Decided 2026-11-08.
 - [x] Backend: plans, change a day, share, budget estimate
 - [x] Website · [x] App · [x] Legal pages (trip plans in Privacy Policy and Terms) · [x] Released in 1.3.0 build 9
 
+### 4.5 Notifications
+
+Decided 2026-11-09.
+
+- **Events:** Wanderbook (new follower, follow request, request accepted, likes on your post grouped per post,
+  comments on your post); trip reminders (a saved plan starts in 3 days, and tomorrow); someone opened your shared
+  plan (at most once a day per plan); GoAwayGo announcements (sent by an admin from the website).
+- **Where:** the bell on Home lists them on the app and the website (unread count, mark as read, open the post,
+  profile or plan). Push only on the Android app, through Firebase Cloud Messaging (free); no browser push.
+- **Permission (Android 13+):** asked once after sign-in; if dismissed, once more at a useful moment (after following
+  someone, posting or saving a plan); always a switch in Profile.
+- **Settings:** a switch per type (Wanderbook, trip reminders, shared plans, announcements) turns off its push; the
+  bell still lists everything. Notifications are kept 90 days.
+- **How it runs:** the backend sends pushes with its own Google service account (no key file; it needs the Firebase
+  Cloud Messaging role in project `goaway-483709`, then the repo variable `FCM_PROJECT`). Trip reminders: a daily
+  GitHub Actions job at 09:00 IST calls the backend's reminder run. The app reads its Firebase settings from
+  `env/staging.env` (public IDs; no `google-services.json`).
+- [ ] Backend: notifications, device tokens, settings, push, reminders, announcements
+- [ ] Website · [ ] App · [ ] Legal pages (device tokens and notifications in the Privacy Policy)
+
 ### Later sub-phases
 
 A detailed checklist (and that sub-phase's decisions) is added when it starts. Notes so far:

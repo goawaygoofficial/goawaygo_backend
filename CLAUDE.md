@@ -95,7 +95,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 - Backend must verify Google ID tokens (signature via Google JWKs, `iss`, `exp`, `aud` ∈ configured client IDs, `email_verified`) and never trust user details sent alongside them.
 - Mobile sends the ID token to `/api/auth/google-signin`. The website uses its own styled button + Google code client (popup) and sends the one-time code to `/api/auth/google-signin/code`; the backend exchanges it with `GOOGLE_CLIENT_SECRET` (backend `.env` only, entered by the user; never ask for it in chat, never print it).
 
-## Discover, Wanderbook, Book and the trip planner (4.1-4.4)
+## Discover, Wanderbook, Book, the trip planner and notifications (4.1-4.5)
 
 - **How we build:** MVP rounds. MVP 1 builds every Phase 4 sub-phase; fixes, changes and new ideas go into later MVPs (see `ROADMAP.md`).
 - Outside services go through the backend's API toolkit (`com.goawaygo.backend.external`) with daily limits below free tiers: Gemini (destination cards, trip ideas), Geoapify (places, photo location → place name), Wikimedia and Unsplash (photos), OpenAI moderation (Wanderbook), Travelpayouts (Book: Aviasales prices, affiliate links). Keys: Secret Manager `goawaygo-api-<name>` + repo variable `EXTERNAL_API_PROVIDERS`. Never store Discover's AI answers or spot photos (asked fresh on every page open); a trip plan is the user's own content once saved (`trip_plans`).
@@ -103,6 +103,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 - Moderation fails closed: if OpenAI can't check, nothing is posted. Reports email `team@goawaygo.com`; admins (`users.is_admin`, set by hand in Neon) review on the website's `/admin/reports`.
 - Viewing Wanderbook is public (rate limited per IP); profiles/posts use random 12-character public ids, never user ids.
 - Trip planner: Gemini (Lite models first) writes a day-by-day plan with rough costs (whole group, flights never included); signed-in users only, saved in My Trips, one day can be rewritten, a plan can be shared read-only by link after an OpenAI moderation check.
+- Notifications: saved for the bell (90 days) on the app and website; pushed to Android through Firebase Cloud Messaging with the backend's own service account (no key); a switch per type; trip reminders run from a daily GitHub Actions call. The app's Firebase IDs are public values in `env/staging.env` (never commit `google-services.json`).
 - Book: affiliate model, travellers book and pay on the partner's site. Flights show Aviasales' recent prices (labelled "may change"); stays and cars are partner links. Every partner page becomes our tracked link via Travelpayouts (`goawaygo.book.*`); the app only shows brands that allow apps. Never load partner scripts (e.g. Travelpayouts Drive) on our site.
 
 ## Deployment
