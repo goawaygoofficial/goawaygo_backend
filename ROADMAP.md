@@ -20,16 +20,16 @@ currency) · bookings through **affiliate partners** (commission; users book on 
 Instagram · phone sign-in with SMS (MVP 2). Each sub-phase's own choices (providers, limits) are decided when it
 starts and recorded in its section below.
 
-| Sub-phase                 | What users get                                                                                                                                           | Status  |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
-| **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
-| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
-| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
-| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done    |
-| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Done    |
-| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account (phone sign-in with SMS moved to MVP 2)                                                | Done    |
-| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Next    |
+| Sub-phase                 | What users get                                                                                                                                           | Status |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done   |
+| **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done   |
+| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done   |
+| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done   |
+| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done   |
+| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Done   |
+| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account (phone sign-in with SMS moved to MVP 2)                                                | Done   |
+| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Next   |
 
 **How we build (decided 2026-10-31):** in MVP rounds. **MVP 1** builds every sub-phase below (4.1 to 4.7) without
 stopping for fix rounds; fixes, changes and new ideas are collected for **MVP 2, 3, 4, ...** after that.
