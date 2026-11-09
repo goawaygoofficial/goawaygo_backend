@@ -32,6 +32,8 @@ bash scripts/release-android.sh 1.0.0 <next-build> "What changed in this version
 - Ends with `Live: https://staging.goawaygo.com/download`. If it asks for Cloudflare, run
   `npx --yes wrangler@4.145.0 login` once and repeat.
 - It refuses to run without the upload key (`android/key.properties`), so nothing debug-signed is ever published.
+- Push notifications need the Firebase key on this PC: run `bash scripts/firebase-key.sh` once (gcloud signed in).
+  Without it the script warns and that build has no push.
 - Fails with `cannot find symbol ... Plugin` in `GeneratedPluginRegistrant.java` (usually after a dependency
   update): an old partial build of that plugin is left on this PC. Run `flutter clean` and run the command again.
 
