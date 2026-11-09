@@ -26,8 +26,8 @@ recorded in its section below.
 | **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
 | **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
 | **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
-| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Next    |
-| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Planned |
+| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done    |
+| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Next    |
 | **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
 | **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
 
