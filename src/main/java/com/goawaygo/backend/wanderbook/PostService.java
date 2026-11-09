@@ -116,7 +116,7 @@ public class PostService {
 		}
 		if (file.length > this.media.maxPhotoBytes()) {
 			throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "photo_too_large",
-					"Photos can be up to %d MB.".formatted(this.media.maxPhotoBytes() / 1_000_000));
+					"Photos can be up to {0} MB.", this.media.maxPhotoBytes() / 1_000_000);
 		}
 		if (this.posts.storedBytes() + file.length > this.media.maxTotalBytes()) {
 			log.error("Wanderbook photo storage is full ({} bytes stored)", this.posts.storedBytes());

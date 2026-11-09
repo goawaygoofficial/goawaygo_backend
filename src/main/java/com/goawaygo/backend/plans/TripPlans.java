@@ -20,7 +20,7 @@ class TripPlans {
 	private static final String COLUMNS = """
 			id, public_id, user_id, place_id, place_name, place_area, country, lat, lon, airport, start_date, days,
 			travellers, pace, budget, interests, currency, itinerary::text AS itinerary, model, shared, created_at,
-			updated_at""";
+			updated_at, language""";
 
 	private final JdbcTemplate jdbc;
 
@@ -37,7 +37,7 @@ class TripPlans {
 
 	record Stored(long id, String publicId, long userId, Destination destination, String airport, LocalDate startDate,
 			int days, String travellers, String pace, String budget, List<String> interests, String currency,
-			Itinerary itinerary, String model, boolean shared, Instant createdAt, Instant updatedAt) {
+			Itinerary itinerary, String model, boolean shared, Instant createdAt, Instant updatedAt, String language) {
 	}
 
 	int count(long userId) {
@@ -50,13 +50,13 @@ class TripPlans {
 	String insert(long userId, Destination destination, String airport, Planner.Trip trip, Planner.Written written) {
 		return this.jdbc.queryForObject("""
 				INSERT INTO trip_plans (user_id, place_id, place_name, place_area, country, lat, lon, airport,
-				    start_date, days, travellers, pace, budget, interests, currency, itinerary, model)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
+				    start_date, days, travellers, pace, budget, interests, currency, itinerary, model, language)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)
 				RETURNING public_id
 				""", String.class, userId, destination.placeId(), destination.name(), destination.area(),
 				destination.country(), destination.lat(), destination.lon(), airport, trip.startDate(), trip.days(),
 				trip.travellers(), trip.pace(), trip.budget(), String.join(",", trip.interests()), trip.currency(),
-				this.json.writeValueAsString(written.itinerary()), written.model());
+				this.json.writeValueAsString(written.itinerary()), written.model(), trip.language().code());
 	}
 
 	/** The user's plans, newest first. */
@@ -102,7 +102,7 @@ class TripPlans {
 				interests.isEmpty() ? List.of() : Arrays.asList(interests.split(",")), rs.getString("currency"),
 				this.json.readValue(rs.getString("itinerary"), Itinerary.class), rs.getString("model"),
 				rs.getBoolean("shared"), rs.getTimestamp("created_at").toInstant(),
-				rs.getTimestamp("updated_at").toInstant());
+				rs.getTimestamp("updated_at").toInstant(), rs.getString("language"));
 	}
 
 }

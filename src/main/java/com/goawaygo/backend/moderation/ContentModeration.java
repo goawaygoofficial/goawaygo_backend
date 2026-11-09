@@ -85,8 +85,8 @@ public class ContentModeration {
 				}
 				log.info("Refused a {} flagged by moderation: {}", what, categories);
 				throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "content_not_allowed",
-						("photo".equals(what) ? "This photo" : "This text")
-								+ " goes against our Community Guidelines, so it can't be posted.");
+						"photo".equals(what) ? "This photo goes against our Community Guidelines, so it can't be posted."
+								: "This text goes against our Community Guidelines, so it can't be posted.");
 			}
 		}
 	}

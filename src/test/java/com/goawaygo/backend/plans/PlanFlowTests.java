@@ -139,6 +139,31 @@ class PlanFlowTests extends PostgresIntegrationTest {
 	}
 
 	@Test
+	void aPlanIsWrittenInTheTravellersLanguageAndCurrency() throws Exception {
+		String token = traveller();
+		String plan = this.mvc.perform(as(token, post("/api/plans")).header(HttpHeaders.ACCEPT_LANGUAGE, "hi")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(request("Jaipur", 3).replace("\"interests\"", "\"currency\":\"eur\",\"interests\"")))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.currency").value("EUR"))
+			.andReturn().getResponse().getContentAsString();
+		assertThat(FAKE.requests.get(FAKE.requests.size() - 1)).contains("Currency for all costs: EUR")
+			.contains("Language for all text: Hindi");
+
+		// A changed day keeps the plan's language, whatever the request says.
+		this.mvc.perform(as(token, post("/api/plans/" + JsonPath.read(plan, "$.id") + "/days/1"))
+			.header(HttpHeaders.ACCEPT_LANGUAGE, "en").contentType(MediaType.APPLICATION_JSON).content("{}"))
+			.andExpect(status().isOk());
+		assertThat(FAKE.requests.get(FAKE.requests.size() - 1)).contains("Language for all text: Hindi")
+			.contains("Currency for all costs: EUR");
+
+		this.mvc.perform(as(token, post("/api/plans")).contentType(MediaType.APPLICATION_JSON)
+			.content(request("Jaipur", 3).replace("\"interests\"", "\"currency\":\"ABC\",\"interests\"")))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error").value("invalid_currency"));
+	}
+
+	@Test
 	void aSharedPlanOpensForAnyoneAfterAContentCheckAndOthersCantChangeIt() throws Exception {
 		String asha = traveller();
 		String ben = traveller();

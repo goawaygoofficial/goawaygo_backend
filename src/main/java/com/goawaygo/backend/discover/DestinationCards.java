@@ -1,5 +1,7 @@
 package com.goawaygo.backend.discover;
 
+import com.goawaygo.backend.common.i18n.Lang;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -101,8 +103,13 @@ public class DestinationCards {
 
 	}
 
-	public Result forPlace(Place place) {
-		AiClient.Answer answer = this.ai.generateJson(this.properties.cardModels(), this.systemPrompt, request(place),
+	/**
+	 * @param lang the language the cards are written in
+	 * @param currency the traveller's currency (ISO 4217), for the exchange rate
+	 */
+	public Result forPlace(Place place, Lang lang, String currency) {
+		AiClient.Answer answer = this.ai.generateJson(this.properties.cardModels(), this.systemPrompt,
+				request(place, lang, currency),
 				schema(), TEMPERATURE, MAX_OUTPUT_TOKENS);
 		if (answer == null) {
 			return Result.busy();
@@ -131,14 +138,16 @@ public class DestinationCards {
 		return new Result("ok", answer.model(), cards);
 	}
 
-	String request(Place place) {
+	String request(Place place, Lang lang, String currency) {
 		return this.requestPrompt.replace("{name}", place.name())
 			.replace("{type}", place.type())
 			.replace("{region}", place.region().isBlank() ? "-" : place.region())
 			.replace("{country}", place.country())
 			.replace("{countryCode}", place.countryCode())
 			.replace("{lat}", String.format(Locale.ROOT, "%.4f", place.lat()))
-			.replace("{lon}", String.format(Locale.ROOT, "%.4f", place.lon()));
+			.replace("{lon}", String.format(Locale.ROOT, "%.4f", place.lon()))
+			.replace("{language}", lang.englishName())
+			.replace("{currency}", currency);
 	}
 
 	/** Checks one card: word limits, no addresses in the text, links only as https, changing details tagged. */

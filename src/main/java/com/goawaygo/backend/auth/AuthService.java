@@ -16,6 +16,7 @@ import com.goawaygo.backend.auth.RefreshTokenService.IssuedRefreshToken;
 import com.goawaygo.backend.auth.dto.SigninRequest;
 import com.goawaygo.backend.auth.dto.SignupRequest;
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.common.i18n.Lang;
 import com.goawaygo.backend.ratelimit.RateLimitProperties;
 import com.goawaygo.backend.ratelimit.RateLimiter;
 import com.goawaygo.backend.user.User;
@@ -72,8 +73,10 @@ public class AuthService {
 			throw emailTaken();
 		}
 		try {
-			User user = this.users.saveAndFlush(
-					User.withPassword(email, request.name(), this.passwordEncoder.encode(request.password())));
+			User created = User.withPassword(email, request.name(), this.passwordEncoder.encode(request.password()));
+			// Emails and pushes speak the language the account was made in, until the apps say otherwise.
+			created.setLanguage(Lang.current().code());
+			User user = this.users.saveAndFlush(created);
 			// Sent after the transaction commits, in the background.
 			this.accountEmails.sendVerificationEmail(user);
 			return UserResponse.from(user);
@@ -146,7 +149,9 @@ public class AuthService {
 
 	private User createGoogleUser(GoogleIdTokenVerifier.GoogleIdentity google) {
 		String email = User.normalizeEmail(google.email());
-		return this.users.saveAndFlush(User.withGoogle(email, displayName(google.name(), email), google.subject(), null));
+		User created = User.withGoogle(email, displayName(google.name(), email), google.subject(), null);
+		created.setLanguage(Lang.current().code());
+		return this.users.saveAndFlush(created);
 	}
 
 	/** Google's name if present (max 100 characters), otherwise the part of the email before the @. */

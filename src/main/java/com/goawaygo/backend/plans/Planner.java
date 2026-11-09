@@ -1,5 +1,7 @@
 package com.goawaygo.backend.plans;
 
+import com.goawaygo.backend.common.i18n.Lang;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -55,8 +57,9 @@ class Planner {
 	}
 
 	/** What a plan is for: the trip as the traveller described it. */
+	/** @param language what the plan is written in */
 	record Trip(String place, LocalDate startDate, int days, String travellers, String pace, String budget,
-			List<String> interests, String currency) {
+			List<String> interests, String currency, Lang language) {
 	}
 
 	/** A cleaned-up itinerary and the model that wrote it. */
@@ -123,7 +126,8 @@ class Planner {
 			.replace("{pace}", trip.pace())
 			.replace("{budget}", trip.budget())
 			.replace("{interests}", trip.interests().isEmpty() ? "a bit of everything" : String.join(", ", trip.interests()))
-			.replace("{currency}", trip.currency());
+			.replace("{currency}", trip.currency())
+			.replace("{language}", trip.language().englishName());
 	}
 
 	private static String places(Itinerary.Day day) {

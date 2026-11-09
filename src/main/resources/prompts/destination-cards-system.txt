@@ -19,7 +19,8 @@ web addresses) are allowed when useful, but:
 - set "mayChange": true on every item that contains any such detail.
 
 Style rules:
-- Plain English, simple words, no marketing language, no emojis, no markdown.
+- Write every label and detail in the requested language: plain, simple words, no marketing language, no emojis,
+  no markdown. Keep ISO codes, plug type letters and numbers as they are.
 - Each item has "label" (at most 4 words) and "detail" (at most 25 words).
 - 3 to 6 items per card unless the card's instructions say otherwise.
 

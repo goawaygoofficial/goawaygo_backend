@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.common.i18n.Lang;
 
 /**
  * The signed-in user's own account (users can only ever read and change their own record here), and the countries
@@ -38,6 +40,10 @@ public class UserController {
 	 * @param currency ISO 4217 code, or null/blank for none
 	 */
 	public record DetailsRequest(@NotBlank @Size(max = 100) String name, String country, String currency) {
+	}
+
+	/** @param language en, hi, es, fr, de, ar or ja */
+	public record LanguageRequest(@NotBlank String language) {
 	}
 
 	@GetMapping("/api/users/me")
@@ -67,11 +73,32 @@ public class UserController {
 		return UserResponse.from(user);
 	}
 
-	/** Every country (with its currency) and currency, names in English. The same for everyone: cached for a day. */
+	/**
+	 * The language for pushes and emails. The apps send it when the user picks a language, and after signing in on
+	 * a phone or browser set to another language.
+	 */
+	@PutMapping("/api/users/me/language")
+	@Transactional
+	public UserResponse language(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody LanguageRequest body) {
+		Lang lang = Lang.of(body.language());
+		if (lang == null) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "invalid_language", "Unknown language.");
+		}
+		User user = current(jwt);
+		user.setLanguage(lang.code());
+		return UserResponse.from(user);
+	}
+
+	/**
+	 * Every country (with its currency) and currency, named in the request's language. The same for everyone
+	 * speaking it: cached for a day per language.
+	 */
 	@GetMapping("/api/regions")
 	public ResponseEntity<Regions.All> regions() {
-		return ResponseEntity.ok().cacheControl(CacheControl.maxAge(java.time.Duration.ofDays(1)).cachePublic())
-			.body(Regions.all());
+		return ResponseEntity.ok()
+			.cacheControl(CacheControl.maxAge(java.time.Duration.ofDays(1)).cachePublic())
+			.varyBy(HttpHeaders.ACCEPT_LANGUAGE)
+			.body(Regions.all(Lang.current()));
 	}
 
 	private User current(Jwt jwt) {

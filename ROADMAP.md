@@ -20,16 +20,16 @@ currency) · bookings through **affiliate partners** (commission; users book on 
 Instagram · phone sign-in with SMS (MVP 2). Each sub-phase's own choices (providers, limits) are decided when it
 starts and recorded in its section below.
 
-| Sub-phase                 | What users get                                                                                                                                           | Status  |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
-| **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
-| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
-| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
-| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done    |
-| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Done    |
-| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account (phone sign-in with SMS moved to MVP 2)                                                | Next    |
-| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
+| Sub-phase                 | What users get                                                                                                                                           | Status |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done   |
+| **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done   |
+| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done   |
+| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done   |
+| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done   |
+| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Done   |
+| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account (phone sign-in with SMS moved to MVP 2)                                                | Done   |
+| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Next   |
 
 **How we build (decided 2026-10-31):** in MVP rounds. **MVP 1** builds every sub-phase below (4.1 to 4.7) without
 stopping for fix rounds; fixes, changes and new ideas are collected for **MVP 2, 3, 4, ...** after that.
@@ -186,6 +186,27 @@ Decided 2026-11-09.
   budgets only alert, they can't stop charges.
 - [x] Backend: account details, password, email change, delete with 30 days, daily deletion job, Recently viewed
 - [x] Website · [x] App · [x] Legal pages (Delete my data, Privacy Policy)
+
+### 4.7 Global readiness
+
+Decided 2026-11-10.
+
+- **Languages:** English, Hindi, Spanish, French, German, Arabic (right to left) and Japanese, on the app and the
+  website. The user picks one (or the phone or browser's language is used); the apps send it as
+  `Accept-Language`, and the account keeps it for pushes and emails. Translations written with AI help: **a native
+  speaker checks each language before launch.** Legal pages (Privacy Policy, Terms, Delete my data, Community
+  Guidelines) stay in English, the version that counts.
+- **AI content** (destination cards, trip plans, ideas) is written in the user's language. Place names stay in their
+  usual international form, so photos and Wikipedia checks keep working. A trip plan keeps the language it was made
+  in.
+- **Currencies:** prices in the user's currency everywhere (flight fares from Aviasales, trip plan costs, the
+  exchange rate on destination pages). Signed in: the currency in User Profile; signed out: guessed from the phone or
+  browser's region, changeable.
+- **Regions and formats:** dates, numbers and prices shown the local way for the user's language and region.
+- **Reviews before launch:** accessibility (WCAG 2.2 AA), speed (website bundle, images, app startup), security
+  (OWASP Top 10 across the three repos, website security headers). Each ends with fixes and a short report.
+- [ ] Backend: languages and currencies · [ ] Website · [ ] App
+- [ ] Accessibility · [ ] Speed · [ ] Security · [ ] Regions and formats
 
 ### Later sub-phases
 

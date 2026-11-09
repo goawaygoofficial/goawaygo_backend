@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.List;
 import java.util.Locale;
 
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.goawaygo.backend.auth.UserActionToken.Purpose;
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.common.i18n.Lang;
 import com.goawaygo.backend.config.WebProperties;
 import com.goawaygo.backend.mail.EmailOutbox;
 import com.goawaygo.backend.mail.EmailTemplates;
@@ -53,8 +55,11 @@ public class AccountService {
 
 	private static final String HELP_EMAIL = "support@goawaygo.com";
 
-	private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)
-		.withZone(ZoneOffset.UTC);
+	/** "9 December 2026", in the user's language. */
+	private static String date(Instant instant, Lang lang) {
+		return DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(lang.locale()).withZone(ZoneOffset.UTC)
+			.format(instant);
+	}
 
 	/** Password guesses on the "confirm it's you" step, per account. */
 	private static final RateLimitProperties.Limit CONFIRM_PER_USER = new RateLimitProperties.Limit(5,
@@ -130,7 +135,8 @@ public class AccountService {
 		user.changePassword(this.passwordEncoder.encode(newPassword));
 		int revoked = this.refreshTokens.revokeAllForUser(userId);
 		log.info("Password changed for user {}; {} session(s) signed out", userId, revoked);
-		this.outbox.queue(EmailTemplates.passwordChanged(user.getEmail(), user.getName(), this.web.url("/profile")));
+		this.outbox.queue(EmailTemplates.passwordChanged(user.getEmail(), user.getName(), this.web.url("/profile"),
+				Lang.orEnglish(user.getLanguage())));
 		return this.authService.startSession(user, this.refreshTokens.issue(userId, userAgent), false);
 	}
 
@@ -151,7 +157,7 @@ public class AccountService {
 		Duration ttl = this.authProperties.emailVerificationTtl();
 		String token = this.actionTokens.issue(userId, Purpose.EMAIL_CHANGE, ttl);
 		this.outbox.queue(EmailTemplates.confirmEmailChange(email, user.getName(), link("/confirm-email", token),
-				ttl.toHours()));
+				ttl.toHours(), Lang.orEnglish(user.getLanguage())));
 		return UserResponse.from(user);
 	}
 
@@ -176,7 +182,8 @@ public class AccountService {
 			throw emailTaken();
 		}
 		log.info("User {} changed their email", userId);
-		this.outbox.queue(EmailTemplates.emailChanged(oldEmail, user.getName(), user.getEmail(), HELP_EMAIL));
+		this.outbox.queue(EmailTemplates.emailChanged(oldEmail, user.getName(), user.getEmail(), HELP_EMAIL,
+				Lang.orEnglish(user.getLanguage())));
 	}
 
 	/** Starts the 30 days: signed out everywhere, pushes stopped, hidden from others; an email says until when. */
@@ -190,8 +197,9 @@ public class AccountService {
 		this.jdbc.update("DELETE FROM notification_devices WHERE user_id = ?", userId);
 		Instant deleteOn = now.plus(GRACE);
 		log.info("User {} asked to delete their account; {} session(s) signed out", userId, revoked);
-		this.outbox.queue(EmailTemplates.deletionScheduled(user.getEmail(), user.getName(), DATE.format(deleteOn),
-				this.web.url("/profile")));
+		Lang lang = Lang.orEnglish(user.getLanguage());
+		this.outbox.queue(EmailTemplates.deletionScheduled(user.getEmail(), user.getName(), date(deleteOn, lang),
+				this.web.url("/profile"), lang));
 		return deleteOn;
 	}
 
@@ -215,7 +223,7 @@ public class AccountService {
 				log.warn("Account {} not deleted yet: some photo files are still in R2", userId);
 				continue;
 			}
-			var account = this.jdbc.queryForList("SELECT email, name FROM users WHERE id = ?", userId);
+			var account = this.jdbc.queryForList("SELECT email, name, language FROM users WHERE id = ?", userId);
 			// Still waiting to be deleted (not signed in again meanwhile)?
 			int rows = this.jdbc.update("DELETE FROM users WHERE id = ? AND deletion_requested_at < ?", userId,
 					java.sql.Timestamp.from(cutoff));
@@ -224,7 +232,7 @@ public class AccountService {
 				log.info("Account {} deleted ({} photo file(s))", userId, files.size());
 				if (!account.isEmpty()) {
 					this.outbox.queue(EmailTemplates.accountDeleted((String) account.get(0).get("email"),
-							(String) account.get(0).get("name")));
+							(String) account.get(0).get("name"), Lang.orEnglish((String) account.get(0).get("language"))));
 				}
 			}
 		}
