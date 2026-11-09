@@ -184,8 +184,8 @@ Decided 2026-11-09.
 - **Phone sign-up and sign-in with SMS: moved to MVP 2.** SMS can't be kept at $0: Firebase sends real SMS only with
   billing on, its free allowance may cover only test numbers, India costs about $0.07 a text, and Google Cloud
   budgets only alert, they can't stop charges.
-- [ ] Backend: account details, password, email change, delete with 30 days, daily deletion job, Recently viewed
-- [ ] Website · [ ] App · [ ] Legal pages (Delete my data, Privacy Policy)
+- [x] Backend: account details, password, email change, delete with 30 days, daily deletion job, Recently viewed
+- [x] Website · [x] App · [x] Legal pages (Delete my data, Privacy Policy)
 
 ### Later sub-phases
 
