@@ -84,6 +84,9 @@ jobs:
           SENTRY_DSN: "${{ vars.SENTRY_DSN }}"
           SENTRY_ENVIRONMENT: "staging"
           SENTRY_RELEASE: "goawaygo-backend@${{ github.event.workflow_run.head_sha || github.sha }}"
+          # Push notifications: the Firebase project (repo variable FCM_PROJECT, set once the runtime service account
+          # may send with Firebase Cloud Messaging; docs/deployment.md). Empty: the bell works, no pushes are sent.
+          NOTIFICATIONS_FCM_PROJECT: "${{ vars.FCM_PROJECT }}"
           EOF
 
           # Secrets come from Secret Manager at runtime; GitHub never sees them.

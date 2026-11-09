@@ -66,10 +66,11 @@ public class WanderbookRepository {
 	}
 
 	/** Adds a follow (or request); an existing one is left as it is. */
-	void follow(long followerId, long followeeId, String status) {
-		this.jdbc.update("""
+	/** True if this is a new follow or request. */
+	boolean follow(long followerId, long followeeId, String status) {
+		return this.jdbc.update("""
 				INSERT INTO wanderbook_follows (follower_id, followee_id, status) VALUES (?, ?, ?)
-				ON CONFLICT (follower_id, followee_id) DO NOTHING""", followerId, followeeId, status);
+				ON CONFLICT (follower_id, followee_id) DO NOTHING""", followerId, followeeId, status) > 0;
 	}
 
 	/** True if a request was waiting (and is now accepted). */

@@ -213,9 +213,11 @@ public class PostRepository {
 
 	// ---- likes ----
 
-	void like(long postId, long userId) {
-		this.jdbc.update("INSERT INTO wanderbook_likes (post_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
-				postId, userId);
+	/** True if this is a new like. */
+	boolean like(long postId, long userId) {
+		return this.jdbc.update(
+				"INSERT INTO wanderbook_likes (post_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING", postId,
+				userId) > 0;
 	}
 
 	void unlike(long postId, long userId) {

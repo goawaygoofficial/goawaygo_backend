@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.notifications.NotificationService;
 import com.goawaygo.backend.wanderbook.WanderbookRepository.ListedProfile;
 import com.goawaygo.backend.wanderbook.WanderbookRepository.ProfileRow;
 
@@ -35,9 +36,13 @@ public class WanderbookService {
 
 	private final PostService posts;
 
-	public WanderbookService(WanderbookRepository repository, PostService posts) {
+	private final NotificationService notifications;
+
+	public WanderbookService(WanderbookRepository repository, PostService posts,
+			NotificationService notifications) {
 		this.repository = repository;
 		this.posts = posts;
+		this.notifications = notifications;
 	}
 
 	/** Viewer's relation to a profile. */
@@ -103,8 +108,10 @@ public class WanderbookService {
 		if (this.repository.blocked(viewerId, target.userId())) {
 			throw new ApiException(HttpStatus.CONFLICT, "blocked", "Unblock this person to follow them.");
 		}
-		this.repository.follow(viewerId, target.userId(),
-				target.isPrivate() ? WanderbookRepository.PENDING : WanderbookRepository.ACCEPTED);
+		if (this.repository.follow(viewerId, target.userId(),
+				target.isPrivate() ? WanderbookRepository.PENDING : WanderbookRepository.ACCEPTED)) {
+			this.notifications.followed(viewerId, target.userId(), target.isPrivate());
+		}
 		return view(target, viewerId);
 	}
 
@@ -112,7 +119,9 @@ public class WanderbookService {
 	@Transactional
 	public Profile unfollow(String publicId, long viewerId) {
 		ProfileRow target = visible(publicId, viewerId);
-		this.repository.unfollow(viewerId, target.userId());
+		if (this.repository.unfollow(viewerId, target.userId())) {
+			this.notifications.unfollowed(viewerId, target.userId());
+		}
 		return view(target, viewerId);
 	}
 
@@ -140,6 +149,7 @@ public class WanderbookService {
 		if (!this.repository.approve(requester.userId(), userId)) {
 			throw notFound();
 		}
+		this.notifications.followAccepted(userId, requester.userId());
 	}
 
 	/** Declines a request, or removes an existing follower. */
@@ -149,6 +159,7 @@ public class WanderbookService {
 		if (!this.repository.unfollow(follower.userId(), userId)) {
 			throw notFound();
 		}
+		this.notifications.unfollowed(follower.userId(), userId);
 	}
 
 	/** Followers or following of a profile, newest first; hidden for a private profile the viewer doesn't follow. */
