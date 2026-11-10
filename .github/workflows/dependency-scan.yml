@@ -7,7 +7,7 @@ name: Dependency scan
 on:
   pull_request:
   push:
-    branches: [main, develop]
+    branches: [main, test, develop]
   schedule:
     - cron: '30 3 * * 1' # Mondays 03:30 UTC
   workflow_dispatch:
