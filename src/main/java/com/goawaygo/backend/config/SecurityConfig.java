@@ -54,6 +54,9 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/discover/photos")
 				.permitAll()
+				// The daily ideas run: only makes what is due, so an extra call does nothing (DiscoverController).
+				.requestMatchers(HttpMethod.POST, "/api/discover/refresh-ideas")
+				.permitAll()
 				// A shared trip plan opens for anyone with its link; making plans needs an account.
 				.requestMatchers(HttpMethod.GET, "/api/plans/shared/**")
 				.permitAll()

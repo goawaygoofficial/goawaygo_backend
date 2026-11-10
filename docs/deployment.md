@@ -282,6 +282,14 @@ or a provider failing repeatedly is logged as an error, so it shows up in Sentry
 - **Announcements**: admins send them to everyone from the website, or `POST /api/admin/announcements`
   `{"title": "...", "text": "..."}`.
 
+## Trip ideas (4.7)
+
+- Home's **Ideas for your next trip** are made by the **Daily jobs** workflow's third step
+  (`POST /api/discover/refresh-ideas`, public): once the list is 20 hours old it asks the AI for a new one, checks each
+  place on Wikipedia, then translates it into every language, side by side. The list and its translations are kept in
+  the `idea_pools` table, so a new backend instance serves them at once and nobody on Home waits for the AI. Called
+  again with nothing due, it does nothing. Run it by hand: Actions → Daily jobs → Run workflow.
+
 ## Deleting accounts (4.6)
 
 - **Delete account** (`POST /api/auth/delete-account`, after the password or Google) signs the account out
