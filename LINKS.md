@@ -3,7 +3,7 @@
 # GoAwayGo — links
 
 Every place to check that GoAwayGo works, and every account it runs on. Staging (pre-launch) unless marked.
-Sign in to everything with the team Gmail (**teamofficialgoaway@gmail.com**). What each service is _for_:
+Sign in to everything with the team account (kept out of these public repos). What each service is _for_:
 `FOUNDATIONS.md`. How to ship: `RELEASING.md`. What's next: `ROADMAP.md`.
 
 ## 1. Is it up? (open these first)
