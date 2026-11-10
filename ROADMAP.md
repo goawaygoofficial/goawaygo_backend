@@ -212,11 +212,52 @@ Decided 2026-11-10.
 
 A detailed checklist (and that sub-phase's decisions) is added when it starts. Notes so far:
 
-- **MVP 2, phone sign-in:** SMS is never free (Firebase: billing required, billed per SMS by country): cap it then.
+- **Phone sign-in (MVP 2, carried over):** SMS is never free (Firebase: billing required, billed per SMS by country): cap it then.
 - Wanderbook photos: R2 bucket `goawaygo-user-media`. Push: Firebase Cloud Messaging (free).
+
+## MVP 2 — Release pipeline and website launch
+
+Decided 2026-11-10 and 2026-11-11. The website launches for customers on `goawaygo.com` from `main`. The Android
+app stays an APK download with beta testing; a store launch comes in a later MVP. The beta app uses production.
+Every change ships through versions that move up through three environments, with automated and performance tests
+as evidence.
+
+| Branch        | Purpose                                   | Deploys to                                    | Merges to                       |
+| ------------- | ----------------------------------------- | --------------------------------------------- | ------------------------------- |
+| `feature/...` | A new feature                             | nowhere (tested inside CI)                    | → `develop` only, no approval   |
+| `fix/...`     | A bug fix                                 | nowhere (tested inside CI)                    | → `develop` only, no approval   |
+| `develop`     | Development: every change, a new version  | **dev** (`api-dev`, `dev.goawaygo.com`)       | → `test` only, owner's approval |
+| `test`        | Testing a version before customers see it | **test** (`api-test`, `test.goawaygo.com`)    | → `main` only, owner's approval |
+| `main`        | Customers                                 | **prod** (`api.goawaygo.com`, `goawaygo.com`) | —                               |
+
+Any other branch name is rejected (Dependabot's `dependabot/...` is allowed). Pull requests are opened by the bot
+account `goawaygo-bot` and approved by `goawaygoofficial`; deployments to test and prod need the same approval. The
+repos are public (2026-11-11): free branch rules, protected environments and Actions minutes.
+
+- [ ] **5.1 Branches and rules** — `test` branch; branch name rules; only `feature`/`fix` → `develop` → `test` →
+      `main`; approvals on `test` and `main`; branch guard as a required check.
+- [ ] **5.2 Versions** — every merge into `develop` makes a version (`feat:` raises the minor number, `fix:` the
+      patch) with a GitHub Release and artifacts built once: the backend image and the website build. The website reads
+      its settings when it starts, so one build runs in every environment.
+- [ ] **5.3 Three environments** — dev, test, prod on free tiers: Cloud Run ×3, Neon branches, Cloudflare Pages
+      domains, secrets per environment, Google sign-in origins, Sentry and PostHog environments.
+- [ ] **5.4 `controller.yaml`** — deploys a version to test or prod, only if it is merged there and passed AT and PT
+      in the environment below; deployment status per version; rollback to an earlier version.
+- [ ] **5.5 Automation tests** (repo `goawaygo_automation_tests`) — API and website (Playwright), app (Maestro on an
+      Android emulator); a short run on every pull request, the full run after each deployment.
+- [ ] **5.6 Performance tests** (repo `goawaygo_performance_tests`) — API and website (k6), app start-up and
+      scrolling; limits that fail the run; fake AI and partner services in dev and test.
+- [ ] **5.7 Website launch** — pre-rendered public pages (search engines and partners can read them), sitemap,
+      production monitoring and alerts, database backups, Google sign-in in production mode, launch checklist; then
+      apply to Agoda again.
+- [ ] **5.8 Product changes** — from the MVP 1 testing, added here as they are sorted.
+
+Carried over: phone sign-in with SMS (only if it can be capped), Booking.com through Travelpayouts (late December),
+KAYAK, smaller copies of Wanderbook photos, a native speaker's check of the translations.
 
 ## Phase 5 — Launch
 
-Company registration · Play Console + Android developer verification (before the 2027 rule reaches India) · production
-environment (`goawaygo.com`, Cloud SQL; remove its temporary redirect to staging first, see LINKS.md) · Google billing
-upgraded before the trial ends (2027-01-14) · DPDP compliance review (substantive obligations from 13 May 2027).
+App store launch (a later MVP) · company registration · Play Console + Android developer verification (before the
+2027 rule reaches India) · production database on Cloud SQL (the website launches on Neon in MVP 2; remove
+`goawaygo.com`'s temporary redirect to staging at that launch, see LINKS.md) · Google billing upgraded before the
+trial ends (2027-01-14) · DPDP compliance review (substantive obligations from 13 May 2027).
