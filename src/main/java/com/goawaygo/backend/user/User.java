@@ -42,6 +42,26 @@ public class User {
 	@Column(length = 32)
 	private String phone;
 
+	/** ISO 3166 code (e.g. {@code IN}); null until the user picks one. */
+	@Column(length = 2)
+	private String country;
+
+	/** ISO 4217 code (e.g. {@code INR}); null until the user picks one. */
+	@Column(length = 3)
+	private String currency;
+
+	/** The language GoAwayGo speaks to this user ({@code Lang} code), for pushes and emails. */
+	@Column(nullable = false, length = 5)
+	private String language = "en";
+
+	/** A new email waiting for its confirmation link. */
+	@Column(name = "pending_email", length = 320)
+	private String pendingEmail;
+
+	/** When the user asked to delete the account (deleted for good 30 days later); null otherwise. */
+	@Column(name = "deletion_requested_at")
+	private Instant deletionRequestedAt;
+
 	/** Reviews Wanderbook reports (set by hand in the database). */
 	@Column(name = "is_admin", nullable = false)
 	private boolean admin;
@@ -105,6 +125,45 @@ public class User {
 		}
 	}
 
+	/** Name (already validated: 1-100 characters), country and currency (validated codes, or null). */
+	public void updateDetails(String name, String country, String currency) {
+		this.name = name.trim();
+		this.country = country;
+		this.currency = currency;
+	}
+
+	/** Uses {@code profilePictureUrl} (a Wanderbook photo) as the account photo, or none. */
+	public void setProfilePictureUrl(String url) {
+		this.profilePictureUrl = url;
+	}
+
+	/** A supported language code ({@code Lang#code}). */
+	public void setLanguage(String language) {
+		this.language = language;
+	}
+
+	public void requestEmailChange(String newEmail) {
+		this.pendingEmail = normalizeEmail(newEmail);
+	}
+
+	/** The confirmation link proved the user owns the pending email: it becomes the account's (verified) email. */
+	public void confirmEmailChange() {
+		this.email = this.pendingEmail;
+		this.pendingEmail = null;
+		this.emailVerified = true;
+	}
+
+	public void requestDeletion(Instant now) {
+		this.deletionRequestedAt = now;
+	}
+
+	/** Signing in again cancels a pending deletion. True if one was cancelled. */
+	public boolean cancelDeletion() {
+		boolean pending = this.deletionRequestedAt != null;
+		this.deletionRequestedAt = null;
+		return pending;
+	}
+
 	public static String normalizeEmail(String email) {
 		return email.trim().toLowerCase(java.util.Locale.ROOT);
 	}
@@ -150,6 +209,26 @@ public class User {
 
 	public String getPhone() {
 		return this.phone;
+	}
+
+	public String getCountry() {
+		return this.country;
+	}
+
+	public String getCurrency() {
+		return this.currency;
+	}
+
+	public String getLanguage() {
+		return this.language;
+	}
+
+	public String getPendingEmail() {
+		return this.pendingEmail;
+	}
+
+	public Instant getDeletionRequestedAt() {
+		return this.deletionRequestedAt;
 	}
 
 	public boolean isAdmin() {

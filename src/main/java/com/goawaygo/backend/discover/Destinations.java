@@ -1,5 +1,7 @@
 package com.goawaygo.backend.discover;
 
+import com.goawaygo.backend.common.i18n.Lang;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -56,7 +58,11 @@ public class Destinations {
 	 * @param text what the user typed, used when no suggestion was picked
 	 * @param userId the signed-in user, or null: their search is added to their recent searches
 	 */
-	public Page page(String placeId, String text, Long userId) {
+	/**
+	 * @param lang the language the cards are written in (passed in: the AI runs on another thread)
+	 * @param currency the traveller's currency, for the exchange rate
+	 */
+	public Page page(String placeId, String text, Long userId, Lang lang, String currency) {
 		Place place = (placeId != null && !placeId.isBlank()) ? this.places.byId(placeId)
 				: this.places.bestMatch(text);
 		if (place == null) {
@@ -64,7 +70,7 @@ public class Destinations {
 		}
 		long started = System.nanoTime();
 		CompletableFuture<DestinationCards.Result> aiCards = CompletableFuture
-			.supplyAsync(() -> this.cards.forPlace(place), this.executor);
+			.supplyAsync(() -> this.cards.forPlace(place, lang, currency), this.executor);
 		CompletableFuture<List<String>> wikidataSpots = CompletableFuture
 			.supplyAsync(() -> this.photos.wikidataSpots(place), this.executor);
 		DestinationCards.Result result = aiCards.join();

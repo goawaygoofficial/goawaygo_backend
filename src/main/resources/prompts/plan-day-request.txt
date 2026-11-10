@@ -7,6 +7,7 @@ Pace: {pace}
 Budget level: {budget}
 Interests: {interests}
 Currency for all costs: {currency}
+Language for all text: {language}
 The other days already include: {otherDays}
 Traveller's wish for this day: {wish}
 

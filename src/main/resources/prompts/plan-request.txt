@@ -8,5 +8,6 @@ Pace: {pace}
 Budget level: {budget}
 Interests: {interests}
 Currency for all costs: {currency}
+Language for all text: {language}
 
 Also give a short title, a two-sentence summary and up to 5 tips for the whole trip.

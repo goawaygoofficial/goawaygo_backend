@@ -1,5 +1,7 @@
 package com.goawaygo.backend.plans;
 
+import com.goawaygo.backend.common.i18n.Lang;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -33,14 +35,17 @@ public class PlanService {
 
 	private final NotificationService notifications;
 
+	private final PlanViews views;
+
 	public PlanService(Planner planner, TripPlans plans, Airports airports, ContentModeration moderation,
-			PlanProperties properties, NotificationService notifications) {
+			PlanProperties properties, NotificationService notifications, PlanViews views) {
 		this.planner = planner;
 		this.plans = plans;
 		this.airports = airports;
 		this.moderation = moderation;
 		this.properties = properties;
 		this.notifications = notifications;
+		this.views = views;
 	}
 
 	/** A plan as shown: the trip, every day with its date, and the cost estimate worked out from the days. */
@@ -76,7 +81,7 @@ public class PlanService {
 	public PlanView create(long userId, TripPlans.Destination destination, Planner.Trip trip) {
 		if (this.plans.count(userId) >= this.properties.maxPerUser()) {
 			throw new ApiException(HttpStatus.CONFLICT, "too_many_plans",
-					"You have " + this.properties.maxPerUser() + " plans. Delete one to make a new plan.");
+					"You have {0} plans. Delete one to make a new plan.", this.properties.maxPerUser());
 		}
 		Planner.Written written = this.planner.plan(trip);
 		if (written == null) {
@@ -94,14 +99,20 @@ public class PlanService {
 			.toList();
 	}
 
+	/** The user's own plan (and into their Recently viewed). */
 	public PlanView get(long userId, String id) {
-		return view(owned(userId, id), userId);
+		TripPlans.Stored plan = owned(userId, id);
+		this.views.record(userId, plan.id());
+		return view(plan, userId);
 	}
 
-	/** A shared plan, for anyone with its link (read-only); 404 when it isn't shared. */
+	/** A shared plan, for anyone with its link (read-only; into a signed-in viewer's Recently viewed). */
 	public PlanView shared(String id, Long viewerId) {
-		TripPlans.Stored plan = this.plans.find(id).filter(TripPlans.Stored::shared).orElseThrow(PlanService::notFound);
+		TripPlans.Stored plan = this.plans.findShared(id).orElseThrow(PlanService::notFound);
 		this.notifications.planOpened(plan.id(), plan.userId(), viewerId);
+		if (viewerId != null) {
+			this.views.record(viewerId, plan.id());
+		}
 		return view(plan, viewerId);
 	}
 
@@ -118,7 +129,7 @@ public class PlanService {
 	public PlanView changeDay(long userId, String id, int day, String wish) {
 		TripPlans.Stored plan = owned(userId, id);
 		if (day < 1 || day > plan.days()) {
-			throw new ApiException(HttpStatus.BAD_REQUEST, "invalid_day", "This plan has days 1 to " + plan.days() + ".");
+			throw new ApiException(HttpStatus.BAD_REQUEST, "invalid_day", "This plan has days 1 to {0}.", plan.days());
 		}
 		Itinerary.Day changed = this.planner.day(trip(plan), plan.itinerary(), day - 1, wish);
 		if (changed == null) {
@@ -166,7 +177,7 @@ public class PlanService {
 		TripPlans.Destination d = plan.destination();
 		String place = d.area().isBlank() ? d.name() + ", " + d.country() : d.name() + ", " + d.area() + ", " + d.country();
 		return new Planner.Trip(place, plan.startDate(), plan.days(), plan.travellers(), plan.pace(), plan.budget(),
-				plan.interests(), plan.currency());
+				plan.interests(), plan.currency(), Lang.orEnglish(plan.language()));
 	}
 
 	private static PlanView view(TripPlans.Stored plan, Long viewerId) {

@@ -16,6 +16,7 @@ import com.goawaygo.backend.auth.RefreshTokenService.IssuedRefreshToken;
 import com.goawaygo.backend.auth.dto.SigninRequest;
 import com.goawaygo.backend.auth.dto.SignupRequest;
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.common.i18n.Lang;
 import com.goawaygo.backend.ratelimit.RateLimitProperties;
 import com.goawaygo.backend.ratelimit.RateLimiter;
 import com.goawaygo.backend.user.User;
@@ -72,8 +73,10 @@ public class AuthService {
 			throw emailTaken();
 		}
 		try {
-			User user = this.users.saveAndFlush(
-					User.withPassword(email, request.name(), this.passwordEncoder.encode(request.password())));
+			User created = User.withPassword(email, request.name(), this.passwordEncoder.encode(request.password()));
+			// Emails and pushes speak the language the account was made in, until the apps say otherwise.
+			created.setLanguage(Lang.current().code());
+			User user = this.users.saveAndFlush(created);
 			// Sent after the transaction commits, in the background.
 			this.accountEmails.sendVerificationEmail(user);
 			return UserResponse.from(user);
@@ -97,7 +100,7 @@ public class AuthService {
 			// Same response for unknown email and wrong password, so attackers can't probe which emails exist.
 			throw new ApiException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Incorrect email or password.");
 		}
-		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent));
+		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent), user.cancelDeletion());
 	}
 
 	/**
@@ -125,7 +128,7 @@ public class AuthService {
 				.orElseGet(() -> createGoogleUser(google));
 		}
 		user.setProfilePictureUrlIfMissing(google.pictureUrl());
-		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent));
+		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent), user.cancelDeletion());
 	}
 
 	private User linkGoogle(User existing, GoogleIdTokenVerifier.GoogleIdentity google) {
@@ -146,7 +149,9 @@ public class AuthService {
 
 	private User createGoogleUser(GoogleIdTokenVerifier.GoogleIdentity google) {
 		String email = User.normalizeEmail(google.email());
-		return this.users.saveAndFlush(User.withGoogle(email, displayName(google.name(), email), google.subject(), null));
+		User created = User.withGoogle(email, displayName(google.name(), email), google.subject(), null);
+		created.setLanguage(Lang.current().code());
+		return this.users.saveAndFlush(created);
 	}
 
 	/** Google's name if present (max 100 characters), otherwise the part of the email before the @. */
@@ -165,7 +170,7 @@ public class AuthService {
 		User user = this.users.findById(rotation.userId())
 			.orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "invalid_refresh_token",
 					"Your session has expired. Please sign in again."));
-		return startSession(user, rotation.refreshToken());
+		return startSession(user, rotation.refreshToken(), false);
 	}
 
 	@Transactional
@@ -175,10 +180,14 @@ public class AuthService {
 		}
 	}
 
-	private Session startSession(User user, IssuedRefreshToken refreshToken) {
+	/** @param restored the sign-in cancelled the account's pending deletion */
+	Session startSession(User user, IssuedRefreshToken refreshToken, boolean restored) {
+		if (restored) {
+			log.info("User {} signed in again: account deletion cancelled", user.getId());
+		}
 		IssuedToken accessToken = this.accessTokens.issue(user.getId());
 		long expiresIn = Duration.between(accessToken.issuedAt(), accessToken.expiresAt()).toSeconds();
-		return new Session(UserResponse.from(user), accessToken.value(), expiresIn, refreshToken);
+		return new Session(UserResponse.from(user), accessToken.value(), expiresIn, refreshToken, restored);
 	}
 
 	private static ApiException emailTaken() {
@@ -186,7 +195,8 @@ public class AuthService {
 				"An account with this email already exists.");
 	}
 
-	public record Session(UserResponse user, String accessToken, long expiresIn, IssuedRefreshToken refreshToken) {
+	public record Session(UserResponse user, String accessToken, long expiresIn, IssuedRefreshToken refreshToken,
+			boolean restored) {
 	}
 
 }

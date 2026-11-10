@@ -29,7 +29,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.common.i18n.Lang;
 import com.goawaygo.backend.ratelimit.RateLimiter;
+import com.goawaygo.backend.user.Regions;
+import com.goawaygo.backend.user.User;
+import com.goawaygo.backend.user.UserRepository;
 
 /**
  * The AI trip planner (4.4). Making and changing plans needs an account (and is limited per account: each costs an AI
@@ -52,8 +56,8 @@ public class PlanController {
 
 	private static final int MAX_DAYS_AHEAD = 365;
 
-	/** Prices in Indian rupees for now (India first), like Book; every currency later (4.7). */
-	private static final String CURRENCY = "INR";
+	/** When neither the request nor the account says (India first). */
+	private static final String DEFAULT_CURRENCY = "INR";
 
 	private final PlanService plans;
 
@@ -63,7 +67,11 @@ public class PlanController {
 
 	private final Clock clock;
 
-	public PlanController(PlanService plans, RateLimiter rateLimiter, PlanProperties properties, Clock clock) {
+	private final UserRepository users;
+
+	public PlanController(PlanService plans, RateLimiter rateLimiter, PlanProperties properties, Clock clock,
+			UserRepository users) {
+		this.users = users;
 		this.plans = plans;
 		this.rateLimiter = rateLimiter;
 		this.limits = properties.limits();
@@ -84,10 +92,11 @@ public class PlanController {
 	 * @param pace relaxed, balanced or packed
 	 * @param budget budget, mid or luxury
 	 * @param interests up to 6 of {@link #INTERESTS}
+	 * @param currency ISO 4217 code for the costs; the account's currency (or INR) when absent
 	 */
 	public record CreateRequest(@NotNull @Valid Place place, @NotBlank String startDate, int days,
 			@NotBlank String travellers, @NotBlank String pace, @NotBlank String budget,
-			@Size(max = 6) List<String> interests) {
+			@Size(max = 6) List<String> interests, String currency) {
 	}
 
 	public record DayRequest(@Size(max = 200) String wish) {
@@ -103,7 +112,7 @@ public class PlanController {
 		long userId = Long.parseLong(jwt.getSubject());
 		LocalDate start = startDate(body.startDate());
 		if (body.days() < 1 || body.days() > MAX_DAYS) {
-			throw invalid("invalid_days", "Plan 1 to " + MAX_DAYS + " days.");
+			throw invalid("invalid_days", "Plan 1 to {0} days.", MAX_DAYS);
 		}
 		String travellers = choice(body.travellers(), TRAVELLERS, "travellers");
 		String pace = choice(body.pace(), PACES, "pace");
@@ -117,7 +126,8 @@ public class PlanController {
 		String where = destination.area().isBlank() ? destination.name() + ", " + destination.country()
 				: destination.name() + ", " + destination.area() + ", " + destination.country();
 		PlanService.PlanView plan = this.plans.create(userId, destination,
-				new Planner.Trip(where, start, body.days(), travellers, pace, budget, interests, CURRENCY));
+				new Planner.Trip(where, start, body.days(), travellers, pace, budget, interests,
+						currency(body.currency(), userId), Lang.current()));
 		return ResponseEntity.status(HttpStatus.CREATED).body(plan);
 	}
 
@@ -163,6 +173,21 @@ public class PlanController {
 		return this.plans.shared(id, (jwt != null) ? Long.valueOf(jwt.getSubject()) : null);
 	}
 
+	/** The request's currency, else the account's, else INR. Written in the request's language. */
+	private String currency(String requested, long userId) {
+		String code = (requested == null) ? "" : requested.strip().toUpperCase(Locale.ROOT);
+		if (!code.isEmpty()) {
+			if (!Regions.isCurrency(code)) {
+				throw invalid("invalid_currency", "Unknown currency.");
+			}
+			return code;
+		}
+		return this.users.findById(userId)
+			.map(User::getCurrency)
+			.filter(c -> c != null && !c.isBlank())
+			.orElse(DEFAULT_CURRENCY);
+	}
+
 	private LocalDate startDate(String value) {
 		LocalDate date;
 		try {
@@ -182,7 +207,7 @@ public class PlanController {
 	private static String choice(String value, Set<String> allowed, String what) {
 		String choice = (value == null) ? "" : value.strip().toLowerCase(Locale.ROOT);
 		if (!allowed.contains(choice)) {
-			throw invalid("invalid_" + what, "Unknown " + what + ".");
+			throw invalid("invalid_" + what, "Unknown {0}.", what);
 		}
 		return choice;
 	}
@@ -191,8 +216,8 @@ public class PlanController {
 		return (value == null || value.isBlank()) ? null : value.strip();
 	}
 
-	private static ApiException invalid(String code, String message) {
-		return new ApiException(HttpStatus.BAD_REQUEST, code, message);
+	private static ApiException invalid(String code, String message, Object... args) {
+		return new ApiException(HttpStatus.BAD_REQUEST, code, message, args);
 	}
 
 }

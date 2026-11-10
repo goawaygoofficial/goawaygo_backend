@@ -17,19 +17,19 @@ Shared by all three repos; how to ship is in `RELEASING.md`.
 
 Direction (confirmed 2026-10-25): **free resources only** until launch · **global market** (English first, every
 currency) · bookings through **affiliate partners** (commission; users book on the partner's site) · Wanderbook like
-Instagram · phone sign-in with SMS. Each sub-phase's own choices (providers, limits) are decided when it starts and
-recorded in its section below.
+Instagram · phone sign-in with SMS (MVP 2). Each sub-phase's own choices (providers, limits) are decided when it
+starts and recorded in its section below.
 
-| Sub-phase                 | What users get                                                                                                                                           | Status  |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done    |
-| **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done    |
-| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done    |
-| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done    |
-| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done    |
-| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Next    |
-| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account, phone sign-up and sign-in with SMS                                                    | Planned |
-| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Planned |
+| Sub-phase                 | What users get                                                                                                                                           | Status |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **4.0 Foundations**       | Error tracking, uptime alerts, analytics with consent, legal pages, API toolkit                                                                          | Done   |
+| **4.1 Discover**          | Real destination pages (info, attractions, photos, weather, currency, visa, map), AI search, "Recently searched", rotating suggestions, Save to My Trips | Done   |
+| **4.2 Wanderbook**        | Instagram-style posts with photos, comments, likes, follow, profiles (photo, bio, cover); report, block and moderation                                   | Done   |
+| **4.3 Book (affiliates)** | Flights, Stays, Rentals search with prices; "Book" opens the partner; commission disclosure                                                              | Done   |
+| **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done   |
+| **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Done   |
+| **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account (phone sign-in with SMS moved to MVP 2)                                                | Done   |
+| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Done   |
 
 **How we build (decided 2026-10-31):** in MVP rounds. **MVP 1** builds every sub-phase below (4.1 to 4.7) without
 stopping for fix rounds; fixes, changes and new ideas are collected for **MVP 2, 3, 4, ...** after that.
@@ -165,13 +165,54 @@ Decided 2026-11-09.
   GitHub Actions job at 09:00 IST calls the backend's reminder run. The app reads its Firebase settings from
   `env/staging.env` (public IDs; no `google-services.json`).
 - [x] Backend: notifications, device tokens, settings, push, reminders, announcements
-- [x] Website · [ ] App · [x] Legal pages (device tokens and notifications in the Privacy Policy)
+- [x] Website · [x] App · [x] Legal pages (device tokens and notifications in the Privacy Policy) · [x] Released in 1.4.0 build 10
+
+### 4.6 Me
+
+Decided 2026-11-09.
+
+- **Edit your account** (User Profile): name and photo (the same as on Wanderbook), password (change it with the
+  current one, or set one on a Google account), email (the new address must be confirmed by a link first; the old
+  one is told), country and currency (used later to show prices in your currency, 4.7). Changing the password, the
+  email or deleting the account first asks to confirm it's you: your password, or Google for accounts without one.
+- **Delete account** (app and website, as Google Play requires, plus the Delete my data page): 30 days to change your
+  mind. At once: signed out everywhere, pushes stopped, profile, posts and comments hidden from others, and an email
+  with the date. Signing in again within 30 days keeps the account. After 30 days the daily job deletes its photo
+  files, then the account and everything in it, and sends a last email.
+- **Recently viewed:** places and trip plans opened (your own and shared ones), newest first, the latest 30; saved
+  for signed-in accounts, on the device otherwise; can be cleared. My Trips was already done in 4.1 and 4.4.
+- **Phone sign-up and sign-in with SMS: moved to MVP 2.** SMS can't be kept at $0: Firebase sends real SMS only with
+  billing on, its free allowance may cover only test numbers, India costs about $0.07 a text, and Google Cloud
+  budgets only alert, they can't stop charges.
+- [x] Backend: account details, password, email change, delete with 30 days, daily deletion job, Recently viewed
+- [x] Website · [x] App · [x] Legal pages (Delete my data, Privacy Policy)
+
+### 4.7 Global readiness
+
+Decided 2026-11-10.
+
+- **Languages:** English, Hindi, Spanish, French, German, Arabic (right to left) and Japanese, on the app and the
+  website. The user picks one (or the phone or browser's language is used); the apps send it as
+  `Accept-Language`, and the account keeps it for pushes and emails. Translations written with AI help: **a native
+  speaker checks each language before launch.** Legal pages (Privacy Policy, Terms, Delete my data, Community
+  Guidelines) stay in English, the version that counts.
+- **AI content** (destination cards, trip plans, ideas) is written in the user's language. Place names stay in their
+  usual international form, so photos and Wikipedia checks keep working. A trip plan keeps the language it was made
+  in.
+- **Currencies:** prices in the user's currency everywhere (flight fares from Aviasales, trip plan costs, the
+  exchange rate on destination pages). Signed in: the currency in User Profile; signed out: guessed from the phone or
+  browser's region, changeable.
+- **Regions and formats:** dates, numbers and prices shown the local way for the user's language and region.
+- **Reviews before launch:** accessibility (WCAG 2.2 AA), speed (website bundle, images, app startup), security
+  (OWASP Top 10 across the three repos, website security headers). Each ends with fixes and a short report.
+- [x] Backend: languages and currencies · [x] Website · [x] App
+- [x] Accessibility · [x] Speed · [x] Security · [x] Regions and formats
 
 ### Later sub-phases
 
 A detailed checklist (and that sub-phase's decisions) is added when it starts. Notes so far:
 
-- **4.6 Me:** SMS is never free (Firebase: ~10/day free, then billed per SMS by country): cap it during the beta.
+- **MVP 2, phone sign-in:** SMS is never free (Firebase: billing required, billed per SMS by country): cap it then.
 - Wanderbook photos: R2 bucket `goawaygo-user-media`. Push: Firebase Cloud Messaging (free).
 
 ## Phase 5 — Launch

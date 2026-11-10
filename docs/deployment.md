@@ -276,8 +276,29 @@ or a provider failing repeatedly is logged as an error, so it shows up in Sentry
   Firebase reports as gone are deleted.
 
 - **Trip reminders** ("in 3 days", "tomorrow", in India time) are sent by `POST /api/notifications/reminders`, which
-  the **Trip reminders** workflow calls daily at 09:00 IST (Cloud Run gives no CPU between requests, so no timer
-  inside the backend). The call is public and only sends what is due, once; it also deletes notifications older than
-  90 days. Run it by hand: Actions → Trip reminders → Run workflow.
+  the **Daily jobs** workflow calls at 09:00 IST (Cloud Run gives no CPU between requests, so no timer inside the
+  backend). The call is public and only sends what is due, once; it also deletes notifications older than 90 days.
+  Run it by hand: Actions → Daily jobs → Run workflow.
 - **Announcements**: admins send them to everyone from the website, or `POST /api/admin/announcements`
   `{"title": "...", "text": "..."}`.
+
+## Trip ideas (4.7)
+
+- Home's **Ideas for your next trip** are made by the **Daily jobs** workflow's third step
+  (`POST /api/discover/refresh-ideas`, public): once the list is 20 hours old it asks the AI for a new one, checks each
+  place on Wikipedia, then translates it into every language, side by side. The list and its translations are kept in
+  the `idea_pools` table, so a new backend instance serves them at once and nobody on Home waits for the AI. Called
+  again with nothing due, it does nothing. Run it by hand: Actions → Daily jobs → Run workflow.
+
+## Deleting accounts (4.6)
+
+- **Delete account** (`POST /api/auth/delete-account`, after the password or Google) signs the account out
+  everywhere, stops its pushes and hides it from others at once, and emails the date it will be deleted. Signing in
+  again within 30 days keeps it.
+- After 30 days, the **Daily jobs** workflow's second step (`POST /api/auth/purge-deleted-accounts`, public, only
+  deletes what is due) deletes the account's photo files from R2, then the account itself, which takes everything it
+  owns (every table cascades), and emails a last confirmation. If R2 can't be reached, that account waits for the
+  next day, so no file is left behind.
+- A request by email (the website's Delete my data page), once it is confirmed to come from the account's address:
+  in Neon, set `deletion_requested_at = now()` on that user and delete their `refresh_tokens` rows; the daily job
+  deletes the account 30 days later.

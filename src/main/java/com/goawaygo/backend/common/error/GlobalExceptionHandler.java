@@ -1,5 +1,8 @@
 package com.goawaygo.backend.common.error;
 
+import com.goawaygo.backend.common.i18n.Lang;
+import com.goawaygo.backend.common.i18n.T;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -26,7 +29,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(ApiException.class)
 	ResponseEntity<ApiError> handleApiException(ApiException ex) {
-		return respond(ex.getStatus(), ex.getCode(), ex.getMessage());
+		return respond(ex.getStatus(), ex.getCode(), ex.message(Lang.current()));
 	}
 
 	/** 429 with {@code Retry-After} (seconds), so clients know when to try again. */
@@ -34,16 +37,20 @@ public class GlobalExceptionHandler {
 	ResponseEntity<ApiError> handleRateLimited(RateLimitedException ex) {
 		return ResponseEntity.status(ex.getStatus())
 			.header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getRetryAfterSeconds()))
-			.body(new ApiError(ex.getStatus().value(), ex.getCode(), ex.getMessage()));
+			.body(new ApiError(ex.getStatus().value(), ex.getCode(), ex.message(Lang.current())));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
 		Map<String, String> fieldErrors = new LinkedHashMap<>();
 		for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-			fieldErrors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
+			String message = fieldError.getDefaultMessage();
+			Lang lang = Lang.current();
+			// Our own messages are translated; the validator's built-in English ones become a general hint.
+			String text = (message != null && T.has(lang, message)) ? T.t(lang, message) : T.t(lang, "Check this field.");
+			fieldErrors.putIfAbsent(fieldError.getField(), (lang.isEnglish() && message != null) ? message : text);
 		}
-		ApiError body = new ApiError(400, "validation_failed", "Please check the highlighted fields.", fieldErrors);
+		ApiError body = new ApiError(400, "validation_failed", T.t("Please check the highlighted fields."), fieldErrors);
 		return ResponseEntity.badRequest().body(body);
 	}
 
@@ -69,8 +76,9 @@ public class GlobalExceptionHandler {
 		return respond(HttpStatus.INTERNAL_SERVER_ERROR, "internal_error", "Something went wrong. Please try again.");
 	}
 
+	/** {@code message}: English, translated here into the request's language. */
 	private static ResponseEntity<ApiError> respond(HttpStatus status, String code, String message) {
-		return ResponseEntity.status(status).body(new ApiError(status.value(), code, message));
+		return ResponseEntity.status(status).body(new ApiError(status.value(), code, T.t(message)));
 	}
 
 }

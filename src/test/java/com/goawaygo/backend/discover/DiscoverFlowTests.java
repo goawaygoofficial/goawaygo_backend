@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,6 +57,9 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 
 	@Autowired
 	private WebApplicationContext context;
+
+	@Autowired
+	private JdbcTemplate jdbc;
 
 	private MockMvc mvc;
 
@@ -196,6 +200,24 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 	}
 
 	@Test
+	void theDailyRunSavesTheIdeasAndTheirTranslations() throws Exception {
+		this.mvc.perform(post("/api/discover/refresh-ideas")).andExpect(status().isOk());
+
+		// Saved: a new backend instance serves them without asking the AI while someone waits.
+		assertThat(this.jdbc.queryForList("SELECT language FROM idea_pools", String.class))
+			.containsExactlyInAnyOrder("en", "hi", "es", "fr", "de", "ar", "ja");
+		this.mvc.perform(get("/api/discover/ideas").header(HttpHeaders.ACCEPT_LANGUAGE, "de"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[0].name").value("Hallstatt"))
+			.andExpect(jsonPath("$[0].country").value("Österreich"));
+
+		// Nothing due: another run makes nothing (no AI request).
+		this.mvc.perform(post("/api/discover/refresh-ideas"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.made").value(0));
+	}
+
+	@Test
 	void savedPlacesBelongToTheirUser() throws Exception {
 		String token = signedInUser();
 		String other = signedInUser();
@@ -290,7 +312,8 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 				String model = path.substring("/models/".length(), path.indexOf(':'));
 				status = this.modelStatus.getOrDefault(model, 200);
 				answer = (status != 200) ? "{\"error\":{\"message\":\"busy\"}}"
-						: gemini(body.contains("Suggest") ? IDEAS : body.contains("Atlantisville") ? UNKNOWN : CARDS);
+						: gemini(body.contains("Suggest") ? IDEAS : body.contains("Translate the area") ? TRANSLATED
+								: body.contains("Atlantisville") ? UNKNOWN : CARDS);
 			}
 			else if (path.equals("/w/api.php") && query.contains("prop=imageinfo")) {
 				answer = """
@@ -378,6 +401,10 @@ class DiscoverFlowTests extends PostgresIntegrationTest {
 				ITEM.formatted("Currency", "Euro (EUR)", "null"));
 
 		private static final String UNKNOWN = "{\"unknownDestination\":true}";
+
+		private static final String TRANSLATED = """
+				{"places":[{"id":"hallstatt|austria","area":"Oberösterreich","country":"Österreich",
+				 "summary":"Dorf am See unter den Alpen"}]}""";
 
 		private static final String IDEAS = """
 				{"ideas":[

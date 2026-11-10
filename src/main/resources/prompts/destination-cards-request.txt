@@ -5,6 +5,9 @@ Destination:
 - country: {country} ({countryCode})
 - coordinates: {lat}, {lon}
 
+Write in: {language}
+The traveller pays in: {currency}
+
 Write these 9 cards for this destination. Each card is a separate field of the JSON answer.
 
 quickFacts ("Quick Facts"): items in this order, leaving out any that do not apply or you are unsure of:
@@ -46,7 +49,7 @@ example for a Schengen visa; otherwise "not required but recommended") · "Medic
 low, moderate or high) · 1-3 risks specific to this destination that insurance should cover (for example altitude,
 monsoon, adventure sports, theft) · "What to check" (one practical tip).
 
-currency ("Money & Connectivity"): "Currency" (name and ISO code) · "Exchange rate" (approximate rate against US
-dollar, mayChange true) · "Cards or cash" (how widely cards and mobile payments are accepted) · "Tipping" (local
+currency ("Money & Connectivity"): "Currency" (name and ISO code) · "Exchange rate" (approximate rate against the
+traveller's currency, or the US dollar if it is the same as the local one, mayChange true) · "Cards or cash" (how widely cards and mobile payments are accepted) · "Tipping" (local
 custom) · "Mobile data" (tourist SIM or eSIM availability; main networks may be named, mayChange true) · "Power
 plugs" (plug type letters and voltage) · "Emergency number" (national emergency number; only if certain).

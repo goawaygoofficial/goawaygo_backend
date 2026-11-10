@@ -32,6 +32,8 @@ bash scripts/release-android.sh 1.0.0 <next-build> "What changed in this version
 - Ends with `Live: https://staging.goawaygo.com/download`. If it asks for Cloudflare, run
   `npx --yes wrangler@4.145.0 login` once and repeat.
 - It refuses to run without the upload key (`android/key.properties`), so nothing debug-signed is ever published.
+- Push notifications need the Firebase key on this PC: run `bash scripts/firebase-key.sh` once (gcloud signed in).
+  Without it the script warns and that build has no push.
 - Fails with `cannot find symbol ... Plugin` in `GeneratedPluginRegistrant.java` (usually after a dependency
   update): an old partial build of that plugin is left on this PC. Run `flutter clean` and run the command again.
 
@@ -61,6 +63,8 @@ Check `https://staging.goawaygo.com/download`, then install it on a phone over t
 | 2026-10-31 | 1.1.0   | 7     | Discover (search any place: photos and nine travel info cards) and Wanderbook (share trip photos, follow travellers, like and comment); smoother navigation and photo animations                                                                                       |
 | 2026-11-07 | 1.2.0   | 8     | Book: flight search with recent prices (Aviasales), hotel and car rental partners opened with your dates, airport and city suggestions while typing                                                                                                                    |
 | 2026-11-08 | 1.3.0   | 9     | AI trip planner: day-by-day plans from any destination or saved place, cost estimate, booking shortcuts, change a day, share by link                                                                                                                                   |
+| 2026-11-09 | 1.4.0   | 10    | Notifications: a bell on Home with an unread count; push for new followers, likes, comments, trip reminders and opened shared plans; notification settings with a switch per type                                                                                      |
+| 2026-11-10 | 1.5.0   | 11    | Me: edit name, photo, password, email, country and currency; recently viewed; delete account. 7 languages (en, hi, es, fr, de, ar, ja) and prices in your currency; accessibility (contrast, 48dp buttons, labels) and faster start                                    |
 
 Add a row for every release.
 

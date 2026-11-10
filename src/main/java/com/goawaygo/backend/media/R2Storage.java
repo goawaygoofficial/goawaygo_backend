@@ -58,14 +58,21 @@ public class R2Storage {
 
 	/** Deletes a file; a missing one is fine. Failures are logged, not thrown (the database row is already gone). */
 	public void delete(String key) {
+		tryDelete(key);
+	}
+
+	/** Deletes a file (a missing one is fine). False if R2 could not be reached or refused; logged. */
+	public boolean tryDelete(String key) {
 		if (!this.properties.configured()) {
-			return;
+			return true;
 		}
 		try {
 			send(signed("DELETE", key, new byte[0]).DELETE(), "delete");
+			return true;
 		}
 		catch (RuntimeException ex) {
 			log.error("Could not delete {} from R2: {}", key, ex.toString());
+			return false;
 		}
 	}
 

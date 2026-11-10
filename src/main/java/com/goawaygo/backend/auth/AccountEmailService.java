@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.goawaygo.backend.auth.UserActionToken.Purpose;
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.common.i18n.Lang;
 import com.goawaygo.backend.config.WebProperties;
 import com.goawaygo.backend.mail.EmailOutbox;
 import com.goawaygo.backend.mail.EmailTemplates;
@@ -76,7 +77,8 @@ public class AccountEmailService {
 			String token = this.actionTokens.issue(user.getId(), Purpose.PASSWORD_RESET,
 					this.authProperties.passwordResetTtl());
 			this.outbox.queue(EmailTemplates.passwordReset(user.getEmail(), user.getName(),
-					link("/reset-password", token), this.authProperties.passwordResetTtl().toMinutes()));
+					link("/reset-password", token), this.authProperties.passwordResetTtl().toMinutes(),
+					Lang.orEnglish(user.getLanguage())));
 		});
 	}
 
@@ -106,7 +108,7 @@ public class AccountEmailService {
 		String token = this.actionTokens.issue(user.getId(), Purpose.EMAIL_VERIFICATION,
 				this.authProperties.emailVerificationTtl());
 		this.outbox.queue(EmailTemplates.verifyEmail(user.getEmail(), user.getName(), link("/verify-email", token),
-				this.authProperties.emailVerificationTtl().toHours()));
+				this.authProperties.emailVerificationTtl().toHours(), Lang.orEnglish(user.getLanguage())));
 	}
 
 	/** Resends the verification link to the signed-in user (rate limited per user). */

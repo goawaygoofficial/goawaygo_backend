@@ -1,6 +1,12 @@
 package com.goawaygo.backend.discover;
 
+import com.goawaygo.backend.common.i18n.Lang;
+import com.goawaygo.backend.user.Regions;
+
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.IntStream;
@@ -25,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.goawaygo.backend.common.error.ApiException;
+import com.goawaygo.backend.ratelimit.RateLimitProperties;
 import com.goawaygo.backend.ratelimit.RateLimiter;
 
 /**
@@ -35,7 +42,11 @@ import com.goawaygo.backend.ratelimit.RateLimiter;
 @RequestMapping("/api/discover")
 public class DiscoverController {
 
-	private static final int MAX_PHOTO_REQUESTS = SearchHistory.KEEP;
+	private static final int MAX_PHOTO_REQUESTS = SearchHistory.BANNER;
+
+	/** The daily ideas run, per caller: the daily job plus a few manual runs (like the other daily jobs). */
+	private static final RateLimitProperties.Limit IDEA_REFRESH_RUNS = new RateLimitProperties.Limit(6,
+			Duration.ofHours(1));
 
 	private final PlaceSearch places;
 
@@ -80,7 +91,8 @@ public class DiscoverController {
 	/** A destination page: the picked place (or the best match for the text), its 9 cards and spot photos. */
 	@GetMapping("/destination")
 	public Destinations.Page destination(@RequestParam(name = "placeId", required = false) String placeId,
-			@RequestParam(name = "q", required = false) String text, @AuthenticationPrincipal Jwt jwt,
+			@RequestParam(name = "q", required = false) String text,
+			@RequestParam(name = "currency", required = false) String currency, @AuthenticationPrincipal Jwt jwt,
 			HttpServletRequest request) {
 		boolean hasId = placeId != null && !placeId.isBlank() && placeId.length() <= 255;
 		boolean hasText = text != null && text.trim().length() >= 2 && text.trim().length() <= 100;
@@ -89,7 +101,10 @@ public class DiscoverController {
 		}
 		this.rateLimiter.consume("discover-destination-ip", request.getRemoteAddr(), this.limits.destinationPerIp());
 		Long userId = (jwt != null) ? Long.valueOf(jwt.getSubject()) : null;
-		return this.destinations.page(hasId ? placeId : null, hasText ? text.trim() : null, userId);
+		String travellerCurrency = (currency != null && Regions.isCurrency(currency.strip().toUpperCase(Locale.ROOT)))
+				? currency.strip().toUpperCase(Locale.ROOT) : "USD";
+		return this.destinations.page(hasId ? placeId : null, hasText ? text.trim() : null, userId, Lang.current(),
+				travellerCurrency);
 	}
 
 	/** One searched place on the home banner: the place, the spot shown and its photo (null if none found). */
@@ -99,7 +114,7 @@ public class DiscoverController {
 	/** The signed-in user's last 5 searched places, newest first, each with a live tourist-spot photo. */
 	@GetMapping("/recent")
 	public List<BannerSlide> recent(@AuthenticationPrincipal Jwt jwt) {
-		List<SearchHistory.Entry> entries = this.history.latest(Long.parseLong(jwt.getSubject()));
+		List<SearchHistory.Entry> entries = this.history.latest(Long.parseLong(jwt.getSubject()), SearchHistory.BANNER);
 		List<PhotoRequest> requests = entries.stream()
 			.map(e -> new PhotoRequest((e.topSpot() != null) ? e.topSpot() : e.place().name(), e.place().name(),
 					e.place().type(), e.place().country(), e.place().lat(), e.place().lon()))
@@ -131,7 +146,18 @@ public class DiscoverController {
 	public List<Ideas.Idea> ideas(@RequestParam(name = "count", defaultValue = "6") int count,
 			HttpServletRequest request) {
 		this.rateLimiter.consume("discover-ideas-ip", request.getRemoteAddr(), this.limits.ideasPerIp());
-		return this.ideas.random(Math.max(1, Math.min(12, count)));
+		return this.ideas.random(Math.max(1, Math.min(12, count)), Lang.current());
+	}
+
+	/**
+	 * Public: makes the next list of ideas once the current one is a day old, and translates it into every language,
+	 * so Home never waits for the AI. Nothing due, nothing done (no AI request), so calling it again costs nothing. The
+	 * daily GitHub Actions job calls it (Cloud Run gives the backend no CPU between requests).
+	 */
+	@PostMapping("/refresh-ideas")
+	public Map<String, Integer> refreshIdeas(HttpServletRequest request) {
+		this.rateLimiter.consume("ideas-refresh", request.getRemoteAddr(), IDEA_REFRESH_RUNS);
+		return Map.of("made", this.ideas.refresh());
 	}
 
 	private List<BannerSlide> slides(List<PhotoRequest> requests, List<Place> placesShown) {

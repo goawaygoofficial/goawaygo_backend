@@ -1,5 +1,7 @@
 package com.goawaygo.backend.book;
 
+import com.goawaygo.backend.user.Regions;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -157,7 +159,7 @@ public class BookController {
 	private static String iata(String code, String field) {
 		String upper = (code != null) ? code.trim().toUpperCase(Locale.ROOT) : "";
 		if (!IATA.matcher(upper).matches()) {
-			throw invalid("invalid_place", "Pick a city or airport for '" + field + "'.");
+			throw invalid("invalid_place", "Pick a city or airport for '{0}'.", field);
 		}
 		return upper;
 	}
@@ -176,7 +178,7 @@ public class BookController {
 			date = LocalDate.parse(value);
 		}
 		catch (DateTimeParseException | NullPointerException ex) {
-			throw invalid("invalid_dates", "'" + field + "' must be a date like 2026-12-05.");
+			throw invalid("invalid_dates", "'{0}' must be a date like 2026-12-05.", field);
 		}
 		LocalDate today = LocalDate.now(this.clock);
 		// A day of slack: it may already be tomorrow where the traveller is.
@@ -192,11 +194,13 @@ public class BookController {
 		}
 	}
 
+	/** A currency in use today (ISO 4217); the apps send the traveller's (4.7). */
 	private static String currency(String currency) {
-		if (currency == null || !CURRENCY.matcher(currency.trim()).matches()) {
+		String code = (currency == null) ? "" : currency.trim().toUpperCase(Locale.ROOT);
+		if (!CURRENCY.matcher(code).matches() || !Regions.isCurrency(code)) {
 			throw invalid("invalid_currency", "Currency must be a 3-letter code like INR.");
 		}
-		return currency.trim().toUpperCase(Locale.ROOT);
+		return code;
 	}
 
 	private static String channel(String channel) {
@@ -206,8 +210,8 @@ public class BookController {
 		return channel;
 	}
 
-	private static ApiException invalid(String code, String message) {
-		return new ApiException(HttpStatus.BAD_REQUEST, code, message);
+	private static ApiException invalid(String code, String message, Object... args) {
+		return new ApiException(HttpStatus.BAD_REQUEST, code, message, args);
 	}
 
 }
