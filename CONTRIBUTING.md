@@ -18,21 +18,28 @@ The hooks:
 - **pre-commit** scans staged changes for secrets with [Gitleaks](https://github.com/gitleaks/gitleaks).
   Install it once: `winget install Gitleaks.Gitleaks` (Windows) or `brew install gitleaks` (macOS).
   Without it, the hook skips with a warning, and CI still scans.
-- **pre-push** blocks pushing directly to `main` or `develop`.
+- **pre-push** blocks pushing directly to `develop`, `test` or `main`, and branch names other than `feature/...`
+  and `fix/...`.
 
 Never bypass hooks with `--no-verify`.
 
 ## Branches
 
-| Branch                                                            | Deploys to     | How changes get in                            |
-| ----------------------------------------------------------------- | -------------- | --------------------------------------------- |
-| `main`                                                            | Production     | Release PR from `develop`, or a `hotfix/*` PR |
-| `develop` (default)                                               | Test / staging | PRs from work branches                        |
-| `feature/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*`, `test/*` | Local only     | Your commits                                  |
+Every change takes the same path: `feature/...` or `fix/...` → `develop` → `test` → `main`.
 
-- Branch from the latest `develop`: `git checkout develop && git pull && git checkout -b feature/short-name`
+| Branch              | Is for            | Deploys to        | Merges into                                 |
+| ------------------- | ----------------- | ----------------- | ------------------------------------------- |
+| `feature/<name>`    | A new feature     | Nowhere (CI only) | `develop`: squash merge, no approval needed |
+| `fix/<name>`        | A bug fix         | Nowhere (CI only) | `develop`: squash merge, no approval needed |
+| `develop` (default) | Development       | Dev environment   | `test`: merge commit, the owner approves    |
+| `test`              | Testing a version | Test environment  | `main`: merge commit, the owner approves    |
+| `main`              | Customers         | Production        | —                                           |
+
+- Branch from the latest `develop`: `git switch develop && git pull && git switch -c feature/short-name`.
+  Names: lowercase letters, digits, `.`, `_` and `-` after the prefix.
+- GitHub rejects new branches with any other name (Dependabot's `dependabot/...` is the exception), direct pushes
+  to `develop`, `test` and `main`, force pushes and deleting them.
 - Keep branches short-lived (days, not weeks) and focused on one thing.
-- Never commit directly to `main` or `develop`.
 
 ## Commits
 
@@ -52,9 +59,12 @@ Write the subject in the imperative ("add", not "added"), lower case, no trailin
 
 1. Run this repo's checks locally (see **This repository** below). They must pass.
 2. Push your branch and open a PR into `develop`. Fill in the template.
-3. CI must be green ✅: **CI**, **Secret scan**.
-4. Get a review. At least the repo owner approves before merging.
-5. **Squash merge** into `develop`. The PR title becomes the commit message, so it must follow Conventional Commits.
+3. The required checks must be green ✅: **CI**, **Secret scan**, **Dependency scan** and **Branch guard**
+   (the PR is on an allowed path).
+4. **Squash merge** into `develop`. The PR title becomes the commit message, so it must follow Conventional Commits.
+5. To move changes up: a PR **`develop` → `test`**, then **`test` → `main`**. Each needs the owner's approval
+   (`goawaygoofficial`, the code owner) and is merged with a **merge commit**, never squash, so the branches keep
+   the same history.
 
 Rules:
 
@@ -63,22 +73,13 @@ Rules:
 - No secrets in code. Config goes in `.env` / environment variables, with placeholders in `.env.example`.
 - UI changes include before/after screenshots.
 
-> GitHub Free can't enforce these rules on private repos, so we enforce them ourselves.
-> The **Branch guard** workflow fails, and GitHub emails the owner, if a commit lands on `main` or
-> `develop` without a merged PR.
+These rules are enforced by GitHub repository rulesets (the repos are public, so they are free) and the
+**Branch guard** workflow.
 
-## Releases
+## Bug fixes
 
-1. Test `develop` on the test environment and check each feature's acceptance criteria.
-2. Open a release PR **`develop` → `main`** titled `release: vX.Y.Z`, and merge it with a **merge commit** (not squash).
-3. Tag the release on `main`: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
-4. Versions follow [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
-
-## Hotfixes
-
-1. Branch `hotfix/short-name` from `main`, fix, and open a PR into `main`.
-2. After merging, tag a patch release (`vX.Y.Z+1`).
-3. Immediately open a PR **`main` → `develop`** so the fix isn't lost.
+A bug fix is a `fix/<name>` branch and follows the same path as everything else: `develop` → `test` → `main`.
+There are no hotfix branches.
 
 ## Dependencies
 
@@ -89,6 +90,7 @@ Review them like any other PR: CI must pass, and read the changelog for major up
 
 - Never commit `.env`, keys, keystores, service-account files or passwords. `.gitignore` covers the usual ones.
 - If a secret is committed, even on a branch, **rotate it immediately**. Deleting the commit is not enough.
+  The repos are public: anything pushed can be read and copied at once.
 - Report security issues privately to the repo owner, not in a public issue.
 
 ## This repository: Backend (Spring Boot)

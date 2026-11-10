@@ -4,7 +4,7 @@
 
 Workspace with three separate git repos. Start Claude sessions in this folder (on disk: `Dev/Goaway`) so all of them are available.
 
-| Folder          | Stack                                                                                                                        | GitHub repo (private)                    |
+| Folder          | Stack                                                                                                                        | GitHub repo (public)                     |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | `app_frontend/` | Flutter 3.47 (Dart ^3.13), provider, http, google_sign_in, flutter_secure_storage, Sentry, PostHog                           | `goawaygoofficial/goawaygo_app_frontend` |
 | `web_frontend/` | React 19, TypeScript (strict), Vite 8, react-router-dom 7, CSS Modules — web version of the app, mirrors it screen by screen | `goawaygoofficial/goawaygo_web_frontend` |
@@ -14,27 +14,33 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 ## GitHub
 
-- Account: `goawaygoofficial` (the user's 2nd account; the global git identity `02priyeshraj` is their 1st account — don't use it here).
+- Account: `goawaygoofficial` (not the global git identity on this PC — don't use that here).
 - Each repo has local git config `user.name=goawaygoofficial` and GitHub's private no-reply `user.email` (the repos are public, decided 2026-11-11: the team email stays out of commits).
 - `gh` CLI is logged in as `goawaygoofficial` with ADMIN on all repos.
 - Default branch: `develop`.
 
 ## Branching (all repos)
 
-| Branch                                    | Environment    | Rules                                                                                                          |
-| ----------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `feature/*`, `fix/*`, `chore/*`, `docs/*` | Local          | Short-lived; branch from latest `develop`                                                                      |
-| `develop` (default)                       | Test / staging | Only via PR from a work branch; CI must pass                                                                   |
-| `main`                                    | Production     | Only via release PR from `develop` (after acceptance testing on test), or `hotfix/*` PR; tag releases `vX.Y.Z` |
+Path for every change (MVP 2, decided 2026-11-11): `feature/<name>` or `fix/<name>` → `develop` → `test` → `main`.
 
-- Never commit or push directly to `develop` or `main`.
-- After a hotfix merges to `main`, merge `main` back into `develop`.
-- Commit messages: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`).
-- Squash-merge work PRs into `develop`; use a merge commit for `develop → main` release PRs.
-- Merge via the API — `gh pr merge --squash` produced merge commits here:
-  `gh api -X PUT repos/goawaygoofficial/<repo>/pulls/<n>/merge -f merge_method=squash -f commit_title="<PR title> (#<n>)"`
-  then verify the new commit on `develop` has a single parent.
-- GitHub Free: no branch protection on private repos. The rules above are enforced by discipline, the `pre-push` hook, and the **Branch guard** workflow (fails if a commit lands on `main`/`develop` without a merged PR). See `CONTRIBUTING.md` in each repo.
+| Branch               | Environment | Rules                                                                                        |
+| -------------------- | ----------- | -------------------------------------------------------------------------------------------- |
+| `feature/*`, `fix/*` | CI only     | Branch from latest `develop`; PR into `develop`; no other branch names (GitHub rejects them) |
+| `develop` (default)  | Dev         | Squash-merge PRs from `feature/*`/`fix/*`/`dependabot/*`; no approval needed                 |
+| `test`               | Test        | Only a PR from `develop`, approved by `goawaygoofficial`, merged with a **merge commit**     |
+| `main`               | Production  | Only a PR from `test`, approved by `goawaygoofficial`, merged with a **merge commit**        |
+
+- PRs are opened and merged by the bot account `goawaygo-bot` (`gh` is signed in as it; these repos push through
+  `gh`). The user approves PRs into `test` and `main` as `goawaygoofficial` (CODEOWNERS); a PR author can't approve
+  their own PR.
+- No Claude attribution: no `Co-Authored-By: Claude` trailer, no "Generated with Claude Code" line, and always an
+  explicit `commit_message` when squash-merging (otherwise GitHub copies old trailers into the commit).
+- Merge via the API, `develop`:
+  `gh api -X PUT repos/goawaygoofficial/<repo>/pulls/<n>/merge -f merge_method=squash -f sha=<head> -f commit_title="<PR title> (#<n>)" -f commit_message="<summary>"`;
+  `test` and `main`: the same with `merge_method=merge`.
+- Enforced by GitHub repository rulesets (free on public repos): branch names, no direct or force pushes, no
+  deleting `develop`/`test`/`main`, required checks, the owner's approval into `test` and `main`. The
+  **Branch guard** check fails a PR on any other path; the `pre-push` hook gives the same answers locally.
 
 ## Workflow rules
 
@@ -48,7 +54,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 
 - `CI` — app: dart format check, `flutter analyze`, `flutter test`, debug APK build · web: `npm run check` · backend: `./mvnw verify`
 - `Secret scan` — Gitleaks over full history
-- `Branch guard` — on pushes to `main`/`develop`
+- `Branch guard` — on every PR: only allowed merge paths (required check)
 - Dependabot: weekly grouped update PRs into `develop` (deps + GitHub Actions)
 - Free plan = 2,000 Actions minutes/month; avoid needless re-runs.
 
