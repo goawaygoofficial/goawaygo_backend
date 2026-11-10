@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -59,7 +60,10 @@ public class AuthController {
 
 	private final GoogleAuthorizationCodeExchanger googleCodeExchanger;
 
-	/** The daily deletion run, for everyone together: the daily job plus a few manual runs. */
+	/**
+	 * The daily deletion run, per caller: the daily job plus a few manual runs. Per caller, so nobody else can use
+	 * up the job's runs.
+	 */
 	private static final RateLimitProperties.Limit PURGE_RUNS = new RateLimitProperties.Limit(6, Duration.ofHours(1));
 
 	private final AccountEmailService accountEmails;
@@ -217,8 +221,8 @@ public class AuthController {
 	 * daily GitHub Actions job calls it (Cloud Run gives the backend no CPU between requests).
 	 */
 	@PostMapping("/purge-deleted-accounts")
-	public Map<String, Integer> purgeDeletedAccounts() {
-		this.rateLimiter.consume("account-purge", "all", PURGE_RUNS);
+	public Map<String, Integer> purgeDeletedAccounts(HttpServletRequest request) {
+		this.rateLimiter.consume("account-purge", request.getRemoteAddr(), PURGE_RUNS);
 		return Map.of("deleted", this.accounts.purgeDue());
 	}
 
