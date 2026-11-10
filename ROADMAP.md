@@ -205,8 +205,8 @@ Decided 2026-11-10.
 - **Regions and formats:** dates, numbers and prices shown the local way for the user's language and region.
 - **Reviews before launch:** accessibility (WCAG 2.2 AA), speed (website bundle, images, app startup), security
   (OWASP Top 10 across the three repos, website security headers). Each ends with fixes and a short report.
-- [ ] Backend: languages and currencies · [ ] Website · [ ] App
-- [ ] Accessibility · [ ] Speed · [ ] Security · [ ] Regions and formats
+- [x] Backend: languages and currencies · [x] Website · [x] App
+- [ ] Accessibility · [ ] Speed · [x] Security · [x] Regions and formats
 
 ### Later sub-phases
 

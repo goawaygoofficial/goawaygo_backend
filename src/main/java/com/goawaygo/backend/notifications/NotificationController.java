@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -34,7 +35,10 @@ import com.goawaygo.backend.user.UserRepository;
 @RestController
 public class NotificationController {
 
-	/** The reminder run, for everyone together: the daily job plus a few manual runs. */
+	/**
+	 * The reminder run, per caller: the daily job plus a few manual runs. Per caller, so nobody else can use up the
+	 * job's runs.
+	 */
 	private static final RateLimitProperties.Limit REMINDER_RUNS = new RateLimitProperties.Limit(6,
 			Duration.ofHours(1));
 
@@ -109,8 +113,8 @@ public class NotificationController {
 	}
 
 	@PostMapping("/api/notifications/reminders")
-	public Map<String, Integer> sendReminders() {
-		this.rateLimiter.consume("notification-reminders", "all", REMINDER_RUNS);
+	public Map<String, Integer> sendReminders(HttpServletRequest request) {
+		this.rateLimiter.consume("notification-reminders", request.getRemoteAddr(), REMINDER_RUNS);
 		return Map.of("sent", this.notifications.sendTripReminders());
 	}
 
