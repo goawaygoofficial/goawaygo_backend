@@ -65,6 +65,7 @@ Check `https://staging.goawaygo.com/download`, then install it on a phone over t
 | 2026-11-08 | 1.3.0   | 9     | AI trip planner: day-by-day plans from any destination or saved place, cost estimate, booking shortcuts, change a day, share by link                                                                                                                                   |
 | 2026-11-09 | 1.4.0   | 10    | Notifications: a bell on Home with an unread count; push for new followers, likes, comments, trip reminders and opened shared plans; notification settings with a switch per type                                                                                      |
 | 2026-11-10 | 1.5.0   | 11    | Me: edit name, photo, password, email, country and currency; recently viewed; delete account. 7 languages (en, hi, es, fr, de, ar, ja) and prices in your currency; accessibility (contrast, 48dp buttons, labels) and faster start                                    |
+| 2026-11-10 | 1.5.0   | 12    | Updated crash reporting (Sentry) and usage statistics (PostHog) libraries                                                                                                                                                                                              |
 
 Add a row for every release.
 
