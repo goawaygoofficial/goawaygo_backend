@@ -15,7 +15,7 @@ This parent folder is NOT a git repo — run git/gh commands inside `app_fronten
 ## GitHub
 
 - Account: `goawaygoofficial` (the user's 2nd account; the global git identity `02priyeshraj` is their 1st account — don't use it here).
-- Each repo has local git config `user.name=goawaygoofficial`, `user.email=teamofficialgoaway@gmail.com`.
+- Each repo has local git config `user.name=goawaygoofficial` and GitHub's private no-reply `user.email` (the repos are public, decided 2026-11-11: the team email stays out of commits).
 - `gh` CLI is logged in as `goawaygoofficial` with ADMIN on all repos.
 - Default branch: `develop`.
 
