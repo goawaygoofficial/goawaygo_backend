@@ -206,7 +206,7 @@ Decided 2026-11-10.
 - **Reviews before launch:** accessibility (WCAG 2.2 AA), speed (website bundle, images, app startup), security
   (OWASP Top 10 across the three repos, website security headers). Each ends with fixes and a short report.
 - [x] Backend: languages and currencies · [x] Website · [x] App
-- [ ] Accessibility · [ ] Speed · [x] Security · [x] Regions and formats
+- [x] Accessibility · [ ] Speed · [x] Security · [x] Regions and formats
 
 ### Later sub-phases
 
