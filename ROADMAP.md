@@ -29,7 +29,7 @@ starts and recorded in its section below.
 | **4.4 AI trip planner**   | Day-by-day itinerary, saved to My Trips                                                                                                                  | Done   |
 | **4.5 Notifications**     | Push notifications and the bell on Home                                                                                                                  | Done   |
 | **4.6 Me**                | My Trips, Recently viewed, edit profile and photo, delete account (phone sign-in with SMS moved to MVP 2)                                                | Done   |
-| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Next   |
+| **4.7 Global readiness**  | More languages, currencies and regions; accessibility, speed, security review before launch                                                              | Done   |
 
 **How we build (decided 2026-10-31):** in MVP rounds. **MVP 1** builds every sub-phase below (4.1 to 4.7) without
 stopping for fix rounds; fixes, changes and new ideas are collected for **MVP 2, 3, 4, ...** after that.
@@ -206,7 +206,7 @@ Decided 2026-11-10.
 - **Reviews before launch:** accessibility (WCAG 2.2 AA), speed (website bundle, images, app startup), security
   (OWASP Top 10 across the three repos, website security headers). Each ends with fixes and a short report.
 - [x] Backend: languages and currencies · [x] Website · [x] App
-- [x] Accessibility · [ ] Speed · [x] Security · [x] Regions and formats
+- [x] Accessibility · [x] Speed · [x] Security · [x] Regions and formats
 
 ### Later sub-phases
 
