@@ -1,0 +1,304 @@
+# Deployment
+
+How the GoAwayGo backend runs outside a developer machine. Pre-launch (alpha/beta) everything here is free; at
+launch the database moves to Google Cloud SQL (Phase 5).
+
+## Architecture
+
+| Part             | Service                                                      | Address                  |
+| ---------------- | ------------------------------------------------------------ | ------------------------ |
+| Backend          | Google Cloud Run, `asia-southeast1` (Singapore)              | `api.goawaygo.com`       |
+| Database         | Neon PostgreSQL 17, AWS Singapore (free plan)                | private (TLS only)       |
+| Secrets          | Google Secret Manager                                        | read by the backend only |
+| Container images | Google Artifact Registry `goawaygo` (only the newest 3 kept) | —                        |
+| DNS              | Cloudflare (`goawaygo.com`)                                  | —                        |
+| Email            | Resend over SMTP                                             | `no-reply@goawaygo.com`  |
+
+Why Singapore: Cloud Run can attach a custom domain directly there (not in Mumbai, which would need a paid load
+balancer), and Neon has a Singapore region next to it. Users in India are ~50–70 ms away.
+
+```
+push to develop ─► CI (tests) ─► "Deploy staging" workflow ─► image in Artifact Registry ─► Cloud Run
+                                                                            │
+                                    Flyway migrates the database on start ◄─┘
+```
+
+## How a deploy works
+
+`.github/workflows/deploy-staging.yml` runs after CI passes on `develop` (or by hand: Actions → Deploy staging →
+Run workflow). It:
+
+1. Gets short-lived Google credentials through Workload Identity Federation. **No Google key is stored in GitHub.**
+2. Builds the [Dockerfile](../Dockerfile) and pushes `…/goawaygo/backend:<commit>`.
+3. Deploys it to Cloud Run with plain settings as environment variables and secrets from Secret Manager.
+4. Checks that `GET /api/users/me` answers 401 (the app is up and security is on).
+
+On start the backend runs any new Flyway migrations as `goawaygo_owner`, then serves requests as `goawaygo_app`.
+
+Cloud Run settings and why:
+
+- `min-instances 0`: free while nobody uses it. The first request after ~15 idle minutes waits for a cold start
+  (~7–10 s for Spring Boot); later requests are fast.
+- `max-instances 1`: rate limits are kept in memory, so they only hold with a single instance.
+- `cpu-throttling` (request-based billing): CPU is given, and billed, only while a request is being handled. An
+  instance kept up between uptime checks costs nothing. So nothing may run after the response: emails are sent inside
+  the request (`goawaygo.mail.async=false`), and forgot-password always takes at least 1.5 s so its timing doesn't
+  reveal whether the account exists.
+- `cpu-boost`: extra CPU during startup, shorter cold starts.
+
+## Rollback
+
+Every deploy is a Cloud Run revision. To go back to the previous one:
+
+```bash
+gcloud run revisions list --service goawaygo-backend --region asia-southeast1
+```
+
+```bash
+gcloud run services update-traffic goawaygo-backend --region asia-southeast1 --to-revisions REVISION_NAME=100
+```
+
+Database migrations are not rolled back automatically. Migrations should be additive (new columns/tables) so the
+previous revision keeps working.
+
+## One-time setup (per environment)
+
+Done once by a project owner. Commands run from the `backend` folder in Git Bash. Nothing below prints a secret.
+
+### 1. Google Cloud project
+
+1. Create the project (e.g. `goawaygo-staging`) with billing (free trial) and a budget alert
+   (Billing → Budgets & alerts, ₹100, alerts at 50/90/100%).
+2. Install the gcloud CLI and sign in: `gcloud auth login`.
+3. Run:
+
+   ```bash
+   GITHUB_REPO_ID="$(gh api repos/goawaygoofficial/goawaygo_backend --jq .id)" scripts/gcp-bootstrap.sh goawaygo-staging
+   ```
+
+   Deploys are tied to the repository's numeric ID, so renaming the repo or the GitHub account doesn't break them.
+
+   It enables the APIs, creates the image repository, the two service accounts and Workload Identity Federation,
+   and prints the GitHub variables for step 4.
+
+### 2. Database (Neon)
+
+1. In Neon create project `goawaygo-staging`: PostgreSQL 17, region AWS Asia Pacific (Singapore).
+2. Run (asks for the host and the admin password; Neon → Dashboard → Connect, use the host **without** `-pooler`):
+
+   ```bash
+   scripts/setup-hosted-db.sh goawaygo-staging
+   ```
+
+   It creates the `goawaygo` database with the `goawaygo_owner` / `goawaygo_app` roles (same script as local
+   development) and stores their new random passwords in Secret Manager.
+
+### 3. Secrets
+
+```bash
+scripts/gcp-secrets.sh goawaygo-staging jwt
+```
+
+```bash
+scripts/gcp-secrets.sh goawaygo-staging google
+```
+
+```bash
+scripts/gcp-secrets.sh goawaygo-staging resend
+```
+
+```bash
+scripts/gcp-secrets.sh goawaygo-staging access
+```
+
+`jwt` generates the login-token key pair; `google` and `resend` ask for the value with hidden input (both optional
+until those features are set up); `access` lets the backend's service account read them. Run `access` again after
+adding a secret later.
+
+| Secret Manager name             | Becomes                | Source                                        |
+| ------------------------------- | ---------------------- | --------------------------------------------- |
+| `goawaygo-db-owner-password`    | `DB_OWNER_PASSWORD`    | generated by `setup-hosted-db.sh`             |
+| `goawaygo-db-app-password`      | `DB_APP_PASSWORD`      | generated by `setup-hosted-db.sh`             |
+| `goawaygo-jwt-private-key`      | `JWT_PRIVATE_KEY`      | generated by `gcp-secrets.sh jwt`             |
+| `goawaygo-jwt-public-key`       | `JWT_PUBLIC_KEY`       | generated by `gcp-secrets.sh jwt`             |
+| `goawaygo-google-client-secret` | `GOOGLE_CLIENT_SECRET` | Google Auth Platform → Clients → GoAwayGo Web |
+| `goawaygo-resend-api-key`       | `MAIL_PASSWORD`        | Resend → API Keys                             |
+
+### 4. GitHub repository variables
+
+Settings → Secrets and variables → Actions → **Variables** (identifiers and URLs, not secrets):
+
+| Variable                                  | Example                                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `GCP_PROJECT_ID`                          | `goawaygo-staging`                                                                          |
+| `GCP_REGION`                              | `asia-southeast1`                                                                           |
+| `GCP_WIF_PROVIDER`                        | printed by `gcp-bootstrap.sh`                                                               |
+| `GCP_DEPLOY_SA`                           | `goawaygo-deployer@goawaygo-staging.iam.gserviceaccount.com`                                |
+| `GCP_RUNTIME_SA`                          | `goawaygo-backend@goawaygo-staging.iam.gserviceaccount.com`                                 |
+| `DB_HOST`                                 | Neon host (no `-pooler`)                                                                    |
+| `CORS_ALLOWED_ORIGINS`                    | `https://staging.goawaygo.com`                                                              |
+| `WEB_BASE_URL`                            | `https://staging.goawaygo.com`                                                              |
+| `API_BASE_URL`                            | `https://api.goawaygo.com`                                                                  |
+| `DB_NAME`, `DB_OWNER_USER`, `DB_APP_USER` | optional; only to override the default names `goawaygo` / `goawaygo_owner` / `goawaygo_app` |
+| `GOOGLE_CODE_FLOW_ENABLED`                | `true` once `goawaygo-google-client-secret` exists                                          |
+| `MAIL_FROM`                               | `GoAwayGo <no-reply@goawaygo.com>` once Resend is set up (empty = no mail)                  |
+| `FCM_PROJECT`                             | `goaway-483709` once the runtime account may send pushes (empty = no push)                  |
+
+The deploy workflow stays inactive until `GCP_PROJECT_ID` is set.
+
+### 5. Make the API public (once, after the first deploy)
+
+The first deploy succeeds but every request gets Google's 401/403 until the service allows public calls. The deployer
+account can't change that on purpose (least privilege), so a project owner runs once:
+
+```bash
+gcloud run services add-iam-policy-binding goawaygo-backend --region asia-southeast1 --member allUsers --role roles/run.invoker
+```
+
+Then re-run the workflow (Actions → Deploy staging → Run workflow) to get a green smoke test. The API's own
+security (JWT, rate limits) protects every endpoint; this setting only lets requests reach it.
+
+### 6. Custom domain `api.goawaygo.com`
+
+1. Verify the domain with Google once: `gcloud domains verify goawaygo.com` opens Search Console; add the TXT
+   record it shows in Cloudflare DNS.
+2. After the first deploy:
+
+   ```bash
+   gcloud beta run domain-mappings create --service goawaygo-backend --domain api.goawaygo.com --region asia-southeast1
+   ```
+
+3. In Cloudflare DNS add the record it prints (CNAME `api` → `ghs.googlehosted.com`) as **DNS only** (grey cloud),
+   so Google can issue the certificate. HTTPS is ready after up to ~15 minutes.
+
+### 7. After the first deploy: check client IPs
+
+Rate limits use the client address from `X-Forwarded-For`, trusted only from internal proxy addresses
+(`FORWARD_HEADERS_STRATEGY=native`). Check once that the backend sees real client IPs, not the proxy's: with
+`logging.level.org.apache.catalina.valves.RemoteIpValve=DEBUG` temporarily, or by checking that two people on
+different networks don't share sign-in limits. If it sees a proxy address, set `SERVER_TOMCAT_REMOTEIP_INTERNALPROXIES`
+to match it.
+
+## Costs and limits (pre-launch)
+
+- Cloud Run free tier (request-based billing): 180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million requests a
+  month, counted only while requests are handled. Uptime checks every 3 minutes use well under 1% of it.
+- Neon free: ~1 GB storage, 100 compute hours a month; it sleeps after 5 idle minutes and wakes in under a second.
+  To let it sleep, the connection pool keeps no idle connections (`minimum-idle=0`, closed after 2 minutes) and the
+  health check never touches the database.
+- Artifact Registry: 0.5 GB free; the cleanup policy keeps the newest 3 images (they share most layers).
+- **The Google free trial ends 90 days after sign-up.** Upgrade the billing account to paid before then or the
+  project is stopped. Usage inside the free tier stays $0; the budget alert warns before any charge.
+
+## Health and uptime
+
+`GET https://api.goawaygo.com/actuator/health` answers `{"status":"UP"}` without signing in. It only says the backend
+is running: it doesn't check the database or email (so uptime checks don't wake Neon); those failures reach Sentry.
+Nothing else from Spring Boot Actuator is exposed.
+
+Better Stack (free plan, team Gmail) checks every 3 minutes and emails on downtime:
+
+| Monitor                                              | Expect             | Every  |
+| ---------------------------------------------------- | ------------------ | ------ |
+| `https://api.goawaygo.com/actuator/health`           | status 200, `"UP"` | 3 min  |
+| `https://staging.goawaygo.com`                       | status 200         | 3 min  |
+| `https://downloads.goawaygo.com/android/latest.json` | status 200         | 30 min |
+
+The API monitor allows a 30 s timeout, because the first check after an idle period waits for a cold start. Public
+status page: `status.goawaygo.com` (CNAME in Cloudflare, DNS only).
+
+## Outside APIs
+
+Every call to an outside API (places, photos, flights, AI, ...) goes through `com.goawaygo.backend.external`:
+timeouts, retries for temporary failures, a circuit breaker that pauses a failing provider for a minute, per-day and
+per-month usage limits kept in the database (`external_api_usage`) that refuse calls before a free tier is exceeded,
+and a database cache (`external_api_cache`) that also serves the last answer when the provider is down. When nothing
+can be returned, the client gets a 503 with a friendly message.
+
+To add a provider:
+
+1. Sign up with the team Gmail; note the free tier's limits.
+2. Add its settings to `application.properties`, limits **below** the free tier:
+
+   ```properties
+   goawaygo.external.providers.opentripmap.base-url=https://api.opentripmap.com/0.1
+   goawaygo.external.providers.opentripmap.daily-limit=4500
+   goawaygo.external.providers.opentripmap.cache-ttl=7d
+   ```
+
+   Names are lowercase letters and digits only. Optional: `connect-timeout` (3s), `read-timeout` (10s),
+   `max-attempts` (3), `retry-wait` (500ms), `monthly-limit`.
+
+3. If it needs a key, store it in Secret Manager (typed hidden; the backend can read it right away):
+
+   ```bash
+   scripts/gcp-secrets.sh goawaygo-staging provider opentripmap
+   ```
+
+4. Add the name to the repo variable `EXTERNAL_API_PROVIDERS` (space-separated, e.g. `opentripmap unsplash`). The deploy
+   passes the key as `GOAWAYGO_EXTERNAL_PROVIDERS_<NAME>_APIKEY`. Locally, put that variable in `.env`.
+5. Use it from a feature: `externalApis.client("opentripmap").cached(key, Type.class, (http, apiKey) -> ...)`.
+
+Providers in use (4.1 Discover, `docs/destination-prompts.md`): `gemini`, `geminilite`, `geminilite35` (one per AI
+model, all with the one Gemini key, secret `goawaygo-api-gemini`), `geoapify` (`goawaygo-api-geoapify`), `unsplash`
+(`goawaygo-api-unsplash`), and `wikipedia`, `commons`, `wikidata` (no key). `EXTERNAL_API_PROVIDERS` is
+`gemini geoapify unsplash`. Destination pages can take up to a minute on the free AI tier, so Cloud Run's request
+timeout is 120 s (`deploy-staging.yml`).
+
+Calls so far are in the database: `SELECT * FROM external_api_usage ORDER BY period_start DESC;`. Reaching a limit
+or a provider failing repeatedly is logged as an error, so it shows up in Sentry.
+
+## Wanderbook photos, moderation and reports (4.2)
+
+- **Photos** go to the Cloudflare R2 bucket `goawaygo-media` (public at `media.goawaygo.com`) through the backend,
+  which keeps the original file and only removes its location data. Setup: create an R2 API token (Object Read &
+  Write, bucket `goawaygo-media` only), store it with `scripts/gcp-secrets.sh goawaygo-staging r2`, then set the repo
+  variable `WANDERBOOK_PHOTOS` to `true` and redeploy. Without it, uploads answer "Photos can't be saved right now".
+  Uploads stop at 9.5 GB in total (`goawaygo.media.max-total-bytes`) to stay inside the free 10 GB.
+- **Moderation**: OpenAI omni-moderation checks every photo and text (`openai` provider; key `goawaygo-api-openai`,
+  add `openai` to `EXTERNAL_API_PROVIDERS`). If it can't answer, nothing is posted (users are asked to try again).
+- **Reports** are emailed to `team@goawaygo.com` and reviewed by admins on the website (`/admin/reports`). Make
+  someone an admin in the Neon SQL editor: `UPDATE users SET is_admin = true WHERE email = 'name@example.com';`
+
+## Notifications (4.5)
+
+- **The bell** works without any setup: notifications are saved in Postgres (`notifications`, kept 90 days) and
+  listed by `/api/notifications`.
+- **Push** (Android) goes through Firebase Cloud Messaging in the Firebase project `goaway-483709`, with the backend's
+  own runtime service account: no key file. Once per environment, a project owner of `goaway-483709` grants it the
+  sending role, then sets the repo variable `FCM_PROJECT` to `goaway-483709` and redeploys:
+
+  ```bash
+  gcloud projects add-iam-policy-binding goaway-483709     --member "serviceAccount:goawaygo-backend@goawaygo-staging.iam.gserviceaccount.com"     --role roles/firebasecloudmessaging.admin --condition None
+  ```
+
+  Without `FCM_PROJECT`, nothing is pushed (the bell still fills). A failed push is logged and dropped; tokens
+  Firebase reports as gone are deleted.
+
+- **Trip reminders** ("in 3 days", "tomorrow", in India time) are sent by `POST /api/notifications/reminders`, which
+  the **Daily jobs** workflow calls at 09:00 IST (Cloud Run gives no CPU between requests, so no timer inside the
+  backend). The call is public and only sends what is due, once; it also deletes notifications older than 90 days.
+  Run it by hand: Actions → Daily jobs → Run workflow.
+- **Announcements**: admins send them to everyone from the website, or `POST /api/admin/announcements`
+  `{"title": "...", "text": "..."}`.
+
+## Trip ideas (4.7)
+
+- Home's **Ideas for your next trip** are made by the **Daily jobs** workflow's third step
+  (`POST /api/discover/refresh-ideas`, public): once the list is 20 hours old it asks the AI for a new one, checks each
+  place on Wikipedia, then translates it into every language, side by side. The list and its translations are kept in
+  the `idea_pools` table, so a new backend instance serves them at once and nobody on Home waits for the AI. Called
+  again with nothing due, it does nothing. Run it by hand: Actions → Daily jobs → Run workflow.
+
+## Deleting accounts (4.6)
+
+- **Delete account** (`POST /api/auth/delete-account`, after the password or Google) signs the account out
+  everywhere, stops its pushes and hides it from others at once, and emails the date it will be deleted. Signing in
+  again within 30 days keeps it.
+- After 30 days, the **Daily jobs** workflow's second step (`POST /api/auth/purge-deleted-accounts`, public, only
+  deletes what is due) deletes the account's photo files from R2, then the account itself, which takes everything it
+  owns (every table cascades), and emails a last confirmation. If R2 can't be reached, that account waits for the
+  next day, so no file is left behind.
+- A request by email (the website's Delete my data page), once it is confirmed to come from the account's address:
+  in Neon, set `deletion_requested_at = now()` on that user and delete their `refresh_tokens` rows; the daily job
+  deletes the account 30 days later.

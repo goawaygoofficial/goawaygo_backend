@@ -1,0 +1,55 @@
+# Weekly dependency update PRs into develop. Minor/patch updates are grouped into one PR to keep noise low;
+# major updates get their own PR because they can break things.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # PostgreSQL image in compose.yaml. Only minor/patch: a major upgrade (e.g. 17 -> 18) needs a planned
+  # data migration. Keep the image tag in PostgresIntegrationTest in sync when merging these PRs.
+  - package-ecosystem: docker-compose
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: 'chore(deps)'
+    ignore:
+      - dependency-name: postgres
+        update-types: ['version-update:semver-major']
+
+  # Base images in the Dockerfile (Temurin JDK/JRE 17). Java 17 stays until a planned upgrade.
+  - package-ecosystem: docker
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: 'chore(deps)'
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: 'chore(ci)'
+    groups:
+      github-actions:
+        patterns: ['*']

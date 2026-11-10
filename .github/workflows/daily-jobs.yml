@@ -1,0 +1,59 @@
+name: Daily jobs
+
+# Once a day at 09:00 IST, asks the staging backend to:
+# - send the trip reminders due today ("in 3 days", "tomorrow"; NotificationController);
+# - delete the accounts whose 30 days after "Delete account" are over (AuthController);
+# - make the day's trip ideas for Home and translate them (DiscoverController), so nobody waits for the AI.
+# Cloud Run gives the backend CPU only while it handles a request, so a timer inside it can't be relied on. All calls
+# are public and only do what is due, once, so a retry or an extra run does nothing more.
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: vars.API_BASE_URL != ''
+    env:
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+    steps:
+      - name: Send today's trip reminders
+        run: |
+          # The first call may wait for a cold start. -d '' sends Content-Length: 0 (Google's front end refuses a POST
+          # without it: 411).
+          for attempt in 1 2 3; do
+            if curl -sS -f --max-time 60 -X POST -d '' "${API_BASE_URL%/}/api/notifications/reminders"; then
+              echo; exit 0
+            fi
+            echo "Attempt $attempt failed, retrying"; sleep 20
+          done
+          exit 1
+
+      - name: Delete accounts whose 30 days are over
+        if: ${{ !cancelled() }}
+        run: |
+          for attempt in 1 2 3; do
+            if curl -sS -f --max-time 120 -X POST -d '' "${API_BASE_URL%/}/api/auth/purge-deleted-accounts"; then
+              echo; exit 0
+            fi
+            echo "Attempt $attempt failed, retrying"; sleep 20
+          done
+          exit 1
+
+      - name: Make today's trip ideas
+        if: ${{ !cancelled() }}
+        run: |
+          # Asks the AI for the list, then a translation per language: up to two minutes. Work saved by a run that
+          # times out is kept, and the retry finishes the rest.
+          for attempt in 1 2 3; do
+            if curl -sS -f --max-time 150 -X POST -d '' "${API_BASE_URL%/}/api/discover/refresh-ideas"; then
+              echo; exit 0
+            fi
+            echo "Attempt $attempt failed, retrying"; sleep 20
+          done
+          exit 1

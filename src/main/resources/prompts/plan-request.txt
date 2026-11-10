@@ -1,0 +1,13 @@
+Plan a trip.
+
+Destination: {place}
+Start date: {startDate} ({weekday})
+Number of days: {days} (give exactly {days} days, in order)
+Travellers: {travellers}
+Pace: {pace}
+Budget level: {budget}
+Interests: {interests}
+Currency for all costs: {currency}
+Language for all text: {language}
+
+Also give a short title, a two-sentence summary and up to 5 tips for the whole trip.

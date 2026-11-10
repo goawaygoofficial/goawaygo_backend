@@ -1,0 +1,19 @@
+Suggest {count} varied places to visit for travellers.
+
+Mix:
+- categories: beaches, mountains, lakes, waterfalls, islands, national parks and nature, historic sites and
+  heritage, old towns and villages, cities, landmarks, deserts, temples and sacred places;
+- continents: spread across Africa, Asia, Europe, North America, South America and Oceania, with this batch
+  starting from {startContinent};
+- fame: about half crowd favourites everyone knows, about half hidden gems that are lesser known but well worth
+  the trip.
+Do not suggest any of these, used recently: {avoid}
+
+For each place:
+- "name": the place's own name (the title of its Wikipedia article);
+- "area": the city, region or island it is in or nearest to;
+- "country": the country;
+- "category": one of beach, mountain, lake, waterfall, island, nature, heritage, old town, city, landmark, desert,
+  temple;
+- "kind": "popular" or "hidden gem";
+- "summary": at most 12 words on why to go.

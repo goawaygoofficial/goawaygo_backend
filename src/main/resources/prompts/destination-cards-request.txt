@@ -1,0 +1,55 @@
+Destination:
+- name: {name}
+- type: {type}
+- region: {region}
+- country: {country} ({countryCode})
+- coordinates: {lat}, {lon}
+
+Write in: {language}
+The traveller pays in: {currency}
+
+Write these 9 cards for this destination. Each card is a separate field of the JSON answer.
+
+quickFacts ("Quick Facts"): items in this order, leaving out any that do not apply or you are unsure of:
+Country (omit if the destination is a country) · Capital or main city · Official languages · Currency (name and
+ISO code) · Time zone (UTC offset; note daylight saving if used) · Population (rounded, starting with "about";
+countries and cities only) · Known for (3-5 things, comma-separated).
+
+visa ("Visa & Entry Rules"): general entry rules for visiting the destination's country as a tourist. Cover, where
+they exist: membership of a shared visa area (for example Schengen) · electronic visa or travel authorisation
+systems by official name (for example ETA, eVisa, ESTA) · visa on arrival · passport validity commonly required ·
+well-known entry requirements (for example onward ticket, yellow fever certificate). Only list exempt nationalities
+when it is a broad, well-known rule (for example "EU citizens need no visa"). The last item: label "Check before
+you go"; detail naming the official authority; its official website in "link" only if certain.
+
+seasons ("Best Time to Visit"): "Peak season" (months and why) · "Off-peak season" (months and what to expect) ·
+"Shoulder season" (if meaningful) · "Weather" (climate by season; typical temperature ranges in °C may be given) ·
+"Big events" (1-3 recurring festivals or events with their usual month or dates; mayChange true) · "Best time to
+visit" (one clear recommendation).
+
+attractions ("Top Attractions"): 5-6 of the most famous real landmarks, sights or experiences in or very near the
+destination. label = the name as commonly known; detail = what it is and why visit. Typical opening hours or entry
+fees may be added (mayChange true). The attraction's official website in "link" only if certain.
+
+hotels ("Best Areas to Stay"): 3-5 of the best areas, neighbourhoods or streets to book a hotel or resort, each with
+who it suits (for example first-time visitors, budget, luxury, families, nightlife) and why. Optionally one item on
+a type of stay special to the destination (for example ryokan, riad, houseboat). Typical nightly price ranges may be
+added (mayChange true). Do not recommend individual hotels.
+
+cuisine ("Food & Dining"): 4-5 characteristic local dishes or food experiences (label = dish name; detail = what it
+is), then 1 item labelled "Dining tip" on local eating customs or etiquette. Famous long-standing food streets or
+markets may be named (mayChange true).
+
+transport ("Getting Around"): "From the airport" (the main airport by name and the usual ways into town; typical
+fares may be given, mayChange true) · 2-4 items for the main ways to get around (for example metro, buses, trams,
+taxis, widely used ride-hailing apps by name, ferries, trains between cities) · 1 "Tip" item.
+
+insurance ("Travel Insurance"): "Is it required?" (only say required if it is an established entry requirement, for
+example for a Schengen visa; otherwise "not required but recommended") · "Medical care" (quality and cost level:
+low, moderate or high) · 1-3 risks specific to this destination that insurance should cover (for example altitude,
+monsoon, adventure sports, theft) · "What to check" (one practical tip).
+
+currency ("Money & Connectivity"): "Currency" (name and ISO code) · "Exchange rate" (approximate rate against the
+traveller's currency, or the US dollar if it is the same as the local one, mayChange true) · "Cards or cash" (how widely cards and mobile payments are accepted) · "Tipping" (local
+custom) · "Mobile data" (tourist SIM or eSIM availability; main networks may be named, mayChange true) · "Power
+plugs" (plug type letters and voltage) · "Emergency number" (national emergency number; only if certain).

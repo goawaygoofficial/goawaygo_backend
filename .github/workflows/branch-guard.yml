@@ -1,0 +1,43 @@
+# Branch guard (MVP 2, 5.1): a pull request may only take the path
+#   feature/... or fix/... (or Dependabot's dependabot/...)  →  develop  →  test  →  main
+# This check is required on develop, test and main (repository rulesets), so a pull request on any other path can't
+# be merged. The rulesets also reject new branches named anything else, require the owner's approval into test and
+# main, and block direct pushes (see CLAUDE.md).
+name: Branch guard
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  merge-path:
+    name: Allowed merge path
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check where this pull request comes from and goes to
+        env:
+          HEAD: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          fail() {
+            echo "::error title=Not an allowed merge path::'$HEAD' → '$BASE': $1"
+            exit 1
+          }
+          case "$BASE" in
+            develop)
+              [[ "$HEAD" =~ ^(feature|fix)/[a-z0-9][a-z0-9._-]*$ || "$HEAD" == dependabot/* ]] \
+                || fail "into develop only from feature/<name> or fix/<name> (lowercase letters, digits, . _ -)." ;;
+            test)
+              [[ "$HEAD" == develop && "$HEAD_REPO" == "$REPO" ]] || fail "into test only from develop." ;;
+            main)
+              [[ "$HEAD" == test && "$HEAD_REPO" == "$REPO" ]] || fail "into main only from test." ;;
+            *)
+              fail "pull requests go into develop, test or main only." ;;
+          esac
+          echo "OK: '$HEAD' → '$BASE' is an allowed path."

@@ -1,0 +1,153 @@
+name: Deploy staging
+
+# Deploys develop to the staging backend on Google Cloud Run after CI has passed on it (docs/deployment.md).
+# Inactive until the repository variables from scripts/gcp-bootstrap.sh are set (GCP_PROJECT_ID etc.).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # short-lived Google credentials via Workload Identity Federation (no stored keys)
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  SERVICE: goawaygo-backend
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/goawaygo/backend
+
+jobs:
+  deploy:
+    name: Build and deploy to Cloud Run
+    if: >-
+      vars.GCP_PROJECT_ID != '' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: staging
+      url: ${{ vars.API_BASE_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Exactly the commit CI tested.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+
+      - name: Log Docker in to Artifact Registry
+        run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Build and push the image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE }}:${{ github.event.workflow_run.head_sha || github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Cloud Run
+        env:
+          GOOGLE_CODE_FLOW: ${{ vars.GOOGLE_CODE_FLOW_ENABLED }}
+          MAIL_FROM: ${{ vars.MAIL_FROM }}
+          EXTERNAL_API_PROVIDERS: ${{ vars.EXTERNAL_API_PROVIDERS }}
+          WANDERBOOK_PHOTOS: ${{ vars.WANDERBOOK_PHOTOS }}
+        run: |
+          # Plain settings (not secrets). One file avoids escaping commas in the CORS list.
+          cat > env.yaml <<EOF
+          DB_HOST: "${{ vars.DB_HOST }}"
+          DB_PORT: "5432"
+          # Database and role names: repo variables override the defaults (used while renaming an environment).
+          DB_NAME: "${{ vars.DB_NAME || 'goawaygo' }}"
+          DB_OWNER_USER: "${{ vars.DB_OWNER_USER || 'goawaygo_owner' }}"
+          DB_APP_USER: "${{ vars.DB_APP_USER || 'goawaygo_app' }}"
+          DB_SSL_MODE: "verify-full"
+          FORWARD_HEADERS_STRATEGY: "native"
+          CORS_ALLOWED_ORIGINS: "${{ vars.CORS_ALLOWED_ORIGINS }}"
+          WEB_BASE_URL: "${{ vars.WEB_BASE_URL }}"
+          GOOGLE_CLOUD_PROJECT: "${{ vars.GCP_PROJECT_ID }}"
+          LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goawaygo.backend.logging.CloudLoggingFormatter"
+          SENTRY_DSN: "${{ vars.SENTRY_DSN }}"
+          SENTRY_ENVIRONMENT: "staging"
+          SENTRY_RELEASE: "goawaygo-backend@${{ github.event.workflow_run.head_sha || github.sha }}"
+          # Push notifications: the Firebase project (repo variable FCM_PROJECT, set once the runtime service account
+          # may send with Firebase Cloud Messaging; docs/deployment.md). Empty: the bell works, no pushes are sent.
+          NOTIFICATIONS_FCM_PROJECT: "${{ vars.FCM_PROJECT }}"
+          EOF
+
+          # Secrets come from Secret Manager at runtime; GitHub never sees them.
+          secrets="DB_OWNER_PASSWORD=goawaygo-db-owner-password:latest,DB_APP_PASSWORD=goawaygo-db-app-password:latest"
+          secrets="$secrets,JWT_PRIVATE_KEY=goawaygo-jwt-private-key:latest,JWT_PUBLIC_KEY=goawaygo-jwt-public-key:latest"
+          if [ "$GOOGLE_CODE_FLOW" = "true" ]; then
+            secrets="$secrets,GOOGLE_CLIENT_SECRET=goawaygo-google-client-secret:latest"
+          fi
+          if [ -n "$MAIL_FROM" ]; then
+            cat >> env.yaml <<EOF
+          MAIL_HOST: "smtp.resend.com"
+          MAIL_PORT: "587"
+          MAIL_USERNAME: "resend"
+          MAIL_SMTP_AUTH: "true"
+          MAIL_SMTP_STARTTLS: "true"
+          MAIL_FROM: "${MAIL_FROM}"
+          EOF
+            secrets="$secrets,MAIL_PASSWORD=goawaygo-resend-api-key:latest"
+          fi
+
+          # Wanderbook photo storage (Cloudflare R2): set the repo variable WANDERBOOK_PHOTOS to true once the access
+          # key is in Secret Manager (scripts/gcp-secrets.sh <project> r2). Without it, photo uploads are refused.
+          if [ "$WANDERBOOK_PHOTOS" = "true" ]; then
+            secrets="$secrets,R2_ACCESS_KEY_ID=goawaygo-r2-access-key-id:latest"
+            secrets="$secrets,R2_SECRET_ACCESS_KEY=goawaygo-r2-secret-access-key:latest"
+          fi
+
+          # Outside API keys (com.goawaygo.backend.external): repo variable EXTERNAL_API_PROVIDERS lists the providers
+          # with a key, e.g. "opentripmap unsplash"; each key is the secret goawaygo-api-<name>
+          # (scripts/gcp-secrets.sh <project> provider <name>).
+          for provider in $EXTERNAL_API_PROVIDERS; do
+            case "$provider" in
+              *[!a-z0-9]*) echo "Provider names are lowercase letters and digits only: $provider" >&2; exit 1 ;;
+            esac
+            upper="$(echo "$provider" | tr '[:lower:]' '[:upper:]')"
+            secrets="$secrets,GOAWAYGO_EXTERNAL_PROVIDERS_${upper}_APIKEY=goawaygo-api-${provider}:latest"
+          done
+
+          # max-instances 1: rate limits are kept in memory (one instance). min-instances 0: free when idle.
+          # cpu-throttling (request-based billing): CPU only while a request is handled, so an idle instance kept up by
+          # uptime checks costs nothing. Everything, emails included, finishes inside the request.
+          # Public access is granted once by a project owner (docs/deployment.md); the deployer is deliberately not
+          # allowed to change who can call the service.
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE:${{ github.event.workflow_run.head_sha || github.sha }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --service-account "${{ vars.GCP_RUNTIME_SA }}" \
+            --env-vars-file env.yaml \
+            --set-secrets "$secrets" \
+            --port 8080 --cpu 1 --memory 1Gi \
+            --min-instances 0 --max-instances 1 --concurrency 80 --timeout 120 \
+            --cpu-boost --cpu-throttling \
+            --quiet
+
+      - name: Smoke test
+        run: |
+          url="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" --format 'value(status.url)')"
+          # Without a token the profile endpoint must answer 401 (JSON): the app is up and security is on.
+          for attempt in 1 2 3 4 5 6; do
+            status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$url/api/users/me" || true)"
+            [ "$status" = "401" ] && { echo "Backend is up ($url)"; exit 0; }
+            echo "Attempt $attempt: HTTP $status, retrying"; sleep 10
+          done
+          echo "Backend did not answer as expected" >&2; exit 1
