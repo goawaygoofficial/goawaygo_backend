@@ -76,15 +76,36 @@ Add a row for every release.
 
 ## Occasionally
 
-| Situation                         | What to do                                                                                                                              |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| New backend secret (API key etc.) | Stored with a hidden-input script into Google Secret Manager (`backend/scripts/gcp-secrets.sh`)                                         |
-| New website setting (`VITE_*`)    | Cloudflare → goawaygo-web-frontend → Settings → Variables, then redeploy                                                                |
-| Database change                   | Nothing: Flyway migrates on deploy. Keep migrations additive so a rollback still works.                                                 |
-| Backend broken on staging         | `gcloud run services update-traffic goawaygo-backend --region asia-southeast1 --to-revisions REVISION=100` (backend/docs/deployment.md) |
-| Website broken on staging         | Cloudflare → goawaygo-web-frontend → Deployments → earlier deployment → **Rollback**                                                    |
-| Bad app build                     | Release a fixed build with a higher build number; delete the bad files from R2 and purge their URLs in Cloudflare cache                 |
+| Situation                         | What to do                                                                                                                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New backend secret (API key etc.) | Stored with a hidden-input script into Google Secret Manager (`backend/scripts/gcp-secrets.sh`)                                                                                   |
+| New website setting (`VITE_*`)    | Cloudflare → goawaygo-web-frontend → Settings → Variables, then redeploy                                                                                                          |
+| Database change                   | Nothing: Flyway migrates on deploy. Keep migrations additive so a rollback still works.                                                                                           |
+| Broken in test or prod            | Roll back with **Controller** → Run workflow (above). Instant backend switch: `gcloud run services update-traffic <service> --region asia-southeast1 --to-revisions REVISION=100` |
+| Website broken on staging         | Cloudflare → goawaygo-web-frontend → Deployments → earlier deployment → **Rollback**                                                                                              |
+| Bad app build                     | Release a fixed build with a higher build number; delete the bad files from R2 and purge their URLs in Cloudflare cache                                                           |
 
-## Production (`main`)
+## Moving a version up: test, then prod (`controller.yaml`, MVP 2, 5.4)
 
-Not set up yet: comes at launch (Phase 5) with production Google Cloud, Cloud SQL, `goawaygo.com` and the Play Store.
+dev gets every version automatically. test and prod get a version only through **Controller**
+(`.github/workflows/controller.yaml` in each repo), with your approval twice: once for the merge, once for the deploy.
+
+1. **To test:** a PR from `develop` into `test` (opened by the bot). You approve it; it's merged with a merge commit.
+2. Controller starts on `test`. It picks the version whose files are exactly what `test` now holds, checks that the
+   version passed dev (its GitHub Release shows **✅** for dev), then waits for you: Actions → **Controller** → the
+   run → **Review deployments** → tick **test** → **Approve and deploy**.
+3. The backend and website deploy that version's image and build to test (`api-test.goawaygo.com`,
+   `test.goawaygo.com`) and check them. The app has nothing to deploy: the version is recorded as promoted.
+4. Test it on test. (From 5.5 and 5.6 the automation and performance tests run there too and must pass.)
+5. **To prod:** a PR from `test` into `main`, approved and merged the same way; Controller checks the version passed
+   test, waits for your approval (**prod**), deploys, and makes the version the **latest full release** (no longer a
+   pre-release). For the app, build the APK from that version (below).
+
+Each step is written into the version's GitHub Release under **Deployments**, e.g.
+`- **test**: ✅ deployed 2026-11-12 09:30 UTC · run`, so every release shows where it has run. If a version isn't
+ready (Release on `develop` still running, or it failed below), Controller stops with the reason; fix it and re-run.
+
+**Roll back or deploy again:** Actions → **Controller** → **Run workflow** → "Use workflow from" **main** (prod) or
+**test** (test) → version, e.g. `v1.7.0` (empty = the branch's own version) → approve. Only a version that is merged
+into that branch and passed the environment below can be deployed. Keep database migrations additive so an older
+version still runs.

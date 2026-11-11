@@ -38,6 +38,10 @@ Path for every change (MVP 2, decided 2026-11-11): `feature/<name>` or `fix/<nam
 - Merge via the API, `develop`:
   `gh api -X PUT repos/goawaygoofficial/<repo>/pulls/<n>/merge -f merge_method=squash -f sha=<head> -f commit_title="<PR title> (#<n>)" -f commit_message="<summary>"`;
   `test` and `main`: the same with `merge_method=merge`.
+- A merge into `test` or `main` starts **Controller** (`.github/workflows/controller.yaml`, 5.4): it deploys the
+  version whose files match the branch to test or prod, only if that version passed the environment below (its
+  GitHub Release "Deployments" section shows ✅), after the owner approves the deploy. Rollback: run Controller by
+  hand on `test` or `main` with a version (RELEASING.md).
 - Enforced by GitHub repository rulesets (free on public repos): branch names, no direct or force pushes, no
   deleting `develop`/`test`/`main`, required checks, the owner's approval into `test` and `main`. The
   **Branch guard** check fails a PR on any other path; the `pre-push` hook gives the same answers locally.
