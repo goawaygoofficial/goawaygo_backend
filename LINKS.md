@@ -45,14 +45,16 @@ Sentry search (`request_id:…`) to see everything that happened in that request
 
 ## 4. Code, builds and deploys (GitHub)
 
-| What                         | Link                                                                                                                                                                                                                  |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Organisation                 | https://github.com/goawaygoofficial                                                                                                                                                                                   |
-| Backend repo / PRs / Actions | https://github.com/goawaygoofficial/goawaygo_backend · [/pulls](https://github.com/goawaygoofficial/goawaygo_backend/pulls) · [/actions](https://github.com/goawaygoofficial/goawaygo_backend/actions)                |
-| Website repo / PRs / Actions | https://github.com/goawaygoofficial/goawaygo_web_frontend · [/pulls](https://github.com/goawaygoofficial/goawaygo_web_frontend/pulls) · [/actions](https://github.com/goawaygoofficial/goawaygo_web_frontend/actions) |
-| App repo / PRs / Actions     | https://github.com/goawaygoofficial/goawaygo_app_frontend · [/pulls](https://github.com/goawaygoofficial/goawaygo_app_frontend/pulls) · [/actions](https://github.com/goawaygoofficial/goawaygo_app_frontend/actions) |
-| Backend deploys to staging   | https://github.com/goawaygoofficial/goawaygo_backend/actions/workflows/deploy-staging.yml                                                                                                                             |
-| Repo variables (backend)     | https://github.com/goawaygoofficial/goawaygo_backend/settings/variables/actions                                                                                                                                       |
+| What                               | Link                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Organisation                       | https://github.com/goawaygoofficial                                                                                                                                                                                                                                                                             |
+| Backend repo / PRs / Actions       | https://github.com/goawaygoofficial/goawaygo_backend · [/pulls](https://github.com/goawaygoofficial/goawaygo_backend/pulls) · [/actions](https://github.com/goawaygoofficial/goawaygo_backend/actions)                                                                                                          |
+| Website repo / PRs / Actions       | https://github.com/goawaygoofficial/goawaygo_web_frontend · [/pulls](https://github.com/goawaygoofficial/goawaygo_web_frontend/pulls) · [/actions](https://github.com/goawaygoofficial/goawaygo_web_frontend/actions)                                                                                           |
+| App repo / PRs / Actions           | https://github.com/goawaygoofficial/goawaygo_app_frontend · [/pulls](https://github.com/goawaygoofficial/goawaygo_app_frontend/pulls) · [/actions](https://github.com/goawaygoofficial/goawaygo_app_frontend/actions)                                                                                           |
+| Backend releases (→ dev)           | https://github.com/goawaygoofficial/goawaygo_backend/actions/workflows/release.yml                                                                                                                                                                                                                              |
+| Controller (→ test, prod)          | [backend](https://github.com/goawaygoofficial/goawaygo_backend/actions/workflows/controller.yaml) · [website](https://github.com/goawaygoofficial/goawaygo_web_frontend/actions/workflows/controller.yaml) · [app](https://github.com/goawaygoofficial/goawaygo_app_frontend/actions/workflows/controller.yaml) |
+| Releases (where each version runs) | [backend](https://github.com/goawaygoofficial/goawaygo_backend/releases) · [website](https://github.com/goawaygoofficial/goawaygo_web_frontend/releases) · [app](https://github.com/goawaygoofficial/goawaygo_app_frontend/releases)                                                                            |
+| Repo variables (backend)           | https://github.com/goawaygoofficial/goawaygo_backend/settings/variables/actions                                                                                                                                                                                                                                 |
 
 Each repo's Actions run: CI (build/tests), Secret scan (Gitleaks), Dependency scan (OSV-Scanner, also every Monday).
 A red ✗ on `develop` or a failed Monday scan needs a look.
@@ -74,9 +76,9 @@ A red ✗ on `develop` or a failed Monday scan needs a look.
 
 ## 6. Database (Neon)
 
-| What                                    | Link                                   |
-| --------------------------------------- | -------------------------------------- |
-| Neon console (project goawaygo-staging) | https://console.neon.tech/app/projects |
+| What                                                                                                                                 | Link                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| Neon console: project goawaygo-prod (prod, database `goawaygo`); project goawaygo-staging (dev `goawaygo_dev`, test `goawaygo_test`) | https://console.neon.tech/app/projects |
 
 Postgres 17, AWS Singapore, database `goawaygo`. Check **Monitoring** (compute hours: free tier 100/month) and
 **Tables** (e.g. `external_api_usage` to see outside-API calls per day). Moves to Google Cloud SQL at launch.

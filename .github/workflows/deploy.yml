@@ -1,42 +1,54 @@
-name: Deploy staging
+name: Deploy
 
-# Deploys develop to the staging backend on Google Cloud Run after CI has passed on it (docs/deployment.md).
-# Inactive until the repository variables from scripts/gcp-bootstrap.sh are set (GCP_PROJECT_ID etc.).
+# Deploys one version of the backend to one environment (MVP 2, 5.3): the image built once for that version by the
+# Release workflow, so dev, test and prod run exactly the same build. Called by Release (every version → dev) and by
+# controller.yaml (a tested version → test → prod, 5.4).
+#
+# Each environment is a GitHub environment (dev, test, prod) with its own variables: SERVICE (the Cloud Run service),
+# SECRET_PREFIX, DB_HOST, DB_NAME, DB_OWNER_USER, DB_APP_USER, CORS_ALLOWED_ORIGINS, WEB_BASE_URL, API_BASE_URL,
+# SENTRY_ENVIRONMENT and the feature switches (docs/deployment.md, "Environments"). test and prod need the owner's
+# approval before a deploy starts.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [develop]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      environment:
+        description: dev, test or prod
+        required: true
+        type: string
+      version:
+        description: A released version, e.g. v1.6.0
+        required: true
+        type: string
 
 permissions:
   contents: read
   id-token: write # short-lived Google credentials via Workload Identity Federation (no stored keys)
 
-concurrency:
-  group: deploy-staging
-  cancel-in-progress: false
-
 env:
-  SERVICE: goawaygo-backend
   IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/goawaygo/backend
 
 jobs:
   deploy:
-    name: Build and deploy to Cloud Run
-    if: >-
-      vars.GCP_PROJECT_ID != '' && (github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    name: Deploy ${{ inputs.version }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     environment:
-      name: staging
+      name: ${{ inputs.environment }}
       url: ${{ vars.API_BASE_URL }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      SERVICE: ${{ vars.SERVICE }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          # Exactly the commit CI tested.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Check the environment is set up
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$ENVIRONMENT" =~ ^(dev|test|prod)$ ]] || { echo "::error::Unknown environment $ENVIRONMENT"; exit 1; }
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Not a version: $VERSION"; exit 1; }
+          [ -n "$SERVICE" ] || { echo "::error::The GitHub environment $ENVIRONMENT has no SERVICE variable yet"; exit 1; }
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
@@ -45,23 +57,12 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
 
-      - name: Log Docker in to Artifact Registry
-        run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
-
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-
-      - name: Build and push the image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64
-          tags: ${{ env.IMAGE }}:${{ github.event.workflow_run.head_sha || github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Check the version's image exists
+        run: gcloud artifacts docker images describe "$IMAGE:${{ inputs.version }}" --quiet >/dev/null
 
       - name: Deploy to Cloud Run
         env:
+          SECRET_PREFIX: ${{ vars.SECRET_PREFIX || 'goawaygo' }}
           GOOGLE_CODE_FLOW: ${{ vars.GOOGLE_CODE_FLOW_ENABLED }}
           MAIL_FROM: ${{ vars.MAIL_FROM }}
           EXTERNAL_API_PROVIDERS: ${{ vars.EXTERNAL_API_PROVIDERS }}
@@ -82,16 +83,19 @@ jobs:
           GOOGLE_CLOUD_PROJECT: "${{ vars.GCP_PROJECT_ID }}"
           LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goawaygo.backend.logging.CloudLoggingFormatter"
           SENTRY_DSN: "${{ vars.SENTRY_DSN }}"
-          SENTRY_ENVIRONMENT: "staging"
-          SENTRY_RELEASE: "goawaygo-backend@${{ github.event.workflow_run.head_sha || github.sha }}"
+          SENTRY_ENVIRONMENT: "${{ vars.SENTRY_ENVIRONMENT }}"
+          SENTRY_RELEASE: "goawaygo-backend@${{ inputs.version }}"
+          APP_VERSION: "${{ inputs.version }}"
           # Push notifications: the Firebase project (repo variable FCM_PROJECT, set once the runtime service account
           # may send with Firebase Cloud Messaging; docs/deployment.md). Empty: the bell works, no pushes are sent.
           NOTIFICATIONS_FCM_PROJECT: "${{ vars.FCM_PROJECT }}"
           EOF
 
           # Secrets come from Secret Manager at runtime; GitHub never sees them.
-          secrets="DB_OWNER_PASSWORD=goawaygo-db-owner-password:latest,DB_APP_PASSWORD=goawaygo-db-app-password:latest"
-          secrets="$secrets,JWT_PRIVATE_KEY=goawaygo-jwt-private-key:latest,JWT_PUBLIC_KEY=goawaygo-jwt-public-key:latest"
+          # This environment's own database passwords and login-token keys; the rest is shared.
+          p="$SECRET_PREFIX"
+          secrets="DB_OWNER_PASSWORD=$p-db-owner-password:latest,DB_APP_PASSWORD=$p-db-app-password:latest"
+          secrets="$secrets,JWT_PRIVATE_KEY=$p-jwt-private-key:latest,JWT_PUBLIC_KEY=$p-jwt-public-key:latest"
           if [ "$GOOGLE_CODE_FLOW" = "true" ]; then
             secrets="$secrets,GOOGLE_CLIENT_SECRET=goawaygo-google-client-secret:latest"
           fi
@@ -131,7 +135,7 @@ jobs:
           # Public access is granted once by a project owner (docs/deployment.md); the deployer is deliberately not
           # allowed to change who can call the service.
           gcloud run deploy "$SERVICE" \
-            --image "$IMAGE:${{ github.event.workflow_run.head_sha || github.sha }}" \
+            --image "$IMAGE:${{ inputs.version }}" \
             --region "${{ vars.GCP_REGION }}" \
             --service-account "${{ vars.GCP_RUNTIME_SA }}" \
             --env-vars-file env.yaml \
@@ -147,7 +151,7 @@ jobs:
           # Without a token the profile endpoint must answer 401 (JSON): the app is up and security is on.
           for attempt in 1 2 3 4 5 6; do
             status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$url/api/users/me" || true)"
-            [ "$status" = "401" ] && { echo "Backend is up ($url)"; exit 0; }
+            [ "$status" = "401" ] && { echo "Backend ${{ inputs.version }} is up in ${{ inputs.environment }} ($url)"; exit 0; }
             echo "Attempt $attempt: HTTP $status, retrying"; sleep 10
           done
           echo "Backend did not answer as expected" >&2; exit 1

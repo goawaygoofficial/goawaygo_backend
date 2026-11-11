@@ -5,33 +5,36 @@ launch the database moves to Google Cloud SQL (Phase 5).
 
 ## Architecture
 
-| Part             | Service                                                      | Address                  |
-| ---------------- | ------------------------------------------------------------ | ------------------------ |
-| Backend          | Google Cloud Run, `asia-southeast1` (Singapore)              | `api.goawaygo.com`       |
-| Database         | Neon PostgreSQL 17, AWS Singapore (free plan)                | private (TLS only)       |
-| Secrets          | Google Secret Manager                                        | read by the backend only |
-| Container images | Google Artifact Registry `goawaygo` (only the newest 3 kept) | —                        |
-| DNS              | Cloudflare (`goawaygo.com`)                                  | —                        |
-| Email            | Resend over SMTP                                             | `no-reply@goawaygo.com`  |
+| Part             | Service                                                  | Address                                                                    |
+| ---------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Backend          | Google Cloud Run, `asia-southeast1` (Singapore)          | `api.goawaygo.com` (prod), `api-test.goawaygo.com`, `api-dev.goawaygo.com` |
+| Database         | Neon PostgreSQL 17, AWS Singapore (free plan)            | private (TLS only)                                                         |
+| Secrets          | Google Secret Manager                                    | read by the backend only                                                   |
+| Container images | Google Artifact Registry `goawaygo` (the newest 10 kept) | —                                                                          |
+| DNS              | Cloudflare (`goawaygo.com`)                              | —                                                                          |
+| Email            | Resend over SMTP                                         | `no-reply@goawaygo.com`                                                    |
 
 Why Singapore: Cloud Run can attach a custom domain directly there (not in Mumbai, which would need a paid load
 balancer), and Neon has a Singapore region next to it. Users in India are ~50–70 ms away.
 
 ```
-push to develop ─► CI (tests) ─► "Deploy staging" workflow ─► image in Artifact Registry ─► Cloud Run
-                                                                            │
-                                    Flyway migrates the database on start ◄─┘
+merge into develop ─► CI (tests) ─► "Release": version vX.Y.Z ─► image …/backend:vX.Y.Z (built once) ─► dev
+                                                                         │
+                     controller.yaml (5.4): the same image ──────────────┴─► test ─► prod
+                                    Flyway migrates each environment's database when its service starts
 ```
 
 ## How a deploy works
 
-`.github/workflows/deploy-staging.yml` runs after CI passes on `develop` (or by hand: Actions → Deploy staging →
-Run workflow). It:
+`.github/workflows/release.yml` runs after CI passes on `develop` (or by hand: Actions → Release → Run workflow). It
+makes the version and its GitHub Release, builds the [Dockerfile](../Dockerfile) once and pushes
+`…/goawaygo/backend:vX.Y.Z`, then calls `.github/workflows/deploy.yml` for **dev**. `deploy.yml` deploys one version
+to one environment (dev, test or prod); test and prod are deployed by `controller.yaml` (5.4). A deploy:
 
 1. Gets short-lived Google credentials through Workload Identity Federation. **No Google key is stored in GitHub.**
-2. Builds the [Dockerfile](../Dockerfile) and pushes `…/goawaygo/backend:<commit>`.
-3. Deploys it to Cloud Run with plain settings as environment variables and secrets from Secret Manager.
-4. Checks that `GET /api/users/me` answers 401 (the app is up and security is on).
+2. Checks that the version's image exists, and deploys it to that environment's Cloud Run service with its plain
+   settings as environment variables and its secrets from Secret Manager.
+3. Checks that `GET /api/users/me` answers 401 (the app is up and security is on).
 
 On start the backend runs any new Flyway migrations as `goawaygo_owner`, then serves requests as `goawaygo_app`.
 
@@ -61,6 +64,60 @@ gcloud run services update-traffic goawaygo-backend --region asia-southeast1 --t
 Database migrations are not rolled back automatically. Migrations should be additive (new columns/tables) so the
 previous revision keeps working.
 
+## Environments (MVP 2, 5.3)
+
+Naming: **staging** means non-production (dev and test), **prod** means production, everywhere. What ran before the
+split became **prod**: same service, database, secrets and `api.goawaygo.com`, so the beta app and the testers' accounts
+carry on. dev and test are new and start empty (Flyway creates their tables).
+
+- Neon: project `goawaygo-prod` (renamed from the first `goawaygo-staging`) holds `goawaygo`; project
+  `goawaygo-staging` holds `goawaygo_dev` and `goawaygo_test`.
+- Google Cloud: project `goawaygo-staging` runs dev and test and keeps the image registry (images are built once).
+  Production still runs there until it moves to its own project `goawaygo-prod` with its first deploy through
+  `controller.yaml` (5.4); the API address doesn't change.
+
+|                   | dev                                       | test                         | prod                              |
+| ----------------- | ----------------------------------------- | ---------------------------- | --------------------------------- |
+| Gets              | every version (Release)                   | a version from dev (5.4)     | a version from test (5.4)         |
+| Approval          | none                                      | the owner                    | the owner                         |
+| Cloud Run service | `goawaygo-backend-dev`                    | `goawaygo-backend-test`      | `goawaygo-backend`                |
+| API               | `api-dev.goawaygo.com`                    | `api-test.goawaygo.com`      | `api.goawaygo.com`                |
+| Website           | `dev.goawaygo.com`                        | `test.goawaygo.com`          | `goawaygo.com` (at launch)        |
+| Pages project     | `goawaygo-web-dev`                        | `goawaygo-web-test`          | `goawaygo-web-prod`               |
+| Google Cloud      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod` (from 5.4)        |
+| Neon project      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod`                   |
+| Database          | `goawaygo_dev`                            | `goawaygo_test`              | `goawaygo`                        |
+| Roles             | `goawaygo_dev_owner`/`_app`               | `goawaygo_test_owner`/`_app` | `goawaygo_owner`/`_app`           |
+| Own secrets       | `goawaygo-dev-db-*`, `goawaygo-dev-jwt-*` | `goawaygo-test-…`            | `goawaygo-db-*`, `goawaygo-jwt-*` |
+
+Shared by all three: the Google client secret, Resend, R2 and the outside API keys (the AI's free daily quota too),
+Firebase. Photos (R2) are on in prod only for now: dev and test refuse photo uploads (`WANDERBOOK_PHOTOS` unset).
+
+Each environment is a **GitHub environment** of the same name in the backend and website repos, holding what differs:
+
+| Variable (backend)                        | dev                                        | test                            | prod                                            |
+| ----------------------------------------- | ------------------------------------------ | ------------------------------- | ----------------------------------------------- |
+| `SERVICE`                                 | `goawaygo-backend-dev`                     | `goawaygo-backend-test`         | `goawaygo-backend`                              |
+| `SECRET_PREFIX`                           | `goawaygo-dev`                             | `goawaygo-test`                 | `goawaygo`                                      |
+| `DB_NAME`, `DB_OWNER_USER`, `DB_APP_USER` | `goawaygo_dev`, `…_dev_owner`, `…_dev_app` | `goawaygo_test`, `…`            | (repository defaults)                           |
+| `DB_HOST`                                 | the dev/test database host                 | the dev/test database host      | (repository variable)                           |
+| `CORS_ALLOWED_ORIGINS`, `WEB_BASE_URL`    | `https://dev.goawaygo.com`                 | `https://test.goawaygo.com`     | `https://goawaygo.com` (+ staging until launch) |
+| `API_BASE_URL`                            | `https://api-dev.goawaygo.com`             | `https://api-test.goawaygo.com` | `https://api.goawaygo.com`                      |
+| `SENTRY_ENVIRONMENT`                      | `dev`                                      | `test`                          | `production`                                    |
+
+Website environments hold `PAGES_PROJECT` and `WEB_URL`. Anything not set in an environment falls back to the
+repository variable of the same name.
+
+Setting up dev or test (once each; `<env>` is `dev` or `test`):
+
+1. Database: `GOAWAYGO_ENV=<env> scripts/setup-hosted-db.sh goawaygo-staging` (asks for the host and admin
+   password; creates `goawaygo_<env>` and its roles, stores their passwords as `goawaygo-<env>-db-*-password`).
+2. Login keys: `GOAWAYGO_ENV=<env> scripts/gcp-secrets.sh goawaygo-staging jwt`, then
+   `GOAWAYGO_ENV=<env> scripts/gcp-secrets.sh goawaygo-staging access`.
+3. The GitHub environment `<env>` with the variables above.
+4. After its first deploy: make it public, map `api-<env>.goawaygo.com` (steps 5 and 6 below, with the service
+   `goawaygo-backend-<env>`).
+
 ## One-time setup (per environment)
 
 Done once by a project owner. Commands run from the `backend` folder in Git Bash. Nothing below prints a secret.
@@ -83,7 +140,8 @@ Done once by a project owner. Commands run from the `backend` folder in Git Bash
 
 ### 2. Database (Neon)
 
-1. In Neon create project `goawaygo-staging`: PostgreSQL 17, region AWS Asia Pacific (Singapore).
+1. In Neon create the project: PostgreSQL 17, region AWS Asia Pacific (Singapore). `goawaygo-prod` for prod,
+   `goawaygo-staging` for dev and test (Environments above).
 2. Run (asks for the host and the admin password; Neon → Dashboard → Connect, use the host **without** `-pooler`):
 
    ```bash
@@ -155,7 +213,7 @@ account can't change that on purpose (least privilege), so a project owner runs 
 gcloud run services add-iam-policy-binding goawaygo-backend --region asia-southeast1 --member allUsers --role roles/run.invoker
 ```
 
-Then re-run the workflow (Actions → Deploy staging → Run workflow) to get a green smoke test. The API's own
+Then re-run the workflow (Actions → Release → Run workflow) to get a green smoke test. The API's own
 security (JWT, rate limits) protects every endpoint; this setting only lets requests reach it.
 
 ### 6. Custom domain `api.goawaygo.com`
@@ -243,7 +301,7 @@ Providers in use (4.1 Discover, `docs/destination-prompts.md`): `gemini`, `gemin
 model, all with the one Gemini key, secret `goawaygo-api-gemini`), `geoapify` (`goawaygo-api-geoapify`), `unsplash`
 (`goawaygo-api-unsplash`), and `wikipedia`, `commons`, `wikidata` (no key). `EXTERNAL_API_PROVIDERS` is
 `gemini geoapify unsplash`. Destination pages can take up to a minute on the free AI tier, so Cloud Run's request
-timeout is 120 s (`deploy-staging.yml`).
+timeout is 120 s (`deploy.yml`).
 
 Calls so far are in the database: `SELECT * FROM external_api_usage ORDER BY period_start DESC;`. Reaching a limit
 or a provider failing repeatedly is logged as an error, so it shows up in Sentry.
