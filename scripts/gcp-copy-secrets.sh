@@ -33,9 +33,10 @@ for name in $names; do
   else
     gcloud secrets create "$name" --project "$TO" --replication-policy automatic >/dev/null
     # Byte-exact copy (Google's documented way): the raw payload, base64url-decoded, no newline added. The payload
-    # comes without "=" padding, which base64 -d needs. It stays encoded in memory and is never printed.
+    # comes without "=" padding, which base64 -d needs. It stays encoded in memory and is never printed. On Windows
+    # gcloud ends its output with "\r", which base64 rejects: removed first.
     data="$(gcloud secrets versions access latest --secret "$name" --project "$FROM" --format 'get(payload.data)' \
-      | tr '_-' '/+')"
+      | tr -d '\r\n' | tr '_-' '/+')"
     while ((${#data} % 4)); do data+="="; done
     printf '%s' "$data" | base64 -d | gcloud secrets versions add "$name" --project "$TO" --data-file=- >/dev/null
     unset data
