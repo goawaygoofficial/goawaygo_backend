@@ -12,6 +12,10 @@
 #                                                                (Access Key ID and Secret Access Key)
 #           scripts/gcp-secrets.sh <project-id> access           let the backend's service account read them all
 #
+# Environments (MVP 2, 5.3): GOAWAYGO_ENV=dev or test (default prod) gives "jwt" and "access" that environment's own
+# secrets, goawaygo-<env>-jwt-*-key and goawaygo-<env>-db-*-password; prod keeps goawaygo-jwt-*-key and
+# goawaygo-db-*-password. The Google, Resend, R2 and outside API secrets are shared by every environment.
+#
 # Running "jwt" again rotates the key pair: everyone has to sign in again (access tokens last 20 minutes and refresh
 # tokens are checked against the database, so the effect is limited to that).
 set -euo pipefail
@@ -19,7 +23,13 @@ set -euo pipefail
 PROJECT_ID="${1:?Usage: scripts/gcp-secrets.sh <project-id> jwt|google|resend|provider <name>|r2|access}"
 WHAT="${2:?Usage: scripts/gcp-secrets.sh <project-id> jwt|google|resend|provider <name>|r2|access}"
 RUNTIME_SA="goawaygo-backend@${PROJECT_ID}.iam.gserviceaccount.com"
-ALL_SECRETS=(goawaygo-db-owner-password goawaygo-db-app-password goawaygo-jwt-private-key goawaygo-jwt-public-key
+ENVIRONMENT="${GOAWAYGO_ENV:-prod}"
+case "$ENVIRONMENT" in
+  prod) P=goawaygo ;;
+  dev | test) P="goawaygo-$ENVIRONMENT" ;;
+  *) echo "GOAWAYGO_ENV must be dev, test or prod." >&2; exit 1 ;;
+esac
+ALL_SECRETS=("$P-db-owner-password" "$P-db-app-password" "$P-jwt-private-key" "$P-jwt-public-key"
   goawaygo-google-client-secret goawaygo-resend-api-key goawaygo-r2-access-key-id goawaygo-r2-secret-access-key)
 
 store_secret() { # name; value on stdin
@@ -44,9 +54,9 @@ case "$WHAT" in
     # ES256 (P-256) pair, base64 DER: PKCS#8 private, X.509 public, as goawaygo.auth.jwt.* expects.
     key="$(openssl ecparam -name prime256v1 -genkey -noout)"
     printf '%s\n' "$key" | openssl pkcs8 -topk8 -nocrypt -outform DER | base64 | tr -d '\n' \
-      | store_secret goawaygo-jwt-private-key
+      | store_secret "$P-jwt-private-key"
     printf '%s\n' "$key" | openssl ec -pubout -outform DER 2>/dev/null | base64 | tr -d '\n' \
-      | store_secret goawaygo-jwt-public-key
+      | store_secret "$P-jwt-public-key"
     ;;
   google)
     read_hidden "Google Web client secret (GOCSPX-...)" | store_secret goawaygo-google-client-secret
