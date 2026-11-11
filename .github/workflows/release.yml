@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/goawaygo/backend
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.IMAGE_PROJECT_ID || vars.GCP_PROJECT_ID }}/goawaygo/backend
 
 jobs:
   version:
