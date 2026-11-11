@@ -22,11 +22,55 @@ env:
   IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/goawaygo/backend
 
 jobs:
+  version:
+    name: Version
+    # A push to develop whose CI passed, or a manual run on develop.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop') ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # the version tag and its GitHub Release
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Exactly the commit CI tested, with every tag, to find the latest version.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Work out the version
+        id: version
+        env:
+          COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          version="$(bash .github/scripts/next-version.sh "$COMMIT")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          echo "### $version" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tag it and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          COMMIT: ${{ steps.version.outputs.commit }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "$VERSION is already released."
+            exit 0
+          fi
+          previous="$(git tag --merged "$COMMIT^" --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+          # A pre-release until it reaches production (controller.yaml, 5.4); the notes list the PRs since the last one.
+          gh release create "$VERSION" --target "$COMMIT" --title "$VERSION" --prerelease \
+            --generate-notes ${previous:+--notes-start-tag "$previous"}
+
   deploy:
     name: Build and deploy to Cloud Run
-    if: >-
-      vars.GCP_PROJECT_ID != '' && (github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    needs: version
+    if: vars.GCP_PROJECT_ID != ''
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment:
@@ -36,7 +80,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Exactly the commit CI tested.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ needs.version.outputs.commit }}
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
@@ -56,7 +100,11 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ${{ env.IMAGE }}:${{ github.event.workflow_run.head_sha || github.sha }}
+          # Built once per version: test and production deploy this same image (controller.yaml, 5.4).
+          tags: |
+            ${{ env.IMAGE }}:${{ needs.version.outputs.version }}
+            ${{ env.IMAGE }}:${{ needs.version.outputs.commit }}
+          labels: org.opencontainers.image.version=${{ needs.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -83,7 +131,8 @@ jobs:
           LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goawaygo.backend.logging.CloudLoggingFormatter"
           SENTRY_DSN: "${{ vars.SENTRY_DSN }}"
           SENTRY_ENVIRONMENT: "staging"
-          SENTRY_RELEASE: "goawaygo-backend@${{ github.event.workflow_run.head_sha || github.sha }}"
+          SENTRY_RELEASE: "goawaygo-backend@${{ needs.version.outputs.version }}"
+          APP_VERSION: "${{ needs.version.outputs.version }}"
           # Push notifications: the Firebase project (repo variable FCM_PROJECT, set once the runtime service account
           # may send with Firebase Cloud Messaging; docs/deployment.md). Empty: the bell works, no pushes are sent.
           NOTIFICATIONS_FCM_PROJECT: "${{ vars.FCM_PROJECT }}"
@@ -131,7 +180,7 @@ jobs:
           # Public access is granted once by a project owner (docs/deployment.md); the deployer is deliberately not
           # allowed to change who can call the service.
           gcloud run deploy "$SERVICE" \
-            --image "$IMAGE:${{ github.event.workflow_run.head_sha || github.sha }}" \
+            --image "$IMAGE:${{ needs.version.outputs.version }}" \
             --region "${{ vars.GCP_REGION }}" \
             --service-account "${{ vars.GCP_RUNTIME_SA }}" \
             --env-vars-file env.yaml \

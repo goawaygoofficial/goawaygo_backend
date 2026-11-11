@@ -7,11 +7,16 @@ What happens after a merge to `develop`, and how to publish a new Android build.
 
 ## After every merge to `develop`
 
-| Part        | You do                                | Happens automatically                                                                                          | Check                                                                  |
-| ----------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Backend     | Nothing                               | CI tests → deploy to Google Cloud Run (`api.goawaygo.com`) → smoke test; Flyway applies DB migrations (~5 min) | GitHub → goawaygo_backend → Actions → **Deploy staging** ✅            |
-| Website     | Nothing                               | Cloudflare Pages builds and publishes `staging.goawaygo.com` (~2 min)                                          | Cloudflare → Workers & Pages → **goawaygo-web-frontend** → Deployments |
-| Android app | Release it (below) when worth testing | Nothing: it is signed with the upload key that exists only on the release PC                                   | `https://staging.goawaygo.com/download` shows the new version          |
+Every merge whose CI passes becomes a **version** (MVP 2, 5.2): a `vMAJOR.MINOR.PATCH` tag and a GitHub Release
+(a pre-release until it reaches production) listing the merged PRs. The PR title decides the number: `feat:` → minor,
+`fix:` and everything else → patch, `feat!:` or `BREAKING CHANGE` → major (`.github/scripts/next-version.sh`). Each
+repo has its own versions; all three started at `v1.5.0` (MVP 1).
+
+| Part        | You do                                | Happens automatically                                                                                                                                    | Check                                                                  |
+| ----------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Backend     | Nothing                               | CI tests → version → image built once (tagged with the version) → deploy to Google Cloud Run (`api.goawaygo.com`) → smoke test; Flyway migrates (~6 min) | GitHub → goawaygo_backend → Actions → **Deploy staging** ✅            |
+| Website     | Nothing                               | CI → version → website built once, attached to the release (**Release**); Cloudflare Pages publishes `staging.goawaygo.com` (~2 min)                     | Cloudflare → Workers & Pages → **goawaygo-web-frontend** → Deployments |
+| Android app | Release it (below) when worth testing | CI → version (**Release**). The APK is signed with the upload key that exists only on the release PC                                                     | `https://staging.goawaygo.com/download` shows the new version          |
 
 The app doesn't need a release after every merge: release at the end of a feature or when testers should try
 something.

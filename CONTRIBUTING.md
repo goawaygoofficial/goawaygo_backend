@@ -53,6 +53,8 @@ chore(deps): bump http to 1.6.0
 ```
 
 Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`, `ci`, `build`.
+The squash-merged PR title sets the next version: `feat` → minor, everything else → patch, `!` after the type
+(`feat!:`) or a `BREAKING CHANGE:` line → major.
 Write the subject in the imperative ("add", not "added"), lower case, no trailing period.
 
 ## Pull requests

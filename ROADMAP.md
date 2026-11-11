@@ -236,7 +236,7 @@ repos are public (2026-11-11): free branch rules, protected environments and Act
 
 - [x] **5.1 Branches and rules** — `test` branch; branch name rules; only `feature`/`fix` → `develop` → `test` →
       `main`; approvals on `test` and `main`; branch guard as a required check.
-- [ ] **5.2 Versions** — every merge into `develop` makes a version (`feat:` raises the minor number, `fix:` the
+- [x] **5.2 Versions** — every merge into `develop` makes a version (`feat:` raises the minor number, `fix:` the
       patch) with a GitHub Release and artifacts built once: the backend image and the website build. The website reads
       its settings when it starts, so one build runs in every environment.
 - [ ] **5.3 Three environments** — dev, test, prod on free tiers: Cloud Run ×3, Neon branches, Cloudflare Pages
