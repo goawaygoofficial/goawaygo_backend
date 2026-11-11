@@ -7,7 +7,7 @@
 #
 # Creates:
 #   - the APIs the backend uses
-#   - Artifact Registry repository "goawaygo" (Docker images), keeping only the newest images
+#   - Artifact Registry repository "goawaygo" (Docker images), keeping the newest 10 images
 #   - service account goawaygo-backend: the identity the running backend uses (reads its secrets, nothing else)
 #   - service account goawaygo-deployer: what GitHub Actions deploys as
 #   - Workload Identity Federation: GitHub Actions in goawaygoofficial/goawaygo_backend can act as goawaygo-deployer
@@ -37,10 +37,10 @@ if ! gcloud artifacts repositories describe "$REPOSITORY" --location "$REGION" >
   gcloud artifacts repositories create "$REPOSITORY" --repository-format docker --location "$REGION" \
     --description "GoAwayGo container images"
 fi
-# Keep storage inside the free 0.5 GB: only the 3 newest images are kept.
+# Keep storage near the free 0.5 GB: the 10 newest images, enough for a version to reach test and prod (5.3).
 policy="$(mktemp)"
 cat >"$policy" <<'JSON'
-[{"name": "keep-newest-3", "action": {"type": "Keep"}, "mostRecentVersions": {"keepCount": 3}},
+[{"name": "keep-newest-10", "action": {"type": "Keep"}, "mostRecentVersions": {"keepCount": 10}},
  {"name": "delete-older", "action": {"type": "Delete"}, "condition": {"tagState": "ANY"}}]
 JSON
 gcloud artifacts repositories set-cleanup-policies "$REPOSITORY" --location "$REGION" --policy "$policy" --no-dry-run
