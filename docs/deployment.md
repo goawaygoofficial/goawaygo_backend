@@ -66,9 +66,15 @@ previous revision keeps working.
 
 ## Environments (MVP 2, 5.3)
 
-One Google Cloud project (`goawaygo-staging`, named before the split), three Cloud Run services. What was "staging"
-became **prod**: same service, database, secrets and `api.goawaygo.com`, so the beta app and the testers' accounts
+Naming: **staging** means non-production (dev and test), **prod** means production, everywhere. What ran before the
+split became **prod**: same service, database, secrets and `api.goawaygo.com`, so the beta app and the testers' accounts
 carry on. dev and test are new and start empty (Flyway creates their tables).
+
+- Neon: project `goawaygo-prod` (renamed from the first `goawaygo-staging`) holds `goawaygo`; project
+  `goawaygo-staging` holds `goawaygo_dev` and `goawaygo_test`.
+- Google Cloud: project `goawaygo-staging` runs dev and test and keeps the image registry (images are built once).
+  Production still runs there until it moves to its own project `goawaygo-prod` with its first deploy through
+  `controller.yaml` (5.4); the API address doesn't change.
 
 |                   | dev                                       | test                         | prod                              |
 | ----------------- | ----------------------------------------- | ---------------------------- | --------------------------------- |
@@ -78,6 +84,8 @@ carry on. dev and test are new and start empty (Flyway creates their tables).
 | API               | `api-dev.goawaygo.com`                    | `api-test.goawaygo.com`      | `api.goawaygo.com`                |
 | Website           | `dev.goawaygo.com`                        | `test.goawaygo.com`          | `goawaygo.com` (at launch)        |
 | Pages project     | `goawaygo-web-dev`                        | `goawaygo-web-test`          | `goawaygo-web-prod`               |
+| Google Cloud      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod` (from 5.4)        |
+| Neon project      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod`                   |
 | Database          | `goawaygo_dev`                            | `goawaygo_test`              | `goawaygo`                        |
 | Roles             | `goawaygo_dev_owner`/`_app`               | `goawaygo_test_owner`/`_app` | `goawaygo_owner`/`_app`           |
 | Own secrets       | `goawaygo-dev-db-*`, `goawaygo-dev-jwt-*` | `goawaygo-test-…`            | `goawaygo-db-*`, `goawaygo-jwt-*` |
@@ -132,7 +140,8 @@ Done once by a project owner. Commands run from the `backend` folder in Git Bash
 
 ### 2. Database (Neon)
 
-1. In Neon create project `goawaygo-staging`: PostgreSQL 17, region AWS Asia Pacific (Singapore).
+1. In Neon create the project: PostgreSQL 17, region AWS Asia Pacific (Singapore). `goawaygo-prod` for prod,
+   `goawaygo-staging` for dev and test (Environments above).
 2. Run (asks for the host and the admin password; Neon → Dashboard → Connect, use the host **without** `-pooler`):
 
    ```bash

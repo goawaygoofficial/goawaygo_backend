@@ -74,9 +74,9 @@ A red ✗ on `develop` or a failed Monday scan needs a look.
 
 ## 6. Database (Neon)
 
-| What                                    | Link                                   |
-| --------------------------------------- | -------------------------------------- |
-| Neon console (project goawaygo-staging) | https://console.neon.tech/app/projects |
+| What                                                                                                                                 | Link                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| Neon console: project goawaygo-prod (prod, database `goawaygo`); project goawaygo-staging (dev `goawaygo_dev`, test `goawaygo_test`) | https://console.neon.tech/app/projects |
 
 Postgres 17, AWS Singapore, database `goawaygo`. Check **Monitoring** (compute hours: free tier 100/month) and
 **Tables** (e.g. `external_api_usage` to see outside-API calls per day). Moves to Google Cloud SQL at launch.
