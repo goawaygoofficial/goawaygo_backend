@@ -239,8 +239,10 @@ repos are public (2026-11-11): free branch rules, protected environments and Act
 - [x] **5.2 Versions** — every merge into `develop` makes a version (`feat:` raises the minor number, `fix:` the
       patch) with a GitHub Release and artifacts built once: the backend image and the website build. The website reads
       its settings when it starts, so one build runs in every environment.
-- [ ] **5.3 Three environments** — dev, test, prod on free tiers: Cloud Run ×3, Neon projects `goawaygo-staging` (dev, test) and `goawaygo-prod`, production in its own Google Cloud project `goawaygo-prod`, Cloudflare Pages
-      domains, secrets per environment, Google sign-in origins, Sentry and PostHog environments.
+- [x] **5.3 Three environments** — dev, test, prod on free tiers: Cloud Run ×3, Neon projects `goawaygo-staging` (dev, test) and `goawaygo-prod`, production in its own Google Cloud project `goawaygo-prod`, Cloudflare Pages
+      domains, secrets per environment, Google sign-in origins, Sentry and PostHog environments. Done 2026-11-11 for
+      dev (`api-dev`, `dev.goawaygo.com`); test gets its addresses with its first deploy (5.4); production moves to
+      the Google Cloud project `goawaygo-prod` before its first deploy through `controller.yaml`.
 - [ ] **5.4 `controller.yaml`** — deploys a version to test or prod, only if it is merged there and passed AT and PT
       in the environment below; deployment status per version; rollback to an earlier version.
 - [ ] **5.5 Automation tests** (repo `goawaygo_automation_tests`) — API and website (Playwright), app (Maestro on an

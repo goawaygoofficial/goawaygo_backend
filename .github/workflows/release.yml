@@ -117,3 +117,24 @@ jobs:
     with:
       environment: dev
       version: ${{ needs.version.outputs.version }}
+
+  record:
+    name: Record the dev deploy
+    needs: [version, dev]
+    if: always() && needs.version.result == 'success' && needs.dev.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # the release notes
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.version.outputs.commit }}
+
+      - name: Record it in the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          RESULT: ${{ needs.dev.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash .github/scripts/record-deployment.sh "$VERSION" dev "$RESULT" "$RUN_URL"
