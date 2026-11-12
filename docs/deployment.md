@@ -118,6 +118,40 @@ Setting up dev or test (once each; `<env>` is `dev` or `test`):
 4. After its first deploy: make it public, map `api-<env>.goawaygo.com` (steps 5 and 6 below, with the service
    `goawaygo-backend-<env>`).
 
+### Production in its own project (5.3 part C)
+
+prod moves from `goawaygo-staging` to the Google Cloud project `goawaygo-prod`, so production has its own
+permissions, logs and secrets. The database (Neon `goawaygo-prod`), the image and `api.goawaygo.com` stay the same.
+Images are still built once, in `goawaygo-staging` (repository variable `IMAGE_PROJECT_ID=goawaygo-staging`); prod's
+deployer and Cloud Run may read them.
+
+1. Create the project `goawaygo-prod` and link the billing account (done 2026-11-11).
+2. Set it up, reading images from `goawaygo-staging` and sending pushes through Firebase:
+
+   ```bash
+   IMAGES_FROM=goawaygo-staging FCM_PROJECT=goaway-483709 \
+     GITHUB_REPO_ID="$(gh api repos/goawaygoofficial/goawaygo_backend --jq .id)" scripts/gcp-bootstrap.sh goawaygo-prod
+   ```
+
+3. Copy production's secrets (same values, so nobody is signed out; never printed):
+   `scripts/gcp-copy-secrets.sh goawaygo-staging goawaygo-prod`.
+4. The GitHub environment **prod** gets the four values the setup prints: `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`,
+   `GCP_DEPLOY_SA`, `GCP_RUNTIME_SA` (dev and test keep the repository variables, `goawaygo-staging`).
+5. The next prod deploy (Controller, after a merge into `main`) creates `goawaygo-backend` in `goawaygo-prod`. Make it
+   public (step 5 below with `--project goawaygo-prod`) and check it on its `run.app` address.
+6. Move the address (the app is offline until Google issues the certificate, ~15–60 minutes; warn the testers):
+
+   ```bash
+   gcloud beta run domain-mappings delete --domain api.goawaygo.com --region asia-southeast1 --project goawaygo-staging
+   gcloud beta run domain-mappings create --service goawaygo-backend --domain api.goawaygo.com --region asia-southeast1 --project goawaygo-prod
+   ```
+
+   The Cloudflare record (CNAME `api` → `ghs.googlehosted.com`) stays.
+
+7. After a week without problems, a project owner deletes the old service `goawaygo-backend` and prod's secrets
+   (`goawaygo-db-*`, `goawaygo-jwt-*`) in `goawaygo-staging`. The shared keys stay there for dev and test; change a
+   shared key in both projects from then on.
+
 ## One-time setup (per environment)
 
 Done once by a project owner. Commands run from the `backend` folder in Git Bash. Nothing below prints a secret.
