@@ -123,7 +123,7 @@ jobs:
           K6_WEB_DASHBOARD_EXPORT: reports/browse.html
         run: |
           mkdir -p reports
-          k6 run --summary-export reports/summary.json k6/api/browse.js
+          k6 run --include-system-env-vars --summary-export reports/summary.json k6/api/browse.js
 
       - name: Keep the report
         if: always()

@@ -18,6 +18,10 @@ jobs:
   smoke:
     name: Smoke tests on dev
     # Dependabot's pull requests get no secrets; the smoke tests don't need them.
+    # tests.yml's recording job asks for write access, and GitHub won't start a called workflow that asks for more than
+    # its caller grants, even for a job that is skipped. Pull request runs have no version and never record anything.
+    permissions:
+      contents: write
     uses: ./.github/workflows/tests.yml
     secrets: inherit
     with:
