@@ -39,6 +39,10 @@ public class ExternalApiCache {
 	}
 
 	public Optional<Entry> find(String provider, String key) {
+		if (TestFakes.active()) {
+			// Test runs never see real cached answers (nor leave fake ones: see put).
+			return Optional.empty();
+		}
 		Instant now = this.clock.instant();
 		return this.jdbc
 			.query("SELECT body, expires_at FROM external_api_cache WHERE provider = ? AND cache_key = ?",
@@ -49,6 +53,10 @@ public class ExternalApiCache {
 	}
 
 	public void put(String provider, String key, String body, Duration ttl) {
+		if (TestFakes.active()) {
+			// A fake answer must never be served to real users (e.g. an untracked partner link for days).
+			return;
+		}
 		Instant now = this.clock.instant();
 		this.jdbc.update("""
 				INSERT INTO external_api_cache (provider, cache_key, body, created_at, expires_at)

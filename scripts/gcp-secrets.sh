@@ -16,6 +16,9 @@
 # secrets, goawaygo-<env>-jwt-*-key and goawaygo-<env>-db-*-password; prod keeps goawaygo-jwt-*-key and
 # goawaygo-db-*-password. The Google, Resend, R2 and outside API secrets are shared by every environment.
 #
+# goawaygo-test-fakes-token (dev and test, shared) is a random value GitHub also holds, so it is made where both are set
+# at once (docs/deployment.md, "Test runs"); "access" lets dev and test read it.
+#
 # Running "jwt" again rotates the key pair: everyone has to sign in again (access tokens last 20 minutes and refresh
 # tokens are checked against the database, so the effect is limited to that).
 set -euo pipefail
@@ -31,6 +34,8 @@ case "$ENVIRONMENT" in
 esac
 ALL_SECRETS=("$P-db-owner-password" "$P-db-app-password" "$P-jwt-private-key" "$P-jwt-public-key"
   goawaygo-google-client-secret goawaygo-resend-api-key goawaygo-r2-access-key-id goawaygo-r2-secret-access-key)
+# dev and test also read the token that switches test runs to fake outside services (external/TestFakes).
+[ "$ENVIRONMENT" = prod ] || ALL_SECRETS+=(goawaygo-test-fakes-token)
 
 store_secret() { # name; value on stdin
   local name="$1"

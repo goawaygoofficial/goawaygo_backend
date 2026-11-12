@@ -42,6 +42,12 @@ Path for every change (MVP 2, decided 2026-11-11): `feature/<name>` or `fix/<nam
   version whose files match the branch to test or prod, only if that version passed the environment below (its
   GitHub Release "Deployments" section shows ✅), after the owner approves the deploy. Rollback: run Controller by
   hand on `test` or `main` with a version (RELEASING.md).
+- Tests as evidence (5.5, 5.6): `tests.yml` in each product repo runs the automation tests (repo
+  `goawaygo_automation_tests`: Playwright API + website, Maestro app) and performance tests (`goawaygo_performance_tests`:
+  k6 API + website, app start-up and scrolling) from the branch matching the environment, after every deploy (Release,
+  Controller) and as smoke tests on pull requests (`tests-before.yml`). Results go into the release ("AT dev ✅",
+  "PT dev ✅"); Controller needs both from the environment below. dev and test answer test runs (header
+  `X-GoAwayGo-Test`, secret `TEST_FAKES_TOKEN`) with fake outside services and no rate limits; prod never.
 - Enforced by GitHub repository rulesets (free on public repos): branch names, no direct or force pushes, no
   deleting `develop`/`test`/`main`, required checks, the owner's approval into `test` and `main`. The
   **Branch guard** check fails a PR on any other path; the `pre-push` hook gives the same answers locally.
@@ -122,8 +128,8 @@ Path for every change (MVP 2, decided 2026-11-11): `feature/<name>` or `fix/<nam
 
 Domain `goawaygo.com` (Cloudflare Registrar + DNS). Website and API must stay on the same registrable domain (the refresh cookie is `SameSite=Strict`).
 
-- Pre-launch (alpha/beta, all free): backend on Google Cloud Run `asia-southeast1` (project `goawaygo-staging`, service `goawaygo-backend`, `api.goawaygo.com`); database Neon PostgreSQL 17 (AWS Singapore); website on Cloudflare Pages (`staging.goawaygo.com`); email Resend; Android testers via Firebase App Distribution.
-- Naming (MVP 2): **staging** = non-production (dev, test), **prod** = production. Neon projects `goawaygo-staging` (`goawaygo_dev`, `goawaygo_test`) and `goawaygo-prod` (`goawaygo`); Google Cloud project `goawaygo-staging` (dev, test, image registry), production moving to its own project `goawaygo-prod` with its first `controller.yaml` deploy.
+- Pre-launch (alpha/beta, all free): backend on Google Cloud Run `asia-southeast1` (prod: project `goawaygo-prod`, service `goawaygo-backend`, `api.goawaygo.com`; dev and test: project `goawaygo-staging`); database Neon PostgreSQL 17 (AWS Singapore); website on Cloudflare Pages (`staging.goawaygo.com`); email Resend; Android testers via Firebase App Distribution.
+- Naming (MVP 2): **staging** = non-production (dev, test), **prod** = production. Neon projects `goawaygo-staging` (`goawaygo_dev`, `goawaygo_test`) and `goawaygo-prod` (`goawaygo`); Google Cloud projects `goawaygo-staging` (dev, test, the shared image registry) and `goawaygo-prod` (production, since 2026-11-12). A shared key (Google, Resend, R2, outside APIs) is changed in both projects.
 - At launch (Phase 5): database moves to Google Cloud SQL; Play Console then. Company not registered yet.
 - Backend: every version deploys to dev automatically after CI passes on `develop` (`.github/workflows/release.yml` → `deploy.yml`, keyless Workload Identity Federation); test and prod get the same image through `controller.yaml` (5.4). Environments: `backend/docs/deployment.md`. Secrets live only in Google Secret Manager; setup scripts and steps in `backend/docs/deployment.md`.
 - Cloud Run: min 0 instances (cold start ~7–10 s after idle), max 1 (in-memory rate limits), request-based billing (CPU only during requests; emails sent inside the request). Health: `GET /actuator/health` (no DB check, so Neon can sleep).

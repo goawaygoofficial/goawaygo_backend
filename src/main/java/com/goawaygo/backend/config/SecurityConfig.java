@@ -93,7 +93,9 @@ public class SecurityConfig {
 		CorsConfiguration cors = new CorsConfiguration();
 		cors.setAllowedOrigins(properties.allowedOrigins());
 		cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Client-Type", "Accept-Language"));
+		// X-GoAwayGo-Test: automated test runs in dev and test (external/TestFakes); harmless elsewhere.
+		cors.setAllowedHeaders(
+				List.of("Authorization", "Content-Type", "X-Client-Type", "Accept-Language", "X-GoAwayGo-Test"));
 		cors.setAllowCredentials(true); // the web refresh cookie
 		cors.setMaxAge(Duration.ofHours(1));
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

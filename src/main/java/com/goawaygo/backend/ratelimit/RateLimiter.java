@@ -12,6 +12,8 @@ import io.github.bucket4j.ConsumptionProbe;
 
 import org.springframework.stereotype.Component;
 
+import com.goawaygo.backend.external.TestFakes;
+
 /**
  * Token-bucket rate limiting (Bucket4j). Each rule ("signin-ip", "signin-email", ...) keeps one bucket per key
  * (an IP or an email) in a bounded cache; idle buckets expire, so memory stays flat under attack.
@@ -38,7 +40,9 @@ public class RateLimiter {
 	 * @throws RateLimitedException if the limit is exhausted
 	 */
 	public void consume(String rule, String key, RateLimitProperties.Limit limit) {
-		if (!this.properties.enabled()) {
+		// Disabled, or an automated test run in dev or test (its token never exists in prod): test runs make plans and
+		// destination pages on every deployment, and performance tests measure speed, not our limits.
+		if (!this.properties.enabled() || TestFakes.active()) {
 			return;
 		}
 		Cache<String, Bucket> buckets = this.rules.computeIfAbsent(rule,
