@@ -1,0 +1,103 @@
+name: Database backup
+
+# Nightly copy of the prod database (MVP 2, 5.7), encrypted so that only the owner can read it, kept 30 days in
+# Cloudflare R2 (bucket goawaygo-backups; a bucket rule deletes copies after 30 days). Neon's own restore window is
+# short; this covers mistakes found later. Restore: scripts/restore-backup.sh (docs/deployment.md, "Database backups").
+#
+# - The dump: pg_dump (custom format) of the prod database `goawaygo`, as its owner. The password comes from Secret
+#   Manager in goawaygo-prod through keyless Workload Identity Federation: GitHub never stores it.
+# - Encryption: a fresh random key per copy encrypts the dump (AES-256); the key itself is encrypted with the owner's
+#   public key (RSA-OAEP, repository variable BACKUP_PUBLIC_KEY). The private key never leaves the owner's PC
+#   (scripts/backup-keys.sh), so neither R2 nor GitHub can read a copy.
+# - Upload: R2's S3 API with a token that can only write to that bucket (repository secrets R2_BACKUP_*).
+#
+# Runs from the GitHub environment `backup` (prod's project, service account and database host; no approval: it only
+# reads the database). Nothing is printed: the password is masked and only written to the dump tool's environment.
+on:
+  schedule:
+    - cron: "30 20 * * *" # 02:00 in India, the quietest hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # short-lived Google credentials (no stored key)
+
+concurrency:
+  group: database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Back up the prod database
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: backup
+    env:
+      DB_NAME: goawaygo
+      DB_USER: goawaygo_owner
+      BUCKET: goawaygo-backups
+    steps:
+      - name: Check the setup
+        env:
+          PUBLIC_KEY: ${{ vars.BACKUP_PUBLIC_KEY }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+          ACCOUNT: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=()
+          [ -n "$PUBLIC_KEY" ] || missing+=("variable BACKUP_PUBLIC_KEY (scripts/backup-keys.sh)")
+          [ -n "$DB_HOST" ] || missing+=("variable DB_HOST")
+          [ -n "$KEY_ID" ] || missing+=("secrets R2_BACKUP_ACCESS_KEY_ID / R2_BACKUP_SECRET_ACCESS_KEY")
+          [ -n "$ACCOUNT" ] || missing+=("variable CLOUDFLARE_ACCOUNT_ID")
+          [ "${#missing[@]}" -eq 0 ] || { printf '::error::Not set up yet: %s\n' "${missing[@]}"; exit 1; }
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+
+      - name: Dump the database
+        env:
+          DB_HOST: ${{ vars.DB_HOST }}
+        run: |
+          password="$(gcloud secrets versions access latest --secret goawaygo-db-owner-password)"
+          echo "::add-mask::$password"
+          mkdir -p backup
+          # The same PostgreSQL major version as Neon (17); the password reaches pg_dump only through its environment.
+          PGPASSWORD="$password" docker run --rm -e PGPASSWORD -v "$PWD/backup:/backup" postgres:17.11 \
+            pg_dump --format=custom --no-owner --no-privileges \
+            "host=$DB_HOST dbname=$DB_NAME user=$DB_USER sslmode=require" --file=/backup/goawaygo.dump
+          unset password
+          size="$(stat -c %s backup/goawaygo.dump)"
+          [ "$size" -gt 1000 ] || { echo "::error::The dump is only $size bytes"; exit 1; }
+          sha256sum backup/goawaygo.dump | cut -d' ' -f1 > backup/goawaygo.dump.sha256
+          echo "Dump: $((size / 1024)) KB"
+
+      - name: Encrypt it for the owner
+        env:
+          PUBLIC_KEY: ${{ vars.BACKUP_PUBLIC_KEY }}
+        run: |
+          cd backup
+          printf '%s\n' "$PUBLIC_KEY" > owner.pub.pem
+          openssl rand -hex 32 > copy.key
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in goawaygo.dump -out goawaygo.dump.enc -pass file:copy.key
+          openssl pkeyutl -encrypt -pubin -inkey owner.pub.pem -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 -in copy.key -out copy.key.enc
+          shred -u copy.key goawaygo.dump
+          name="goawaygo-prod-$(date -u +%Y-%m-%dT%H%MZ).tar"
+          tar -cf "$name" goawaygo.dump.enc copy.key.enc goawaygo.dump.sha256
+          echo "NAME=$name" >> "$GITHUB_ENV"
+
+      - name: Upload it to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          ENDPOINT: https://${{ vars.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+        run: |
+          aws s3 cp "backup/$NAME" "s3://$BUCKET/prod/$NAME" --endpoint-url "$ENDPOINT" --only-show-errors
+          aws s3 ls "s3://$BUCKET/prod/$NAME" --endpoint-url "$ENDPOINT"
+          echo "### Backup $NAME uploaded" >> "$GITHUB_STEP_SUMMARY"
