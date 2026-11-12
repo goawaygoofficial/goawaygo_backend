@@ -1,0 +1,162 @@
+name: Deploy
+
+# Deploys one version of the backend to one environment (MVP 2, 5.3): the image built once for that version by the
+# Release workflow, so dev, test and prod run exactly the same build. Called by Release (every version → dev) and by
+# controller.yaml (a tested version → test → prod, 5.4).
+#
+# Each environment is a GitHub environment (dev, test, prod) with its own variables: SERVICE (the Cloud Run service),
+# SECRET_PREFIX, DB_HOST, DB_NAME, DB_OWNER_USER, DB_APP_USER, CORS_ALLOWED_ORIGINS, WEB_BASE_URL, API_BASE_URL,
+# SENTRY_ENVIRONMENT and the feature switches (docs/deployment.md, "Environments"). test and prod need the owner's
+# approval before a deploy starts.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: dev, test or prod
+        required: true
+        type: string
+      version:
+        description: A released version, e.g. v1.6.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write # short-lived Google credentials via Workload Identity Federation (no stored keys)
+
+env:
+  # Images live in one project's registry (repository variable IMAGE_PROJECT_ID, goawaygo-staging): built once and
+  # deployed to every environment, prod's own project included.
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.IMAGE_PROJECT_ID || vars.GCP_PROJECT_ID }}/goawaygo/backend
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.version }} to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.API_BASE_URL }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      SERVICE: ${{ vars.SERVICE }}
+    steps:
+      - name: Check the environment is set up
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$ENVIRONMENT" =~ ^(dev|test|prod)$ ]] || { echo "::error::Unknown environment $ENVIRONMENT"; exit 1; }
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Not a version: $VERSION"; exit 1; }
+          [ -n "$SERVICE" ] || { echo "::error::The GitHub environment $ENVIRONMENT has no SERVICE variable yet"; exit 1; }
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          # The environment's own project: dev and test run in goawaygo-staging, prod in goawaygo-prod (GitHub
+          # environment variables GCP_PROJECT_ID, GCP_WIF_PROVIDER, GCP_DEPLOY_SA, GCP_RUNTIME_SA).
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+
+      - name: Check the version's image exists
+        run: gcloud artifacts docker images describe "$IMAGE:${{ inputs.version }}" --quiet >/dev/null
+
+      - name: Deploy to Cloud Run
+        env:
+          SECRET_PREFIX: ${{ vars.SECRET_PREFIX || 'goawaygo' }}
+          GOOGLE_CODE_FLOW: ${{ vars.GOOGLE_CODE_FLOW_ENABLED }}
+          MAIL_FROM: ${{ vars.MAIL_FROM }}
+          EXTERNAL_API_PROVIDERS: ${{ vars.EXTERNAL_API_PROVIDERS }}
+          WANDERBOOK_PHOTOS: ${{ vars.WANDERBOOK_PHOTOS }}
+        run: |
+          # Plain settings (not secrets). One file avoids escaping commas in the CORS list.
+          cat > env.yaml <<EOF
+          DB_HOST: "${{ vars.DB_HOST }}"
+          DB_PORT: "5432"
+          # Database and role names: repo variables override the defaults (used while renaming an environment).
+          DB_NAME: "${{ vars.DB_NAME || 'goawaygo' }}"
+          DB_OWNER_USER: "${{ vars.DB_OWNER_USER || 'goawaygo_owner' }}"
+          DB_APP_USER: "${{ vars.DB_APP_USER || 'goawaygo_app' }}"
+          DB_SSL_MODE: "verify-full"
+          FORWARD_HEADERS_STRATEGY: "native"
+          CORS_ALLOWED_ORIGINS: "${{ vars.CORS_ALLOWED_ORIGINS }}"
+          WEB_BASE_URL: "${{ vars.WEB_BASE_URL }}"
+          GOOGLE_CLOUD_PROJECT: "${{ vars.GCP_PROJECT_ID }}"
+          LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goawaygo.backend.logging.CloudLoggingFormatter"
+          SENTRY_DSN: "${{ vars.SENTRY_DSN }}"
+          SENTRY_ENVIRONMENT: "${{ vars.SENTRY_ENVIRONMENT }}"
+          SENTRY_RELEASE: "goawaygo-backend@${{ inputs.version }}"
+          APP_VERSION: "${{ inputs.version }}"
+          # Push notifications: the Firebase project (repo variable FCM_PROJECT, set once the runtime service account
+          # may send with Firebase Cloud Messaging; docs/deployment.md). Empty: the bell works, no pushes are sent.
+          NOTIFICATIONS_FCM_PROJECT: "${{ vars.FCM_PROJECT }}"
+          EOF
+
+          # Secrets come from Secret Manager at runtime; GitHub never sees them.
+          # This environment's own database passwords and login-token keys; the rest is shared.
+          p="$SECRET_PREFIX"
+          secrets="DB_OWNER_PASSWORD=$p-db-owner-password:latest,DB_APP_PASSWORD=$p-db-app-password:latest"
+          secrets="$secrets,JWT_PRIVATE_KEY=$p-jwt-private-key:latest,JWT_PUBLIC_KEY=$p-jwt-public-key:latest"
+          if [ "$GOOGLE_CODE_FLOW" = "true" ]; then
+            secrets="$secrets,GOOGLE_CLIENT_SECRET=goawaygo-google-client-secret:latest"
+          fi
+          if [ -n "$MAIL_FROM" ]; then
+            cat >> env.yaml <<EOF
+          MAIL_HOST: "smtp.resend.com"
+          MAIL_PORT: "587"
+          MAIL_USERNAME: "resend"
+          MAIL_SMTP_AUTH: "true"
+          MAIL_SMTP_STARTTLS: "true"
+          MAIL_FROM: "${MAIL_FROM}"
+          EOF
+            secrets="$secrets,MAIL_PASSWORD=goawaygo-resend-api-key:latest"
+          fi
+
+          # Wanderbook photo storage (Cloudflare R2): set the repo variable WANDERBOOK_PHOTOS to true once the access
+          # key is in Secret Manager (scripts/gcp-secrets.sh <project> r2). Without it, photo uploads are refused.
+          if [ "$WANDERBOOK_PHOTOS" = "true" ]; then
+            secrets="$secrets,R2_ACCESS_KEY_ID=goawaygo-r2-access-key-id:latest"
+            secrets="$secrets,R2_SECRET_ACCESS_KEY=goawaygo-r2-secret-access-key:latest"
+          fi
+
+          # Outside API keys (com.goawaygo.backend.external): repo variable EXTERNAL_API_PROVIDERS lists the providers
+          # with a key, e.g. "opentripmap unsplash"; each key is the secret goawaygo-api-<name>
+          # (scripts/gcp-secrets.sh <project> provider <name>).
+          for provider in $EXTERNAL_API_PROVIDERS; do
+            case "$provider" in
+              *[!a-z0-9]*) echo "Provider names are lowercase letters and digits only: $provider" >&2; exit 1 ;;
+            esac
+            upper="$(echo "$provider" | tr '[:lower:]' '[:upper:]')"
+            secrets="$secrets,GOAWAYGO_EXTERNAL_PROVIDERS_${upper}_APIKEY=goawaygo-api-${provider}:latest"
+          done
+
+          # max-instances 1: rate limits are kept in memory (one instance). min-instances 0: free when idle.
+          # cpu-throttling (request-based billing): CPU only while a request is handled, so an idle instance kept up by
+          # uptime checks costs nothing. Everything, emails included, finishes inside the request.
+          # Public access is granted once by a project owner (docs/deployment.md); the deployer is deliberately not
+          # allowed to change who can call the service.
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE:${{ inputs.version }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --service-account "${{ vars.GCP_RUNTIME_SA }}" \
+            --env-vars-file env.yaml \
+            --set-secrets "$secrets" \
+            --port 8080 --cpu 1 --memory 1Gi \
+            --min-instances 0 --max-instances 1 --concurrency 80 --timeout 120 \
+            --cpu-boost --cpu-throttling \
+            --quiet
+
+      - name: Smoke test
+        run: |
+          url="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" --format 'value(status.url)')"
+          # Without a token the profile endpoint must answer 401 (JSON): the app is up and security is on.
+          for attempt in 1 2 3 4 5 6; do
+            status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$url/api/users/me" || true)"
+            [ "$status" = "401" ] && { echo "Backend ${{ inputs.version }} is up in ${{ inputs.environment }} ($url)"; exit 0; }
+            echo "Attempt $attempt: HTTP $status, retrying"; sleep 10
+          done
+          echo "Backend did not answer as expected" >&2; exit 1

@@ -1,0 +1,44 @@
+# Checks every dependency (direct and transitive, from the lock/build files) against the OSV vulnerability database
+# (osv.dev: GitHub advisories, NVD, language ecosystems). Weekly too, because new advisories appear for unchanged code.
+# A finding fails the job: update the dependency, or, if it truly doesn't affect us, add a reasoned, dated entry to
+# osv-scanner.toml ([[IgnoredVulns]] with id, ignoreUntil and reason).
+name: Dependency scan
+
+on:
+  pull_request:
+  push:
+    branches: [main, test, develop]
+  schedule:
+    - cron: '30 3 * * 1' # Mondays 03:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  OSV_SCANNER_VERSION: 2.6.0
+
+jobs:
+  osv-scanner:
+    name: OSV-Scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install OSV-Scanner (checksum verified)
+        run: |
+          base="https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}"
+          file="osv-scanner_linux_amd64"
+          curl -sSfL -o "$file" "$base/$file"
+          curl -sSfL -o checksums.txt "$base/osv-scanner_SHA256SUMS"
+          grep " $file\$" checksums.txt | sha256sum --check --strict
+          chmod +x "$file"
+          sudo mv "$file" /usr/local/bin/osv-scanner
+
+      - name: Scan dependencies
+        run: osv-scanner scan source --recursive .

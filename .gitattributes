@@ -1,2 +1,11 @@
+# Normalize line endings to LF in the repo and working tree, regardless of core.autocrlf.
+* text=auto eol=lf
+
+# Maven wrapper scripts
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+# Binary files
+*.jar binary
+*.png binary
+*.jpg binary

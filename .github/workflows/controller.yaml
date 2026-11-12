@@ -1,0 +1,86 @@
+name: Controller
+
+# Moves a version up (MVP 2, 5.4). A merge into test deploys the version merged there to test; a merge into main
+# deploys it to prod. Only a version whose files are exactly what the branch holds, and that passed the environment
+# below, goes up (.github/scripts/pick-version.sh). Each deploy waits for the owner's approval
+# (GitHub environments test and prod). Every deploy is recorded in the version's GitHub Release
+# ("Deployments", .github/scripts/record-deployment.sh); reaching prod makes it the latest full release.
+#
+# By hand (Actions → Controller → Run workflow, on branch test or main): deploy again, or roll back to an earlier
+# version that is merged there and passed the environment below. Leave "version" empty for the branch's own version.
+on:
+  push:
+    branches: [test, main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to deploy, e.g. v1.7.0 (empty = the version on this branch)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controller-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Pick the version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+      version: ${{ steps.pick.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # every tag, to find the version
+
+      - name: Pick the version and check it may go up
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+          REQUESTED: ${{ inputs.version }}
+          DEV_DEPLOYS: "true"
+        run: bash .github/scripts/pick-version.sh
+
+  deploy:
+    name: Deploy
+    needs: plan
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: ${{ needs.plan.outputs.environment }}
+      version: ${{ needs.plan.outputs.version }}
+
+  record:
+    name: Record it in the release
+    needs: [plan, deploy]
+    if: always() && needs.plan.result == 'success' && needs.deploy.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # the release notes and the pre-release flag
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Record the deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          ENVIRONMENT: ${{ needs.plan.outputs.environment }}
+          RESULT: ${{ needs.deploy.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash .github/scripts/record-deployment.sh "$VERSION" "$ENVIRONMENT" "$RESULT" "$RUN_URL"
+
+      - name: Make it the latest full release
+        if: needs.plan.outputs.environment == 'prod' && needs.deploy.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: gh release edit "$VERSION" --prerelease=false --latest
