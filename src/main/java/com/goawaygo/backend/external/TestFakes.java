@@ -41,6 +41,9 @@ public class TestFakes extends OncePerRequestFilter {
 
 	private static final ThreadLocal<Boolean> ACTIVE = new ThreadLocal<>();
 
+	/** When a test run's request arrived (System.nanoTime), for {@link ServerTiming}. */
+	static final String STARTED = TestFakes.class.getName() + ".started";
+
 	private final byte[] token;
 
 	public TestFakes(@Value("${goawaygo.test-fakes.token:}") String token) {
@@ -104,6 +107,7 @@ public class TestFakes extends OncePerRequestFilter {
 			return;
 		}
 		ACTIVE.set(true);
+		request.setAttribute(STARTED, System.nanoTime());
 		// Tells the test run its answers are fake (and that the token was accepted).
 		response.setHeader(HEADER, "fakes");
 		try {
