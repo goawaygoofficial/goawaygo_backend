@@ -68,6 +68,7 @@ class TestFakesFlowTests extends PostgresIntegrationTest {
 		this.mvc.perform(get("/api/discover/places").param("q", "test").header(TestFakes.HEADER, TOKEN))
 			.andExpect(status().isOk())
 			.andExpect(header().string(TestFakes.HEADER, "fakes"))
+			.andExpect(header().string(ServerTiming.HEADER, org.hamcrest.Matchers.matchesPattern("app;dur=\\d+\\.\\d")))
 			.andExpect(jsonPath("$[0].name").value("Test City 1"));
 	}
 
@@ -93,6 +94,7 @@ class TestFakesFlowTests extends PostgresIntegrationTest {
 	void withoutTheTokenTheRealServicesAreUsed() throws Exception {
 		String answer = this.mvc.perform(get("/api/discover/places").param("q", "test"))
 			.andExpect(header().doesNotExist(TestFakes.HEADER))
+			.andExpect(header().doesNotExist(ServerTiming.HEADER))
 			.andReturn()
 			.getResponse()
 			.getContentAsString();
