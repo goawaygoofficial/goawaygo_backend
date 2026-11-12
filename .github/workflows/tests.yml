@@ -81,6 +81,27 @@ jobs:
           [ "$SCOPE" = smoke ] && grep=(--grep @smoke)
           npx playwright test --project=api "${grep[@]}"
 
+      # Reports are public run artifacts: whatever a tool wrote, no file that contains a secret is kept.
+      - name: Remove anything secret from the report
+        if: always()
+        env:
+          TOKEN: ${{ secrets.TEST_FAKES_TOKEN }}
+          PASSWORD: ${{ secrets.AT_ACCOUNT_PASSWORD }}
+        run: |
+          secrets=()
+          [ -n "$TOKEN" ] && secrets+=(-e "$TOKEN")
+          [ -n "$PASSWORD" ] && secrets+=(-e "$PASSWORD")
+          [ "${#secrets[@]}" -gt 0 ] && [ -d reports ] || exit 0
+          removed=0
+          while IFS= read -r -d '' file; do
+            if grep -qF "${secrets[@]}" "$file" \
+              || { [[ "$file" == *.zip ]] && unzip -p "$file" 2>/dev/null | grep -qF "${secrets[@]}"; }; then
+              rm -f "$file"
+              removed=$((removed + 1))
+            fi
+          done < <(find reports -type f -print0)
+          [ "$removed" -eq 0 ] || echo "::warning::$removed report file(s) contained a secret and were not kept"
+
       - name: Keep the report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -124,6 +145,27 @@ jobs:
         run: |
           mkdir -p reports
           k6 run --include-system-env-vars --summary-export reports/summary.json k6/api/browse.js
+
+      # Reports are public run artifacts: whatever a tool wrote, no file that contains a secret is kept.
+      - name: Remove anything secret from the report
+        if: always()
+        env:
+          TOKEN: ${{ secrets.TEST_FAKES_TOKEN }}
+          PASSWORD: ${{ secrets.AT_ACCOUNT_PASSWORD }}
+        run: |
+          secrets=()
+          [ -n "$TOKEN" ] && secrets+=(-e "$TOKEN")
+          [ -n "$PASSWORD" ] && secrets+=(-e "$PASSWORD")
+          [ "${#secrets[@]}" -gt 0 ] && [ -d reports ] || exit 0
+          removed=0
+          while IFS= read -r -d '' file; do
+            if grep -qF "${secrets[@]}" "$file" \
+              || { [[ "$file" == *.zip ]] && unzip -p "$file" 2>/dev/null | grep -qF "${secrets[@]}"; }; then
+              rm -f "$file"
+              removed=$((removed + 1))
+            fi
+          done < <(find reports -type f -print0)
+          [ "$removed" -eq 0 ] || echo "::warning::$removed report file(s) contained a secret and were not kept"
 
       - name: Keep the report
         if: always()

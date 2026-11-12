@@ -12,6 +12,7 @@ version="${1:?version}" environment="${2:?environment}" result="${3:?result}" ru
 case "$result" in
   success) status="✅ deployed" ;;
   passed) status="✅ passed" ;;
+  failed) status="❌ failed" ;;
   promoted) status="✅ promoted (nothing to deploy in this repo)" ;;
   cancelled) status="⏹️ cancelled" ;;
   *) status="❌ failed or not approved" ;;
