@@ -75,7 +75,7 @@ public class TestFakes extends OncePerRequestFilter {
 	}
 
 	/** Runs {@code work} as if it were a test run's request (for this application's own tests). */
-	static <T> T during(Supplier<T> work) {
+	public static <T> T during(Supplier<T> work) {
 		Boolean before = ACTIVE.get();
 		ACTIVE.set(true);
 		try {
