@@ -3,13 +3,15 @@
 # environment, replaced on every deploy, so each release shows where that version has run. controller.yaml reads the
 # "✅" lines to check that a version passed the environment below before it goes up.
 #
-#   Usage: record-deployment.sh <version> <environment> <success|failure|cancelled|promoted> <run URL>
+#   Usage: record-deployment.sh <version> <environment> <success|failure|cancelled|promoted|passed|failed> <run URL>
+#   <environment> is dev, test or prod for a deployment, "AT <env>" or "PT <env>" for test results.
 #   Env:   GH_TOKEN with contents: write.
 set -euo pipefail
 
 version="${1:?version}" environment="${2:?environment}" result="${3:?result}" run_url="${4:?run URL}"
 case "$result" in
   success) status="✅ deployed" ;;
+  passed) status="✅ passed" ;;
   promoted) status="✅ promoted (nothing to deploy in this repo)" ;;
   cancelled) status="⏹️ cancelled" ;;
   *) status="❌ failed or not approved" ;;

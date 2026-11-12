@@ -1,0 +1,25 @@
+name: Tests before merge
+
+# "Before" evidence for every pull request (MVP 2, 5.5/5.6): the smoke tests against dev (the backend as it is before this change), kept as a report on the
+# pull request. Not a required check: if dev itself is broken, the fix must still be mergeable. The "after" evidence
+# is the full run once the merged version is deployed to dev (Release → Tests).
+on:
+  pull_request:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Smoke tests on dev
+    # Dependabot's pull requests get no secrets; the smoke tests don't need them.
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+    with:
+      environment: dev
+      scope: smoke

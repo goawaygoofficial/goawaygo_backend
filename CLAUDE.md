@@ -42,6 +42,12 @@ Path for every change (MVP 2, decided 2026-11-11): `feature/<name>` or `fix/<nam
   version whose files match the branch to test or prod, only if that version passed the environment below (its
   GitHub Release "Deployments" section shows ✅), after the owner approves the deploy. Rollback: run Controller by
   hand on `test` or `main` with a version (RELEASING.md).
+- Tests as evidence (5.5, 5.6): `tests.yml` in each product repo runs the automation tests (repo
+  `goawaygo_automation_tests`: Playwright API + website, Maestro app) and performance tests (`goawaygo_performance_tests`:
+  k6 API + website, app start-up and scrolling) from the branch matching the environment, after every deploy (Release,
+  Controller) and as smoke tests on pull requests (`tests-before.yml`). Results go into the release ("AT dev ✅",
+  "PT dev ✅"); Controller needs both from the environment below. dev and test answer test runs (header
+  `X-GoAwayGo-Test`, secret `TEST_FAKES_TOKEN`) with fake outside services and no rate limits; prod never.
 - Enforced by GitHub repository rulesets (free on public repos): branch names, no direct or force pushes, no
   deleting `develop`/`test`/`main`, required checks, the owner's approval into `test` and `main`. The
   **Branch guard** check fails a PR on any other path; the `pre-push` hook gives the same answers locally.
