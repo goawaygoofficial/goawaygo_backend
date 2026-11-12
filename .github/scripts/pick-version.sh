@@ -7,8 +7,10 @@
 # Without REQUESTED it picks the version whose files are exactly what the branch holds: develop → test and
 # test → main are plain merges, so the branch then holds the develop commit that Release turned into that version.
 # With REQUESTED (a redeploy or a rollback) the version must be merged into the branch.
-# Either way the version must have passed the environment below: its GitHub Release shows "✅" for it
-# (record-deployment.sh). Repos with nothing to deploy to dev (the app) set DEV_DEPLOYS=false.
+# Either way the version must have passed the environment below: its GitHub Release shows "✅" for the deployment
+# there and for the automation (AT) and performance (PT) tests there (record-deployment.sh). A redeploy or rollback to a
+# version that already ran in this environment needs nothing new. Repos with nothing to deploy to dev (the app) set
+# DEV_DEPLOYS=false.
 #
 #   Env: BRANCH (test or main), REQUESTED (optional vX.Y.Z), DEV_DEPLOYS (default true), GH_TOKEN, GITHUB_OUTPUT.
 set -euo pipefail
@@ -45,13 +47,22 @@ version from Release on develop: wait for it to finish (or re-run it), then re-r
 fi
 
 gh release view "$version" >/dev/null 2>&1 || fail "$version has no GitHub Release."
-if [ "$below" = dev ] && [ "$DEV_DEPLOYS" != true ]; then
-  echo "This repo deploys nothing to dev: $version only has to be released."
-elif ! gh release view "$version" --json body --jq .body | grep -qF -- "- **$below**: ✅"; then
-  fail "$version hasn't passed $below: its release shows no ✅ for $below. It has to be deployed there first."
+notes="$(gh release view "$version" --json body --jq .body)"
+passed() { grep -qF -- "- **$1**: ✅" <<<"$notes"; }
+if [ -n "${REQUESTED:-}" ] && passed "$environment"; then
+  # Deploying again, or rolling back to a version that already ran here: no new evidence needed.
+  echo "$version already ran in $environment."
+else
+  # The evidence (MVP 2, 5.5/5.6): deployed below, and the automation (AT) and performance (PT) tests passed there.
+  missing=()
+  if [ "$below" != dev ] || [ "$DEV_DEPLOYS" = true ]; then
+    passed "$below" || missing+=("the $below deployment")
+  fi
+  passed "AT $below" || missing+=("AT in $below")
+  passed "PT $below" || missing+=("PT in $below")
+  [ "${#missing[@]}" -eq 0 ] || fail "$version can't go to $environment yet: no ✅ in its release for \
+$(IFS=,; echo "${missing[*]}" | sed 's/,/, /g'). Run them (Actions → Release or Controller), then re-run this."
 fi
-# 5.5 and 5.6 add the automation (AT) and performance (PT) tests as a further condition here.
-echo "::notice::AT and PT in $below: not set up yet (5.5, 5.6), so not checked."
 
 echo "environment=$environment" >>"$GITHUB_OUTPUT"
 echo "version=$version" >>"$GITHUB_OUTPUT"

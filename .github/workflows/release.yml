@@ -138,3 +138,15 @@ jobs:
           RESULT: ${{ needs.dev.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: bash .github/scripts/record-deployment.sh "$VERSION" dev "$RESULT" "$RUN_URL"
+
+  tests:
+    name: Tests on dev
+    needs: [version, dev]
+    if: needs.dev.result == 'success'
+    permissions:
+      contents: write # the results in the release notes
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+    with:
+      environment: dev
+      version: ${{ needs.version.outputs.version }}

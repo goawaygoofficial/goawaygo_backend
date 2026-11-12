@@ -84,3 +84,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.plan.outputs.version }}
         run: gh release edit "$VERSION" --prerelease=false --latest
+
+  tests:
+    name: Tests on ${{ needs.plan.outputs.environment }}
+    needs: [plan, deploy]
+    if: needs.deploy.result == 'success'
+    permissions:
+      contents: write # the results in the release notes
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+    with:
+      environment: ${{ needs.plan.outputs.environment }}
+      version: ${{ needs.plan.outputs.version }}
+      # prod: read-only smoke tests, no PT.
+      scope: ${{ needs.plan.outputs.environment == 'prod' && 'smoke' || 'full' }}

@@ -78,6 +78,9 @@ public class ExternalApiClient {
 
 	private final RestClient http;
 
+	/** The same requests answered in memory, for test runs ({@link TestFakes}). */
+	private final RestClient fakeHttp;
+
 	private final CircuitBreaker circuitBreaker;
 
 	private final Retry retry;
@@ -90,6 +93,10 @@ public class ExternalApiClient {
 		this.usage = usage;
 		this.json = json;
 		this.http = restClient(config);
+		this.fakeHttp = RestClient.builder()
+			.baseUrl(config.baseUrl())
+			.requestFactory(new FakeHttp(name, json))
+			.build();
 		this.circuitBreaker = CircuitBreaker.of(name, CircuitBreakerConfig.custom()
 			.failureRateThreshold(FAILURE_RATE_THRESHOLD)
 			.slidingWindowSize(SLIDING_WINDOW_CALLS)
@@ -139,6 +146,10 @@ public class ExternalApiClient {
 
 	/** Calls the provider now (no cache), with timeouts, retries, circuit breaker and usage limit. */
 	public <T> T call(Request<T> request) {
+		if (TestFakes.active()) {
+			// A test run: answered in memory, no usage counted, no retries or circuit breaker.
+			return request.send(this.fakeHttp, "test-fake-key");
+		}
 		Supplier<T> attempt = () -> {
 			this.usage.reserve(this.name, this.config);
 			return request.send(this.http, this.config.apiKey());
@@ -174,6 +185,10 @@ public class ExternalApiClient {
 	}
 
 	public <T> T cached(String key, Duration ttl, Class<T> type, Request<T> request) {
+		if (TestFakes.active()) {
+			// Fake answers never enter the cache, and real cached answers aren't served to test runs.
+			return call(request);
+		}
 		Optional<ExternalApiCache.Entry> cached = this.cache.find(this.name, key);
 		if (cached.isPresent() && cached.get().fresh()) {
 			return this.json.readValue(cached.get().body(), type);

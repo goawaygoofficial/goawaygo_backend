@@ -92,18 +92,40 @@ dev gets every version automatically. test and prod get a version only through *
 
 1. **To test:** a PR from `develop` into `test` (opened by the bot). You approve it; it's merged with a merge commit.
 2. Controller starts on `test`. It picks the version whose files are exactly what `test` now holds, checks that the
-   version passed dev (its GitHub Release shows **✅** for dev), then waits for you: Actions → **Controller** → the
+   version passed dev (its GitHub Release shows **✅** for the dev deployment, **AT dev** and **PT dev**), then waits
+   for you: Actions → **Controller** → the
    run → **Review deployments** → tick **test** → **Approve and deploy**.
 3. The backend and website deploy that version's image and build to test (`api-test.goawaygo.com`,
    `test.goawaygo.com`) and check them. The app has nothing to deploy: the version is recorded as promoted.
-4. Test it on test. (From 5.5 and 5.6 the automation and performance tests run there too and must pass.)
+4. The automation (AT) and performance (PT) tests run on test right after the deploy and write their result into the
+   release; then test it yourself on test.
 5. **To prod:** a PR from `test` into `main`, approved and merged the same way; Controller checks the version passed
-   test, waits for your approval (**prod**), deploys, and makes the version the **latest full release** (no longer a
+   test (deployment, AT and PT), waits for your approval (**prod**), deploys, and makes the version the **latest full release** (no longer a
    pre-release). For the app, build the APK from that version (below).
 
 Each step is written into the version's GitHub Release under **Deployments**, e.g.
 `- **test**: ✅ deployed 2026-11-12 09:30 UTC · run`, so every release shows where it has run. If a version isn't
 ready (Release on `develop` still running, or it failed below), Controller stops with the reason; fix it and re-run.
+
+## Automated and performance tests (AT, PT; MVP 2, 5.5 and 5.6)
+
+The tests live in their own repos, with the same branches and rules: **goawaygo_automation_tests** (API and website
+with Playwright, the Android app with Maestro on an emulator) and **goawaygo_performance_tests** (API and website with
+k6, the app's start-up time and scrolling). Each environment runs the tests from its own branch (dev: `develop`,
+test: `test`, prod: `main`), so a test change is promoted like code.
+
+| When                          | What runs                                                                    | Evidence                                    |
+| ----------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
+| A pull request into `develop` | **Tests before merge**: the smoke tests against dev (app: built from the PR) | the report on the PR (not a required check) |
+| After every deploy to dev     | **Release → Tests on dev**: all AT, and PT with limits that fail the run     | `AT dev` / `PT dev` ✅ or ❌ in the release |
+| After a deploy to test        | **Controller → Tests on test**: the same                                     | `AT test` / `PT test` in the release        |
+| After a deploy to prod        | **Controller → Tests on prod**: read-only smoke tests, never PT              | `AT prod` in the release                    |
+
+A version goes to test only with ✅ for AT and PT in dev, and to prod only with ✅ for both in test. Every run keeps
+its reports for 90 days: the run's page → **Artifacts** (Playwright HTML report, k6 HTML report, app screenshots and
+timings). In dev and test the tests use the backend's fake outside services (no AI or partner quota is used) and skip
+its rate limits; prod has neither. A failed run: open the report, fix the code or the test, and re-run (Actions →
+the run → **Re-run failed jobs**); the release then shows the new result.
 
 **Roll back or deploy again:** Actions → **Controller** → **Run workflow** → "Use workflow from" **main** (prod) or
 **test** (test) → version, e.g. `v1.7.0` (empty = the branch's own version) → approve. Only a version that is merged

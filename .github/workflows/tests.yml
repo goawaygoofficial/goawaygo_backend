@@ -1,0 +1,202 @@
+name: Tests
+
+# Automated (AT) and performance (PT) tests of what runs in one environment (MVP 2, 5.5 and 5.6). The tests come from
+# goawaygo_automation_tests and goawaygo_performance_tests, from the branch for that environment (dev: develop,
+# test: test, prod: main), so a test change reaches an environment only when it is promoted, like the code.
+#
+# With a version, the results are written into its GitHub Release ("AT <env>", "PT <env>"); Controller moves a version
+# up only after both passed in the environment below. Without one (pull requests: the "before" evidence) nothing is
+# recorded. prod runs read-only smoke tests and never PT (real users and real quotas live there).
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: dev, test or prod
+        required: true
+        type: string
+      version:
+        description: The version deployed there (recorded in its release); empty for pull requests
+        required: false
+        type: string
+        default: ""
+      scope:
+        description: full (after a deployment) or smoke (pull requests, prod)
+        required: false
+        type: string
+        default: full
+
+permissions:
+  contents: read
+
+jobs:
+  branch:
+    name: Test branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      ref: ${{ steps.ref.outputs.ref }}
+    steps:
+      - id: ref
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          case "$ENVIRONMENT" in
+            dev) echo "ref=develop" >> "$GITHUB_OUTPUT" ;;
+            test) echo "ref=test" >> "$GITHUB_OUTPUT" ;;
+            prod) echo "ref=main" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::Unknown environment $ENVIRONMENT"; exit 1 ;;
+          esac
+
+  at:
+    name: AT ${{ inputs.environment }} (API)
+    needs: branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: goawaygoofficial/goawaygo_automation_tests
+          ref: ${{ needs.branch.outputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run the API tests
+        env:
+          GOAWAYGO_ENV: ${{ inputs.environment }}
+          # Never sent to prod: prod has no fakes and no test accounts.
+          TEST_FAKES_TOKEN: ${{ inputs.environment != 'prod' && secrets.TEST_FAKES_TOKEN || '' }}
+          AT_ACCOUNT_PASSWORD: ${{ inputs.environment != 'prod' && secrets.AT_ACCOUNT_PASSWORD || '' }}
+          # prod's website address the backend allows (staging.goawaygo.com until the launch).
+          ALLOWED_ORIGIN: ${{ inputs.environment == 'prod' && vars.WEB_BASE_URL || '' }}
+          SCOPE: ${{ inputs.scope }}
+        run: |
+          grep=()
+          [ "$SCOPE" = smoke ] && grep=(--grep @smoke)
+          npx playwright test --project=api "${grep[@]}"
+
+      # Reports are public run artifacts: whatever a tool wrote, no file that contains a secret is kept.
+      - name: Remove anything secret from the report
+        if: always()
+        env:
+          TOKEN: ${{ secrets.TEST_FAKES_TOKEN }}
+          PASSWORD: ${{ secrets.AT_ACCOUNT_PASSWORD }}
+        run: |
+          secrets=()
+          [ -n "$TOKEN" ] && secrets+=(-e "$TOKEN")
+          [ -n "$PASSWORD" ] && secrets+=(-e "$PASSWORD")
+          [ "${#secrets[@]}" -gt 0 ] && [ -d reports ] || exit 0
+          removed=0
+          while IFS= read -r -d '' file; do
+            if grep -qF "${secrets[@]}" "$file" \
+              || { [[ "$file" == *.zip ]] && unzip -p "$file" 2>/dev/null | grep -qF "${secrets[@]}"; }; then
+              rm -f "$file"
+              removed=$((removed + 1))
+            fi
+          done < <(find reports -type f -print0)
+          [ "$removed" -eq 0 ] || echo "::warning::$removed report file(s) contained a secret and were not kept"
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: at-api-${{ inputs.environment }}-${{ inputs.version || github.run_id }}
+          path: reports/
+          retention-days: 90
+
+  pt:
+    name: PT ${{ inputs.environment }} (API)
+    needs: branch
+    if: inputs.scope == 'full' && inputs.environment != 'prod'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: goawaygoofficial/goawaygo_performance_tests
+          ref: ${{ needs.branch.outputs.ref }}
+          persist-credentials: false
+
+      - name: Install k6 (checksum verified)
+        env:
+          K6_VERSION: 2.3.0
+        run: |
+          base="https://github.com/grafana/k6/releases/download/v${K6_VERSION}"
+          file="k6-v${K6_VERSION}-linux-amd64.tar.gz"
+          curl -sSfL -o "$file" "$base/$file"
+          curl -sSfL -o checksums.txt "$base/k6-v${K6_VERSION}-checksums.txt"
+          grep " $file\$" checksums.txt | sha256sum --check --strict
+          # Into the runner's temp folder: the performance repo has a k6/ folder of scripts.
+          tar -xzf "$file" -C "$RUNNER_TEMP" --strip-components=1 "k6-v${K6_VERSION}-linux-amd64/k6"
+          sudo mv "$RUNNER_TEMP/k6" /usr/local/bin/
+
+      - name: Run the API performance test
+        env:
+          GOAWAYGO_ENV: ${{ inputs.environment }}
+          TEST_FAKES_TOKEN: ${{ secrets.TEST_FAKES_TOKEN }}
+          K6_WEB_DASHBOARD: "true"
+          K6_WEB_DASHBOARD_EXPORT: reports/browse.html
+        run: |
+          mkdir -p reports
+          k6 run --include-system-env-vars --summary-export reports/summary.json k6/api/browse.js
+
+      # Reports are public run artifacts: whatever a tool wrote, no file that contains a secret is kept.
+      - name: Remove anything secret from the report
+        if: always()
+        env:
+          TOKEN: ${{ secrets.TEST_FAKES_TOKEN }}
+          PASSWORD: ${{ secrets.AT_ACCOUNT_PASSWORD }}
+        run: |
+          secrets=()
+          [ -n "$TOKEN" ] && secrets+=(-e "$TOKEN")
+          [ -n "$PASSWORD" ] && secrets+=(-e "$PASSWORD")
+          [ "${#secrets[@]}" -gt 0 ] && [ -d reports ] || exit 0
+          removed=0
+          while IFS= read -r -d '' file; do
+            if grep -qF "${secrets[@]}" "$file" \
+              || { [[ "$file" == *.zip ]] && unzip -p "$file" 2>/dev/null | grep -qF "${secrets[@]}"; }; then
+              rm -f "$file"
+              removed=$((removed + 1))
+            fi
+          done < <(find reports -type f -print0)
+          [ "$removed" -eq 0 ] || echo "::warning::$removed report file(s) contained a secret and were not kept"
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pt-api-${{ inputs.environment }}-${{ inputs.version || github.run_id }}
+          path: reports/
+          retention-days: 90
+
+  record:
+    name: Record the results in the release
+    needs: [at, pt]
+    if: always() && inputs.version != '' && needs.at.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # the release notes
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Record AT and PT
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          AT: ${{ needs.at.result }}
+          PT: ${{ needs.pt.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          outcome() { case "$1" in success) echo passed ;; cancelled) echo cancelled ;; *) echo failed ;; esac; }
+          bash .github/scripts/record-deployment.sh "$VERSION" "AT $ENVIRONMENT" "$(outcome "$AT")" "$RUN_URL"
+          if [ "$PT" != skipped ]; then
+            bash .github/scripts/record-deployment.sh "$VERSION" "PT $ENVIRONMENT" "$(outcome "$PT")" "$RUN_URL"
+          fi

@@ -72,9 +72,8 @@ carry on. dev and test are new and start empty (Flyway creates their tables).
 
 - Neon: project `goawaygo-prod` (renamed from the first `goawaygo-staging`) holds `goawaygo`; project
   `goawaygo-staging` holds `goawaygo_dev` and `goawaygo_test`.
-- Google Cloud: project `goawaygo-staging` runs dev and test and keeps the image registry (images are built once).
-  Production still runs there until it moves to its own project `goawaygo-prod` with its first deploy through
-  `controller.yaml` (5.4); the API address doesn't change.
+- Google Cloud: project `goawaygo-staging` runs dev and test and keeps the image registry (images are built once);
+  production runs in its own project `goawaygo-prod` (moved 2026-11-12, same address).
 
 |                   | dev                                       | test                         | prod                              |
 | ----------------- | ----------------------------------------- | ---------------------------- | --------------------------------- |
@@ -84,7 +83,7 @@ carry on. dev and test are new and start empty (Flyway creates their tables).
 | API               | `api-dev.goawaygo.com`                    | `api-test.goawaygo.com`      | `api.goawaygo.com`                |
 | Website           | `dev.goawaygo.com`                        | `test.goawaygo.com`          | `goawaygo.com` (at launch)        |
 | Pages project     | `goawaygo-web-dev`                        | `goawaygo-web-test`          | `goawaygo-web-prod`               |
-| Google Cloud      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod` (from 5.4)        |
+| Google Cloud      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod`                   |
 | Neon project      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod`                   |
 | Database          | `goawaygo_dev`                            | `goawaygo_test`              | `goawaygo`                        |
 | Roles             | `goawaygo_dev_owner`/`_app`               | `goawaygo_test_owner`/`_app` | `goawaygo_owner`/`_app`           |
@@ -118,9 +117,9 @@ Setting up dev or test (once each; `<env>` is `dev` or `test`):
 4. After its first deploy: make it public, map `api-<env>.goawaygo.com` (steps 5 and 6 below, with the service
    `goawaygo-backend-<env>`).
 
-### Production in its own project (5.3 part C)
+### Production in its own project (5.3 part C, done 2026-11-12)
 
-prod moves from `goawaygo-staging` to the Google Cloud project `goawaygo-prod`, so production has its own
+prod moved from `goawaygo-staging` to the Google Cloud project `goawaygo-prod`, so production has its own
 permissions, logs and secrets. The database (Neon `goawaygo-prod`), the image and `api.goawaygo.com` stay the same.
 Images are still built once, in `goawaygo-staging` (repository variable `IMAGE_PROJECT_ID=goawaygo-staging`); prod's
 deployer and Cloud Run may read them.
