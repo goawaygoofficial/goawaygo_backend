@@ -72,6 +72,8 @@ jobs:
           MAIL_FROM: ${{ vars.MAIL_FROM }}
           EXTERNAL_API_PROVIDERS: ${{ vars.EXTERNAL_API_PROVIDERS }}
           WANDERBOOK_PHOTOS: ${{ vars.WANDERBOOK_PHOTOS }}
+          TEST_FAKES: ${{ vars.TEST_FAKES }}
+          ENVIRONMENT: ${{ inputs.environment }}
         run: |
           # Plain settings (not secrets). One file avoids escaping commas in the CORS list.
           cat > env.yaml <<EOF
@@ -121,6 +123,13 @@ jobs:
           if [ "$WANDERBOOK_PHOTOS" = "true" ]; then
             secrets="$secrets,R2_ACCESS_KEY_ID=goawaygo-r2-access-key-id:latest"
             secrets="$secrets,R2_SECRET_ACCESS_KEY=goawaygo-r2-secret-access-key:latest"
+          fi
+
+          # Fake outside services for automated and performance test runs (external/TestFakes): only dev and test,
+          # whose GitHub environments set TEST_FAKES=true. Never prod.
+          if [ "$TEST_FAKES" = "true" ]; then
+            [ "$ENVIRONMENT" != "prod" ] || { echo "::error::TEST_FAKES must not be set for prod" >&2; exit 1; }
+            secrets="$secrets,TEST_FAKES_TOKEN=goawaygo-test-fakes-token:latest"
           fi
 
           # Outside API keys (com.goawaygo.backend.external): repo variable EXTERNAL_API_PROVIDERS lists the providers

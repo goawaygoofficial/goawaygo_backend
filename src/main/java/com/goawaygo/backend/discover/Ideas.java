@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.goawaygo.backend.common.i18n.Lang;
+import com.goawaygo.backend.external.TestFakes;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -131,7 +132,8 @@ public class Ideas {
 		try {
 			if (this.pool == null) {
 				Pool made = make(null);
-				if (!made.ideas().isEmpty()) {
+				// A test run's list is made from fake answers: shown to that run only, never kept for everyone.
+				if (!made.ideas().isEmpty() && !TestFakes.active()) {
 					this.pool = made;
 					save(Lang.EN, made);
 				}
@@ -245,6 +247,10 @@ public class Ideas {
 		Pool done = this.translated.get(lang);
 		if (done != null && done.madeAt().equals(english.madeAt())) {
 			return done;
+		}
+		if (TestFakes.active()) {
+			// A fake translation would be kept for everyone: test runs get the English list.
+			return english;
 		}
 		ReentrantLock lock = this.translating.computeIfAbsent(lang, l -> new ReentrantLock());
 		if (!lock.tryLock()) {
