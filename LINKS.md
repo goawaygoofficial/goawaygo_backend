@@ -21,15 +21,16 @@ The first API request after ~15 idle minutes takes 7–10 s (cold start); that's
 
 ## 2. Is anything broken? (errors and logs)
 
-| What                                    | Link                                                                                                          |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Sentry — all errors (EU, org goawaygo)  | https://goawaygo.sentry.io/issues/                                                                            |
-| Sentry — backend                        | https://goawaygo.sentry.io/projects/goawaygo-backend/                                                         |
-| Sentry — website                        | https://goawaygo.sentry.io/projects/goawaygo-web/                                                             |
-| Sentry — app                            | https://goawaygo.sentry.io/projects/goawaygo-app/                                                             |
-| Backend logs (Logs Explorer)            | https://console.cloud.google.com/logs/query?project=goawaygo-staging                                          |
-| Backend errors (Google Error Reporting) | https://console.cloud.google.com/errors?project=goawaygo-staging                                              |
-| Backend service (revisions, metrics)    | https://console.cloud.google.com/run/detail/asia-southeast1/goawaygo-backend/metrics?project=goawaygo-staging |
+| What                                       | Link                                                                                                                                    |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Sentry — all errors (EU, org goawaygo)     | https://goawaygo.sentry.io/issues/                                                                                                      |
+| Sentry — backend                           | https://goawaygo.sentry.io/projects/goawaygo-backend/                                                                                   |
+| Sentry — website                           | https://goawaygo.sentry.io/projects/goawaygo-web/                                                                                       |
+| Sentry — app                               | https://goawaygo.sentry.io/projects/goawaygo-app/                                                                                       |
+| Backend logs, prod (Logs Explorer)         | https://console.cloud.google.com/logs/query?project=goawaygo-prod                                                                       |
+| Backend errors, prod (Error Reporting)     | https://console.cloud.google.com/errors?project=goawaygo-prod                                                                           |
+| Backend service, prod (revisions, metrics) | https://console.cloud.google.com/run/detail/asia-southeast1/goawaygo-backend/metrics?project=goawaygo-prod                              |
+| Backend logs and errors, dev and test      | https://console.cloud.google.com/logs/query?project=goawaygo-staging · https://console.cloud.google.com/errors?project=goawaygo-staging |
 
 Tip: every API response has an `X-Request-Id` header. Paste it into Logs Explorer (`jsonPayload.requestId="…"`) or
 Sentry search (`request_id:…`) to see everything that happened in that request.
@@ -59,18 +60,22 @@ Sentry search (`request_id:…`) to see everything that happened in that request
 Each repo's Actions run: CI (build/tests), Secret scan (Gitleaks), Dependency scan (OSV-Scanner, also every Monday).
 A red ✗ on `develop` or a failed Monday scan needs a look.
 
-## 5. Backend platform (Google Cloud, project `goawaygo-staging`)
+## 5. Backend platform (Google Cloud)
 
-| What                                | Link                                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------------------------------- |
-| Project dashboard                   | https://console.cloud.google.com/home/dashboard?project=goawaygo-staging                    |
-| Cloud Run services                  | https://console.cloud.google.com/run?project=goawaygo-staging                               |
-| Custom domain `api.goawaygo.com`    | https://console.cloud.google.com/run/domains?project=goawaygo-staging                       |
-| Secret Manager (keys and passwords) | https://console.cloud.google.com/security/secret-manager?project=goawaygo-staging           |
-| Artifact Registry (backend images)  | https://console.cloud.google.com/artifacts?project=goawaygo-staging                         |
-| Keyless deploy (Workload Identity)  | https://console.cloud.google.com/iam-admin/workload-identity-pools?project=goawaygo-staging |
-| IAM (who can do what)               | https://console.cloud.google.com/iam-admin/iam?project=goawaygo-staging                     |
-| **Billing, credits, budget alerts** | https://console.cloud.google.com/billing                                                    |
+Two projects: **`goawaygo-prod`** runs production (`api.goawaygo.com`); **`goawaygo-staging`** runs dev and test
+(`api-dev`, `api-test`) and holds the image registry (images are built once, for every environment). The links open
+the prod project; change `project=` to `goawaygo-staging` for dev and test.
+
+| What                                       | Link                                                                                     |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Project dashboard                          | https://console.cloud.google.com/home/dashboard?project=goawaygo-prod                    |
+| Cloud Run services                         | https://console.cloud.google.com/run?project=goawaygo-prod                               |
+| Custom domains (`api.goawaygo.com`)        | https://console.cloud.google.com/run/domains?project=goawaygo-prod                       |
+| Secret Manager (keys and passwords)        | https://console.cloud.google.com/security/secret-manager?project=goawaygo-prod           |
+| Artifact Registry (backend images, shared) | https://console.cloud.google.com/artifacts?project=goawaygo-staging                      |
+| Keyless deploy (Workload Identity)         | https://console.cloud.google.com/iam-admin/workload-identity-pools?project=goawaygo-prod |
+| IAM (who can do what)                      | https://console.cloud.google.com/iam-admin/iam?project=goawaygo-prod                     |
+| **Billing, credits, budget alerts**        | https://console.cloud.google.com/billing                                                 |
 
 **Free trial ends 2027-01-14** — upgrade the billing account before then (reminder: ~2027-01-04), or the project stops.
 
@@ -171,16 +176,16 @@ forward to the team Gmail.
 Invite people with **their own** accounts; never share the team Gmail or its password. Give the least access that
 does the job, and remove it when they leave.
 
-| Service                                   | Where to invite                                     | Typical access for a developer                                                                        |
-| ----------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| GitHub                                    | each repo → Settings → Collaborators → Add people   | **Write** (they open PRs; merging stays with the owner)                                               |
-| Google Cloud `goawaygo-staging`           | IAM & Admin → IAM → Grant access                    | **Logs Viewer** + **Cloud Run Viewer** (read-only); deploys stay with GitHub Actions                  |
-| Firebase / Google project `goaway-483709` | Firebase → Project settings → Users and permissions | **Viewer**; add their debug SHA-1 to the Android OAuth client so Google Sign-In works in their builds |
-| Sentry                                    | Settings → Members → Invite                         | **Member**                                                                                            |
-| PostHog                                   | Settings → Members → Invite                         | **Member**                                                                                            |
-| Better Stack                              | Team → Invite                                       | **Responder** (gets alerts)                                                                           |
-| Cloudflare                                | Manage Account → Members → Invite                   | **Read-only** unless they work on DNS/hosting                                                         |
-| Neon                                      | Settings → People → Invite                          | Only if they need the hosted database (most work runs on the local Docker database)                   |
+| Service                                                         | Where to invite                                     | Typical access for a developer                                                                        |
+| --------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| GitHub                                                          | each repo → Settings → Collaborators → Add people   | **Write** (they open PRs; merging stays with the owner)                                               |
+| Google Cloud `goawaygo-prod` (`goawaygo-staging` for dev, test) | IAM & Admin → IAM → Grant access                    | **Logs Viewer** + **Cloud Run Viewer** (read-only); deploys stay with GitHub Actions                  |
+| Firebase / Google project `goaway-483709`                       | Firebase → Project settings → Users and permissions | **Viewer**; add their debug SHA-1 to the Android OAuth client so Google Sign-In works in their builds |
+| Sentry                                                          | Settings → Members → Invite                         | **Member**                                                                                            |
+| PostHog                                                         | Settings → Members → Invite                         | **Member**                                                                                            |
+| Better Stack                                                    | Team → Invite                                       | **Responder** (gets alerts)                                                                           |
+| Cloudflare                                                      | Manage Account → Members → Invite                   | **Read-only** unless they work on DNS/hosting                                                         |
+| Neon                                                            | Settings → People → Invite                          | Only if they need the hosted database (most work runs on the local Docker database)                   |
 
 Never shared: the Android upload key (`~/.goawaygo/` on the release PC), Secret Manager values, `.env` files, the
 Neon admin password.
