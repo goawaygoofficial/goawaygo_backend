@@ -67,7 +67,9 @@ jobs:
           echo "::add-mask::$password"
           mkdir -p backup
           # The same PostgreSQL major version as Neon (17); the password reaches pg_dump only through its environment.
-          PGPASSWORD="$password" docker run --rm -e PGPASSWORD -v "$PWD/backup:/backup" postgres:17.11 \
+          # As this runner's user, so the next step may shred the unencrypted dump (Docker would write it as root).
+          PGPASSWORD="$password" docker run --rm --user "$(id -u):$(id -g)" -e PGPASSWORD \
+            -v "$PWD/backup:/backup" postgres:17.11 \
             pg_dump --format=custom --no-owner --no-privileges \
             "host=$DB_HOST dbname=$DB_NAME user=$DB_USER sslmode=require" --file=/backup/goawaygo.dump
           unset password
