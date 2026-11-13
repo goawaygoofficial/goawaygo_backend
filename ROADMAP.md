@@ -247,10 +247,14 @@ repos are public (2026-11-11): free branch rules, protected environments and Act
       in the environment below; deployment status per version; rollback to an earlier version. Done 2026-11-12:
       first promotions to test and prod (backend v1.9.0, website and app v1.8.0); the AT and PT condition comes with
       5.5 and 5.6.
-- [ ] **5.5 Automation tests** (repo `goawaygo_automation_tests`) — API and website (Playwright), app (Maestro on an
-      Android emulator); a short run on every pull request, the full run after each deployment.
-- [ ] **5.6 Performance tests** (repo `goawaygo_performance_tests`) — API and website (k6), app start-up and
-      scrolling; limits that fail the run; fake AI and partner services in dev and test.
+- [x] **5.5 Automation tests** (repo `goawaygo_automation_tests`) — API and website (Playwright), app (Maestro on an
+      Android emulator); a short run on every pull request, the full run after each deployment. Done 2026-11-12/13:
+      22 API, 9 website and 3 app tests pass in dev and test; read-only smoke tests in prod. They found a real bug
+      (a tap between a tab's icon and label was ignored; fixed).
+- [x] **5.6 Performance tests** (repo `goawaygo_performance_tests`) — API and website (k6), app start-up and
+      scrolling; limits that fail the run; fake AI and partner services in dev and test. Done 2026-11-12/13: limits
+      on the backend's own time (Server-Timing on test runs: reads ~3 ms, destination ~31 ms p95), Core Web Vitals,
+      app start-up ~1 s and scrolling on the emulator. A version moves up only with AT and PT ✅ below.
 - [ ] **5.7 Website launch** — pre-rendered public pages (search engines and partners can read them), sitemap,
       production monitoring and alerts, database backups, Google sign-in in production mode, launch checklist; then
       apply to Agoda again.
