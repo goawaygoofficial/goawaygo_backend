@@ -80,15 +80,15 @@ accepts `https://goawaygo.com`; the Google button loads. Still to try by hand: s
 
 ## C. After the switch
 
-- [ ] Google Search Console → Add property `goawaygo.com` (domain; verified already for Cloud Run) → Sitemaps →
-      submit `https://goawaygo.com/sitemap.xml`.
+- [x] Google Search Console: property `goawaygo.com` (domain) → Sitemaps → `https://goawaygo.com/sitemap.xml`
+      submitted 13 Nov 2026: Success, 59 pages found.
 - [ ] Apply to Agoda again (the partner application), now that the site is readable without JavaScript.
 - [ ] Lawyer review of the Privacy Policy, Terms and Community Guidelines (decided: right after launch).
 - [ ] Native-speaker check of the 6 other languages (decided: right after launch).
-- [ ] Remove `staging.goawaygo.com` from the backend's `CORS_ALLOWED_ORIGINS` and the Google origins once nothing uses
-      it (after the next app build), and retire the old Pages project `goawaygo-web-frontend`.
-- [ ] Remove the disabled Redirect Rule "goawaygo.com to website" (kept for now, off).
-- [ ] Better Stack: pause (or delete) the old "GoAwayGo website" monitor of `staging.goawaygo.com`; status page
-      → Settings → logo link to `https://goawaygo.com`.
-- [ ] Next app build: `WEBSITE_URL=https://goawaygo.com` in `env/staging.env`.
-- [ ] ROADMAP.md: tick 5.7.
+- [x] `staging.goawaygo.com` removed from the backend's `CORS_ALLOWED_ORIGINS` and the Google origins (it only
+      redirects); the old Pages project `goawaygo-web-frontend` deleted (14 Nov; CLEANUP.md).
+- [x] The disabled Redirect Rule "goawaygo.com to website" deleted.
+- [x] Better Stack: the old staging website monitor deleted; status page logo links to `https://goawaygo.com`.
+- [x] App: `WEBSITE_URL=https://goawaygo.com` (app PR #76), and release builds use `env/prod.env` reporting as
+      `production` (CLEANUP.md 7.3). Both arrive with the next app build.
+- [ ] ROADMAP.md: tick 5.7 (after Agoda, the lawyer review and the native-speaker check).
