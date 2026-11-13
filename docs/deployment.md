@@ -81,7 +81,7 @@ carry on. dev and test are new and start empty (Flyway creates their tables).
 | Approval          | none                                      | the owner                    | the owner                         |
 | Cloud Run service | `goawaygo-backend-dev`                    | `goawaygo-backend-test`      | `goawaygo-backend`                |
 | API               | `api-dev.goawaygo.com`                    | `api-test.goawaygo.com`      | `api.goawaygo.com`                |
-| Website           | `dev.goawaygo.com`                        | `test.goawaygo.com`          | `goawaygo.com` (at launch)        |
+| Website           | `dev.goawaygo.com`                        | `test.goawaygo.com`          | `goawaygo.com` (+ `www`)          |
 | Pages project     | `goawaygo-web-dev`                        | `goawaygo-web-test`          | `goawaygo-web-prod`               |
 | Google Cloud      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod`                   |
 | Neon project      | `goawaygo-staging`                        | `goawaygo-staging`           | `goawaygo-prod`                   |
@@ -92,20 +92,26 @@ carry on. dev and test are new and start empty (Flyway creates their tables).
 Shared by all three: the Google client secret, Resend, R2 and the outside API keys (the AI's free daily quota too),
 Firebase. Photos (R2) are on in prod only for now: dev and test refuse photo uploads (`WANDERBOOK_PHOTOS` unset).
 
-Each environment is a **GitHub environment** of the same name in the backend and website repos, holding what differs:
+Each environment is a **GitHub environment** of the same name in the backend and website repos, holding **everything**
+that environment deploys with (nothing is inherited from a repository variable of the same name):
 
-| Variable (backend)                        | dev                                        | test                            | prod                                            |
-| ----------------------------------------- | ------------------------------------------ | ------------------------------- | ----------------------------------------------- |
-| `SERVICE`                                 | `goawaygo-backend-dev`                     | `goawaygo-backend-test`         | `goawaygo-backend`                              |
-| `SECRET_PREFIX`                           | `goawaygo-dev`                             | `goawaygo-test`                 | `goawaygo`                                      |
-| `DB_NAME`, `DB_OWNER_USER`, `DB_APP_USER` | `goawaygo_dev`, `…_dev_owner`, `…_dev_app` | `goawaygo_test`, `…`            | (repository defaults)                           |
-| `DB_HOST`                                 | the dev/test database host                 | the dev/test database host      | (repository variable)                           |
-| `CORS_ALLOWED_ORIGINS`, `WEB_BASE_URL`    | `https://dev.goawaygo.com`                 | `https://test.goawaygo.com`     | `https://goawaygo.com` (+ staging until launch) |
-| `API_BASE_URL`                            | `https://api-dev.goawaygo.com`             | `https://api-test.goawaygo.com` | `https://api.goawaygo.com`                      |
-| `SENTRY_ENVIRONMENT`                      | `dev`                                      | `test`                          | `production`                                    |
+| Variable (backend)                                    | dev                                         | test                            | prod                                            |
+| ----------------------------------------------------- | ------------------------------------------- | ------------------------------- | ----------------------------------------------- |
+| `GCP_PROJECT_ID`                                      | `goawaygo-staging`                          | `goawaygo-staging`              | `goawaygo-prod`                                 |
+| `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `GCP_RUNTIME_SA` | goawaygo-staging's (`gcp-bootstrap.sh`)     | same as dev                     | goawaygo-prod's                                 |
+| `SERVICE`                                             | `goawaygo-backend-dev`                      | `goawaygo-backend-test`         | `goawaygo-backend`                              |
+| `SECRET_PREFIX`                                       | `goawaygo-dev`                              | `goawaygo-test`                 | `goawaygo`                                      |
+| `DB_HOST`                                             | the dev/test database host                  | the dev/test database host      | the prod database host                          |
+| `DB_NAME`, `DB_OWNER_USER`, `DB_APP_USER`             | `goawaygo_dev`, `…_dev_owner`, `…_dev_app`  | `goawaygo_test`, `…`            | `goawaygo`, `goawaygo_owner`, `goawaygo_app`    |
+| `CORS_ALLOWED_ORIGINS`                                | `https://dev.goawaygo.com`                  | `https://test.goawaygo.com`     | `https://goawaygo.com,https://www.goawaygo.com` |
+| `WEB_BASE_URL`                                        | `https://dev.goawaygo.com`                  | `https://test.goawaygo.com`     | `https://goawaygo.com`                          |
+| `API_BASE_URL`                                        | `https://api-dev.goawaygo.com`              | `https://api-test.goawaygo.com` | `https://api.goawaygo.com`                      |
+| `SENTRY_ENVIRONMENT`                                  | `dev`                                       | `test`                          | `production`                                    |
+| `TEST_FAKES`, `WANDERBOOK_PHOTOS`                     | `true`, `false`                             | `true`, `false`                 | `false`, `true`                                 |
 
-Website environments hold `PAGES_PROJECT` and `WEB_URL`. Anything not set in an environment falls back to the
-repository variable of the same name.
+The environment `backup` (database backups) holds prod's `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA` and
+`DB_HOST`, and `BACKUP_PUBLIC_KEY`. Repository variables are only what every environment shares (section 4 below).
+Website environments hold `PAGES_PROJECT` and `WEB_URL`.
 
 Setting up dev or test (once each; `<env>` is `dev` or `test`):
 
@@ -135,7 +141,7 @@ deployer and Cloud Run may read them.
 3. Copy production's secrets (same values, so nobody is signed out; never printed):
    `scripts/gcp-copy-secrets.sh goawaygo-staging goawaygo-prod`.
 4. The GitHub environment **prod** gets the four values the setup prints: `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`,
-   `GCP_DEPLOY_SA`, `GCP_RUNTIME_SA` (dev and test keep the repository variables, `goawaygo-staging`).
+   `GCP_DEPLOY_SA`, `GCP_RUNTIME_SA` (dev and test have goawaygo-staging's).
 5. The next prod deploy (Controller, after a merge into `main`) creates `goawaygo-backend` in `goawaygo-prod`. Make it
    public (step 5 below with `--project goawaygo-prod`) and check it on its `run.app` address.
 6. Move the address (the app is offline until Google issues the certificate, ~15–60 minutes; warn the testers):
@@ -147,9 +153,9 @@ deployer and Cloud Run may read them.
 
    The Cloudflare record (CNAME `api` → `ghs.googlehosted.com`) stays.
 
-7. After a week without problems, a project owner deletes the old service `goawaygo-backend` and prod's secrets
-   (`goawaygo-db-*`, `goawaygo-jwt-*`) in `goawaygo-staging`. The shared keys stay there for dev and test; change a
-   shared key in both projects from then on.
+7. Done 2026-11-14: the old service `goawaygo-backend` and prod's copies of its secrets (`goawaygo-db-*`,
+   `goawaygo-jwt-*`, `goawaygo-r2-*`) are deleted from `goawaygo-staging`. The shared keys stay there for dev and
+   test; change a shared key in both projects.
 
 ## One-time setup (per environment)
 
@@ -217,25 +223,24 @@ adding a secret later.
 
 ### 4. GitHub repository variables
 
-Settings → Secrets and variables → Actions → **Variables** (identifiers and URLs, not secrets):
+Settings → Secrets and variables → Actions → **Variables** (identifiers and URLs, not secrets). Only what every
+environment shares; each environment's own values are in its GitHub environment (Environments above).
 
-| Variable                                  | Example                                                                                     |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `GCP_PROJECT_ID`                          | `goawaygo-staging`                                                                          |
-| `GCP_REGION`                              | `asia-southeast1`                                                                           |
-| `GCP_WIF_PROVIDER`                        | printed by `gcp-bootstrap.sh`                                                               |
-| `GCP_DEPLOY_SA`                           | `goawaygo-deployer@goawaygo-staging.iam.gserviceaccount.com`                                |
-| `GCP_RUNTIME_SA`                          | `goawaygo-backend@goawaygo-staging.iam.gserviceaccount.com`                                 |
-| `DB_HOST`                                 | Neon host (no `-pooler`)                                                                    |
-| `CORS_ALLOWED_ORIGINS`                    | `https://staging.goawaygo.com`                                                              |
-| `WEB_BASE_URL`                            | `https://staging.goawaygo.com`                                                              |
-| `API_BASE_URL`                            | `https://api.goawaygo.com`                                                                  |
-| `DB_NAME`, `DB_OWNER_USER`, `DB_APP_USER` | optional; only to override the default names `goawaygo` / `goawaygo_owner` / `goawaygo_app` |
-| `GOOGLE_CODE_FLOW_ENABLED`                | `true` once `goawaygo-google-client-secret` exists                                          |
-| `MAIL_FROM`                               | `GoAwayGo <no-reply@goawaygo.com>` once Resend is set up (empty = no mail)                  |
-| `FCM_PROJECT`                             | `goaway-483709` once the runtime account may send pushes (empty = no push)                  |
+| Variable                                | Value                                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| `GCP_REGION`                            | `asia-southeast1`                                                              |
+| `IMAGE_PROJECT_ID`                      | `goawaygo-staging` (the one image registry; Release builds there)              |
+| `IMAGE_WIF_PROVIDER`, `IMAGE_DEPLOY_SA` | goawaygo-staging's Workload Identity provider and deployer (they push images)  |
+| `PROD_API_BASE_URL`                     | `https://api.goawaygo.com` (the daily jobs call prod)                          |
+| `PROD_WEB_URL`                          | `https://goawaygo.com` (the prod smoke tests check the API allows it)          |
+| `GOOGLE_CODE_FLOW_ENABLED`              | `true` once `goawaygo-google-client-secret` exists                             |
+| `MAIL_FROM`                             | `GoAwayGo <no-reply@goawaygo.com>` once Resend is set up (empty = no mail)     |
+| `FCM_PROJECT`                           | `goaway-483709` once the runtime account may send pushes (empty = no push)     |
+| `EXTERNAL_API_PROVIDERS`                | the outside APIs in use (`gemini geoapify unsplash openai travelpayouts`)      |
+| `SENTRY_DSN`                            | the goawaygo-backend project's DSN                                             |
+| `CLOUDFLARE_ACCOUNT_ID`                 | for the backup upload to R2                                                    |
 
-The deploy workflow stays inactive until `GCP_PROJECT_ID` is set.
+Release stays inactive until `IMAGE_PROJECT_ID` is set; a deploy needs its environment's `GCP_PROJECT_ID`.
 
 ### 5. Make the API public (once, after the first deploy)
 
@@ -327,7 +332,7 @@ Better Stack (free plan, team Gmail) checks every 3 minutes and emails on downti
 | Monitor                                              | Expect             | Every  |
 | ---------------------------------------------------- | ------------------ | ------ |
 | `https://api.goawaygo.com/actuator/health`           | status 200, `"UP"` | 3 min  |
-| `https://staging.goawaygo.com`                       | status 200         | 3 min  |
+| `https://goawaygo.com/home`, keyword "GoAwayGo"      | status 200         | 3 min  |
 | `https://downloads.goawaygo.com/android/latest.json` | status 200         | 30 min |
 
 The API monitor allows a 30 s timeout, because the first check after an idle period waits for a cold start. Public

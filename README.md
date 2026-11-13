@@ -6,7 +6,8 @@ Frontends: [app](https://github.com/goawaygoofficial/goawaygo_app_frontend) (Flu
 [web](https://github.com/goawaygoofficial/goawaygo_web_frontend) (React).
 
 > **Status (beta):** accounts (email/password, Google Sign-In, email verification, password reset), health check,
-> error tracking and the outside-API toolkit are live on staging. Travel features arrive from Phase 4.1 (`ROADMAP.md`).
+> error tracking and the travel features are live in production (`api.goawaygo.com`, website `goawaygo.com`); see
+> `ROADMAP.md`.
 
 ## Documentation
 

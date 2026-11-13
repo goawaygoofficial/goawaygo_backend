@@ -4,9 +4,12 @@ name: Deploy
 # Release workflow, so dev, test and prod run exactly the same build. Called by Release (every version → dev) and by
 # controller.yaml (a tested version → test → prod, 5.4).
 #
-# Each environment is a GitHub environment (dev, test, prod) with its own variables: SERVICE (the Cloud Run service),
-# SECRET_PREFIX, DB_HOST, DB_NAME, DB_OWNER_USER, DB_APP_USER, CORS_ALLOWED_ORIGINS, WEB_BASE_URL, API_BASE_URL,
-# SENTRY_ENVIRONMENT and the feature switches (docs/deployment.md, "Environments"). test and prod need the owner's
+# Each environment is a GitHub environment (dev, test, prod) with all of its own variables: GCP_PROJECT_ID,
+# GCP_WIF_PROVIDER, GCP_DEPLOY_SA, GCP_RUNTIME_SA, SERVICE (the Cloud Run service), SECRET_PREFIX, DB_HOST, DB_NAME,
+# DB_OWNER_USER, DB_APP_USER, CORS_ALLOWED_ORIGINS, WEB_BASE_URL, API_BASE_URL, SENTRY_ENVIRONMENT and the feature
+# switches TEST_FAKES and WANDERBOOK_PHOTOS. Only what all three share is a repository variable (GCP_REGION, the image
+# registry, MAIL_FROM, SENTRY_DSN, EXTERNAL_API_PROVIDERS, FCM_PROJECT, GOOGLE_CODE_FLOW_ENABLED; docs/deployment.md,
+# "Environments"). test and prod need the owner's
 # approval before a deploy starts.
 on:
   workflow_call:
@@ -27,7 +30,7 @@ permissions:
 env:
   # Images live in one project's registry (repository variable IMAGE_PROJECT_ID, goawaygo-staging): built once and
   # deployed to every environment, prod's own project included.
-  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.IMAGE_PROJECT_ID || vars.GCP_PROJECT_ID }}/goawaygo/backend
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.IMAGE_PROJECT_ID }}/goawaygo/backend
 
 jobs:
   deploy:

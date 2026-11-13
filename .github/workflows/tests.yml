@@ -73,8 +73,8 @@ jobs:
           # Never sent to prod: prod has no fakes and no test accounts.
           TEST_FAKES_TOKEN: ${{ inputs.environment != 'prod' && secrets.TEST_FAKES_TOKEN || '' }}
           AT_ACCOUNT_PASSWORD: ${{ inputs.environment != 'prod' && secrets.AT_ACCOUNT_PASSWORD || '' }}
-          # prod's website address the backend allows (staging.goawaygo.com until the launch).
-          ALLOWED_ORIGIN: ${{ inputs.environment == 'prod' && vars.WEB_BASE_URL || '' }}
+          # prod's website address the backend allows (repository variable PROD_WEB_URL: this job has no environment).
+          ALLOWED_ORIGIN: ${{ inputs.environment == 'prod' && vars.PROD_WEB_URL || '' }}
           SCOPE: ${{ inputs.scope }}
         run: |
           grep=()
