@@ -50,11 +50,13 @@ localhost origins for sign-in, the AI GitHub apps.
   CLAUDE.md, deployment docs updated.
 - **This PC:** stray `dbg.png`, `backend/Artifact`, `backend/Enabling`.
 
-## Left for the owner (needs your sign-in)
+- **Accounts (signed in by the owner):** GitHub app "Cloudflare Workers and Pages" uninstalled and its authorization
+  revoked; PostHog project "GoAwayGo Staging" renamed "GoAwayGo" (same project and token; no authorized URLs, no
+  integrations); Resend API key "goaway-staging" renamed "goawaygo" (same key; one domain, no webhooks); the last old
+  backend repository variable `WEB_BASE_URL` deleted (the prod smoke test falls back to `https://goawaygo.com`).
+- **KAYAK:** no portal account yet (sandbox only); nothing to clean. Its key stays for when KAYAK approves.
 
-- GitHub → Settings → Applications → **Cloudflare Workers and Pages** → Uninstall (GitHub asks for your passkey).
-- PostHog, Resend, KAYAK: sign in once so their settings can be checked for old addresses.
-- The repository variable `WEB_BASE_URL` (backend) goes after the next promotion to `main` (the old prod smoke test on
-  `main` still reads it).
-- The testers' installed app (build 12) still links to staging for Privacy/Terms/shared plans; the next app build
-  (13) links to goawaygo.com.
+## Still to happen
+
+- The testers' installed app (build 12) still links to staging.goawaygo.com (now gone) for Privacy, Terms, Delete my
+  data and shared plans; build 13 links to goawaygo.com and reports to Sentry as `production`.
