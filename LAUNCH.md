@@ -52,24 +52,31 @@ name the exact menus.
 
 ## B. The switch (about 30 minutes; pick a quiet time)
 
-1. [ ] **Backend allows the new address.** Repository variables of goawaygo_backend (Settings → Secrets and variables
+1. [x] **Backend allows the new address.** Repository variables of goawaygo_backend (Settings → Secrets and variables
        → Actions → Variables): `CORS_ALLOWED_ORIGINS` = `https://goawaygo.com,https://www.goawaygo.com,https://staging.goawaygo.com`
        and `WEB_BASE_URL` = `https://goawaygo.com` (links in emails). Then redeploy prod with the same version:
        Actions → Controller → Run workflow → branch `main` → (version empty) → approve **prod**.
-2. [ ] **Cloudflare → Rules**: turn off the Redirect Rule "goawaygo.com to website".
-3. [ ] **Cloudflare → DNS → Records**: delete the two placeholder A records `@` and `www` (`192.0.2.1`).
-4. [ ] **Cloudflare → Workers & Pages → goawaygo-web-prod → Custom domains**: add `goawaygo.com`, then
+2. [x] **Cloudflare → Rules**: turn off the Redirect Rule "goawaygo.com to website".
+3. [x] **Cloudflare → DNS → Records**: delete the two placeholder A records `@` and `www` (`192.0.2.1`). (Done by
+       step 4: adding the custom domains replaced them with CNAMEs to `goawaygo-web-prod.pages.dev`.)
+4. [x] **Cloudflare → Workers & Pages → goawaygo-web-prod → Custom domains**: add `goawaygo.com`, then
        `www.goawaygo.com`. Cloudflare creates the DNS records and the certificate (a few minutes).
-5. [ ] **www to the main address**: Rules → Redirect Rules → Create: when hostname equals `www.goawaygo.com`, redirect
+5. [x] **www to the main address**: Rules → Redirect Rules → Create: when hostname equals `www.goawaygo.com`, redirect
        301 to `https://goawaygo.com${path}` with the query string kept.
-6. [ ] **GitHub variables**: website environment `prod`: `WEB_URL` = `https://goawaygo.com`; website repository
+6. [x] **GitHub variables**: website environment `prod`: `WEB_URL` = `https://goawaygo.com`; website repository
        variable `PROD_WEB_URL` = `https://goawaygo.com` (the prod smoke tests).
-7. [ ] **Check**: `https://goawaygo.com/home` loads, sign-in with email and with Google works, a destination page
+7. [x] **Check**: `https://goawaygo.com/home` loads, sign-in with email and with Google works, a destination page
        loads, `https://goawaygo.com/sitemap.xml` and `/robots.txt` answer, `https://www.goawaygo.com` redirects.
-8. [ ] **staging.goawaygo.com**: Workers & Pages → goawaygo-web-frontend → Custom domains → remove
-       `staging.goawaygo.com`; then a Redirect Rule: hostname `staging.goawaygo.com` → 301 to
-       `https://goawaygo.com${path}`. The beta app's legal links (`WEBSITE_URL`) keep working through it; the next
-       app build points at goawaygo.com directly.
+8. [x] **staging.goawaygo.com**: Redirect Rule "staging.goawaygo.com to goawaygo.com": hostname
+       `staging.goawaygo.com` → 301 to `https://goawaygo.com${path}` with the query string kept. The custom domain
+       stays on `goawaygo-web-frontend` for now (removing it can remove its DNS record, and the redirect needs one);
+       it goes when that project is retired (part C). The beta app's legal links (`WEBSITE_URL`) keep working
+       through the redirect; the next app build points at goawaygo.com directly.
+
+Switched on 13 Nov 2026 (after a Cloudflare Workers API outage delayed steps 2–8). Checked: `/`, `/home`,
+`/privacy`, `/terms` and a destination page answer 200 with their own titles, no `X-Robots-Tag`; `sitemap.xml`
+(59 entries) and `robots.txt` answer; http, `www` and `staging` redirect 301 with the path and query kept; the API
+accepts `https://goawaygo.com`; the Google button loads. Still to try by hand: signing in with email and with Google.
 
 ## C. After the switch
 
@@ -80,6 +87,7 @@ name the exact menus.
 - [ ] Native-speaker check of the 6 other languages (decided: right after launch).
 - [ ] Remove `staging.goawaygo.com` from the backend's `CORS_ALLOWED_ORIGINS` and the Google origins once nothing uses
       it (after the next app build), and retire the old Pages project `goawaygo-web-frontend`.
+- [ ] Remove the disabled Redirect Rule "goawaygo.com to website" (kept for now, off).
 - [ ] Better Stack: pause (or delete) the old "GoAwayGo website" monitor of `staging.goawaygo.com`; status page
       → Settings → logo link to `https://goawaygo.com`.
 - [ ] Next app build: `WEBSITE_URL=https://goawaygo.com` in `env/staging.env`.
