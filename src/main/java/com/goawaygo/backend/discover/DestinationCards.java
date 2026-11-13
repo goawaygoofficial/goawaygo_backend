@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * The 9 AI-written info cards of a destination page: one request (prompts in {@code resources/prompts}, explained in
- * {@code docs/destination-prompts.md}), one separate JSON field per card, and every card checked on its own before
+ * README.md, "Discover: destination pages, photos and ideas"), one separate JSON field per card, and every card checked on its own before
  * anything is shown. Nothing is stored: every page open asks again.
  */
 @Component
