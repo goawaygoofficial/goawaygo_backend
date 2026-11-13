@@ -2,7 +2,7 @@
 #   feature/... or fix/... (or Dependabot's dependabot/...)  →  develop  →  test  →  main
 # This check is required on develop, test and main (repository rulesets), so a pull request on any other path can't
 # be merged. The rulesets also reject new branches named anything else, require the owner's approval into test and
-# main, and block direct pushes (see CLAUDE.md).
+# main, and block direct pushes (README.md, "Conventions and decisions").
 name: Branch guard
 
 on:

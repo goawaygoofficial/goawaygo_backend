@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates the backend's other secrets in Google Secret Manager for one environment (see docs/deployment.md).
+# Creates the backend's other secrets in Google Secret Manager for one environment (see README.md, Deployment).
 # Nothing is printed or written to disk; typed values are hidden.
 #
 #   Usage:  scripts/gcp-secrets.sh <project-id> jwt              new ES256 key pair for login tokens
@@ -7,7 +7,7 @@
 #           scripts/gcp-secrets.sh <project-id> resend           Resend API key (email)
 #           scripts/gcp-secrets.sh <project-id> provider <name>  an outside API's key (goawaygo-api-<name>), readable by
 #                                                                the backend right away; then add <name> to the repo
-#                                                                variable EXTERNAL_API_PROVIDERS (docs/deployment.md)
+#                                                                variable EXTERNAL_API_PROVIDERS (README.md, Deployment)
 #           scripts/gcp-secrets.sh <project-id> r2               Cloudflare R2 access key for Wanderbook photos
 #                                                                (Access Key ID and Secret Access Key)
 #           scripts/gcp-secrets.sh <project-id> access           let the backend's service account read them all
@@ -17,7 +17,7 @@
 # goawaygo-db-*-password. The Google, Resend, R2 and outside API secrets are shared by every environment.
 #
 # goawaygo-test-fakes-token (dev and test, shared) is a random value GitHub also holds, so it is made where both are set
-# at once (docs/deployment.md, "Test runs"); "access" lets dev and test read it.
+# at once (README.md, Deployment); "access" lets dev and test read it.
 #
 # Running "jwt" again rotates the key pair: everyone has to sign in again (access tokens last 20 minutes and refresh
 # tokens are checked against the database, so the effect is limited to that).

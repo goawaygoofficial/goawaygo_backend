@@ -8,7 +8,7 @@ name: Deploy
 # GCP_WIF_PROVIDER, GCP_DEPLOY_SA, GCP_RUNTIME_SA, SERVICE (the Cloud Run service), SECRET_PREFIX, DB_HOST, DB_NAME,
 # DB_OWNER_USER, DB_APP_USER, CORS_ALLOWED_ORIGINS, WEB_BASE_URL, API_BASE_URL, SENTRY_ENVIRONMENT and the feature
 # switches TEST_FAKES and WANDERBOOK_PHOTOS. Only what all three share is a repository variable (GCP_REGION, the image
-# registry, MAIL_FROM, SENTRY_DSN, EXTERNAL_API_PROVIDERS, FCM_PROJECT, GOOGLE_CODE_FLOW_ENABLED; docs/deployment.md,
+# registry, MAIL_FROM, SENTRY_DSN, EXTERNAL_API_PROVIDERS, FCM_PROJECT, GOOGLE_CODE_FLOW_ENABLED; README.md, Deployment →
 # "Environments"). test and prod need the owner's
 # approval before a deploy starts.
 on:
@@ -97,7 +97,7 @@ jobs:
           SENTRY_RELEASE: "goawaygo-backend@${{ inputs.version }}"
           APP_VERSION: "${{ inputs.version }}"
           # Push notifications: the Firebase project (repo variable FCM_PROJECT, set once the runtime service account
-          # may send with Firebase Cloud Messaging; docs/deployment.md). Empty: the bell works, no pushes are sent.
+          # may send with Firebase Cloud Messaging; README.md, Deployment). Empty: the bell works, no pushes are sent.
           NOTIFICATIONS_FCM_PROJECT: "${{ vars.FCM_PROJECT }}"
           EOF
 
@@ -149,7 +149,7 @@ jobs:
           # max-instances 1: rate limits are kept in memory (one instance). min-instances 0: free when idle.
           # cpu-throttling (request-based billing): CPU only while a request is handled, so an idle instance kept up by
           # uptime checks costs nothing. Everything, emails included, finishes inside the request.
-          # Public access is granted once by a project owner (docs/deployment.md); the deployer is deliberately not
+          # Public access is granted once by a project owner (README.md, Deployment); the deployer is deliberately not
           # allowed to change who can call the service.
           gcloud run deploy "$SERVICE" \
             --image "$IMAGE:${{ inputs.version }}" \
