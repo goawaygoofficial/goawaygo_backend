@@ -111,8 +111,8 @@ Postgres 17, AWS Singapore. Check **Monitoring** (compute hours: free tier 100/m
 
 Pages projects: `goawaygo-web-prod` (`goawaygo.com`, `www.goawaygo.com`), `goawaygo-web-dev` (`dev.goawaygo.com`),
 `goawaygo-web-test` (`test.goawaygo.com`); GitHub Actions uploads to them (`web_frontend/docs/deployment.md`).
-`www.goawaygo.com` and `staging.goawaygo.com` (the pre-launch address, a placeholder record) redirect 301 to
-`goawaygo.com` with the path kept.
+`www.goawaygo.com` redirects 301 to `goawaygo.com` with the path kept. There are no other website addresses (the
+pre-launch `staging.goawaygo.com` was deleted on 14 Nov 2026).
 
 ## 8. Email sending (Resend)
 
