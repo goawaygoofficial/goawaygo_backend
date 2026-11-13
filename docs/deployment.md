@@ -270,6 +270,41 @@ Rate limits use the client address from `X-Forwarded-For`, trusted only from int
 different networks don't share sign-in limits. If it sees a proxy address, set `SERVER_TOMCAT_REMOTEIP_INTERNALPROXIES`
 to match it.
 
+## Database backups (5.7)
+
+Every night at 02:00 India time, **Database backup** (`.github/workflows/backup.yml`) dumps the prod database
+(`pg_dump`, custom format), encrypts it for the owner and uploads it to the Cloudflare R2 bucket `goawaygo-backups`
+(`prod/goawaygo-prod-<date>.tar`). A bucket rule deletes copies after 30 days. Neon's own restore window is short;
+these copies cover mistakes found later.
+
+- **Encrypted for the owner only:** a fresh AES-256 key per copy, itself encrypted with the owner's public key
+  (repository variable `BACKUP_PUBLIC_KEY`). The private key is on the owner's PC (`~/.goawaygo/backup/`), with an
+  offline copy; GitHub and R2 can't read a copy.
+- **No stored database password:** the job signs in to goawaygo-prod keyless (GitHub environment `backup`) and reads
+  `goawaygo-db-owner-password` from Secret Manager.
+
+Set up once (owner):
+
+1. Key pair: `scripts/backup-keys.sh` (gh signed in as the owner). Copy `~/.goawaygo/backup/backup-private.pem`
+   somewhere safe offline.
+2. Cloudflare → R2 → **Create bucket** `goawaygo-backups` (location: Asia-Pacific) → **Settings → Object lifecycle
+   rules → Add rule**: delete objects 30 days after upload. R2 → **Manage API tokens → Create API token**: Object
+   Read & Write, only bucket `goawaygo-backups`; store its two values as the backend repository secrets
+   `R2_BACKUP_ACCESS_KEY_ID` and `R2_BACKUP_SECRET_ACCESS_KEY` (`gh secret set ... -R goawaygoofficial/goawaygo_backend`,
+   pasted into the hidden prompt).
+3. Let the prod deployer read the database owner password (the job runs as it):
+
+   ```bash
+   gcloud secrets add-iam-policy-binding goawaygo-db-owner-password --project goawaygo-prod --member serviceAccount:goawaygo-deployer@goawaygo-prod.iam.gserviceaccount.com --role roles/secretmanager.secretAccessor
+   ```
+
+4. Actions → Database backup → **Run workflow**; the copy appears in R2.
+
+**Restore** (practice it once, then whenever needed): download the copy from R2, then
+`scripts/restore-backup.sh <file>.tar` (Docker running). It decrypts with the private key, checks the checksum and
+loads the dump into the database you name: a scratch database (e.g. `goawaygo_restore_test` in the Neon project
+`goawaygo-staging`) for practice; prod's own `goawaygo` only on purpose (it asks you to type "replace prod").
+
 ## Costs and limits (pre-launch)
 
 - Cloud Run free tier (request-based billing): 180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million requests a
