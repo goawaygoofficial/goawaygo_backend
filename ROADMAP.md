@@ -2,7 +2,7 @@
 
 # GoAwayGo roadmap
 
-Where the project stands and what comes next. Tick items as they ship (merged to `develop` and live on staging).
+Where the project stands and what comes next. Tick items as they ship (merged to `develop` and live on dev).
 Shared by all three repos; how to ship is in `RELEASING.md`.
 
 ## Done
@@ -266,6 +266,5 @@ KAYAK, smaller copies of Wanderbook photos, a native speaker's check of the tran
 ## Phase 5 — Launch
 
 App store launch (a later MVP) · company registration · Play Console + Android developer verification (before the
-2027 rule reaches India) · production database on Cloud SQL (the website launches on Neon in MVP 2; remove
-`goawaygo.com`'s temporary redirect to staging at that launch, see LINKS.md) · Google billing upgraded before the
+2027 rule reaches India) · production database on Cloud SQL (the website launched on Neon in MVP 2, 2026-11-13) · Google billing upgraded before the
 trial ends (2027-01-14) · DPDP compliance review (substantive obligations from 13 May 2027).

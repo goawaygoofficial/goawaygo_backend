@@ -12,11 +12,11 @@ Every merge whose CI passes becomes a **version** (MVP 2, 5.2): a `vMAJOR.MINOR.
 `fix:` and everything else → patch, `feat!:` or `BREAKING CHANGE` → major (`.github/scripts/next-version.sh`). Each
 repo has its own versions; all three started at `v1.5.0` (MVP 1).
 
-| Part        | You do                                | Happens automatically                                                                                                                                                                   | Check                                                                  |
-| ----------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Backend     | Nothing                               | CI tests → version → image built once (tagged with the version) → deployed to **dev** (`api-dev.goawaygo.com`) → smoke test; Flyway migrates (~6 min)                                   | GitHub → goawaygo_backend → Actions → **Release** ✅                   |
-| Website     | Nothing                               | CI → version → website built once, attached to the release, deployed to **dev** (`dev.goawaygo.com`) (**Release**); Cloudflare Pages also publishes `staging.goawaygo.com` until launch | Cloudflare → Workers & Pages → **goawaygo-web-frontend** → Deployments |
-| Android app | Release it (below) when worth testing | CI → version (**Release**). The APK is signed with the upload key that exists only on the release PC                                                                                    | `https://staging.goawaygo.com/download` shows the new version          |
+| Part        | You do                                | Happens automatically                                                                                                                                 | Check                                                     |
+| ----------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Backend     | Nothing                               | CI tests → version → image built once (tagged with the version) → deployed to **dev** (`api-dev.goawaygo.com`) → smoke test; Flyway migrates (~6 min) | GitHub → goawaygo_backend → Actions → **Release** ✅      |
+| Website     | Nothing                               | CI → version → website built once, attached to the release, deployed to **dev** (`dev.goawaygo.com`) (**Release**)                                    | GitHub → goawaygo_web_frontend → Actions → **Release** ✅ |
+| Android app | Release it (below) when worth testing | CI → version (**Release**). The APK is signed with the upload key that exists only on the release PC                                                  | `https://goawaygo.com/download` shows the new version     |
 
 The app doesn't need a release after every merge: release at the end of a feature or when testers should try
 something.
@@ -34,7 +34,7 @@ bash scripts/release-android.sh 1.0.0 <next-build> "What changed in this version
 ```
 
 - `<next-build>`: the last build number + 1. **It must always go up**, or phones refuse the update.
-- Ends with `Live: https://staging.goawaygo.com/download`. If it asks for Cloudflare, run
+- Ends with `Live: https://goawaygo.com/download`. If it asks for Cloudflare, run
   `npx --yes wrangler@4.145.0 login` once and repeat.
 - It refuses to run without the upload key (`android/key.properties`), so nothing debug-signed is ever published.
 - Push notifications need the Firebase key on this PC: run `bash scripts/firebase-key.sh` once (gcloud signed in).
@@ -48,7 +48,7 @@ Then send it to the beta testers:
 2. Drag in `app_frontend/build/release/goawaygo-<version>-<build>-universal.apk`, paste the same notes.
 3. Testers → group **public-beta** → **Distribute**.
 
-Check `https://staging.goawaygo.com/download`, then install it on a phone over the previous build.
+Check `https://goawaygo.com/download`, then install it on a phone over the previous build.
 
 ### Version numbers
 
@@ -79,10 +79,10 @@ Add a row for every release.
 | Situation                         | What to do                                                                                                                                                                        |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | New backend secret (API key etc.) | Stored with a hidden-input script into Google Secret Manager (`backend/scripts/gcp-secrets.sh`)                                                                                   |
-| New website setting (`VITE_*`)    | Cloudflare → goawaygo-web-frontend → Settings → Variables, then redeploy                                                                                                          |
+| New website setting               | A change to `src/lib/env.ts` (one build serves every environment), merged like any other change                                                                                   |
 | Database change                   | Nothing: Flyway migrates on deploy. Keep migrations additive so a rollback still works.                                                                                           |
 | Broken in test or prod            | Roll back with **Controller** → Run workflow (above). Instant backend switch: `gcloud run services update-traffic <service> --region asia-southeast1 --to-revisions REVISION=100` |
-| Website broken on staging         | Cloudflare → goawaygo-web-frontend → Deployments → earlier deployment → **Rollback**                                                                                              |
+| Website broken in prod (urgent)   | Cloudflare → goawaygo-web-prod → Deployments → earlier deployment → **Rollback**; then the Controller as above                                                                    |
 | Bad app build                     | Release a fixed build with a higher build number; delete the bad files from R2 and purge their URLs in Cloudflare cache                                                           |
 
 ## Moving a version up: test, then prod (`controller.yaml`, MVP 2, 5.4)

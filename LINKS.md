@@ -2,7 +2,8 @@
 
 # GoAwayGo — links
 
-Every place to check that GoAwayGo works, and every account it runs on. Staging (pre-launch) unless marked.
+Every place to check that GoAwayGo works, and every account it runs on. Production unless marked; dev and test
+are the same with `dev.` / `test.` (website) and `api-dev.` / `api-test.` (API).
 Sign in to everything with the team account (kept out of these public repos). What each service is _for_:
 `FOUNDATIONS.md`. How to ship: `RELEASING.md`. What's next: `ROADMAP.md`.
 
@@ -12,10 +13,11 @@ Sign in to everything with the team account (kept out of these public repos). Wh
 | ------------------------- | ------------------------------------------------------- | --------------------------------------------- |
 | Public status page        | https://status.goawaygo.com                             | "All services are online"                     |
 | Uptime monitors + alerts  | https://incidents.betterstack.com/team/t617423/monitors | 3 monitors green: API, Website, App downloads |
-| Website (staging)         | https://staging.goawaygo.com                            | Home loads                                    |
+| Website                   | https://goawaygo.com                                    | Home loads                                    |
 | API health                | https://api.goawaygo.com/actuator/health                | `{"status":"UP"}`                             |
 | Latest Android build info | https://downloads.goawaygo.com/android/latest.json      | Shows the current version and build           |
-| App download page         | https://staging.goawaygo.com/download                   | Version, size, "Download for Android"         |
+| App download page         | https://goawaygo.com/download                           | Version, size, "Download for Android"         |
+| dev / test websites       | https://dev.goawaygo.com · https://test.goawaygo.com    | Home loads                                    |
 
 The first API request after ~15 idle minutes takes 7–10 s (cold start); that's normal.
 
@@ -88,27 +90,29 @@ the prod project; change `project=` to `goawaygo-staging` for dev and test.
 | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
 | Neon console: project goawaygo-prod (prod, database `goawaygo`); project goawaygo-staging (dev `goawaygo_dev`, test `goawaygo_test`) | https://console.neon.tech/app/projects |
 
-Postgres 17, AWS Singapore, database `goawaygo`. Check **Monitoring** (compute hours: free tier 100/month) and
-**Tables** (e.g. `external_api_usage` to see outside-API calls per day). Moves to Google Cloud SQL at launch.
+Postgres 17, AWS Singapore. Check **Monitoring** (compute hours: free tier 100/month) and **Tables** (e.g.
+`external_api_usage` to see outside-API calls per day). Prod is backed up every night, encrypted, to R2
+`goawaygo-backups` (`backend/docs/deployment.md`, "Database backups").
 
 ## 7. Website, domain, downloads, email forwarding (Cloudflare)
 
 | What                                            | Link                                                                                               |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Cloudflare account home                         | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082                                       |
-| Website hosting (Pages: deploys, previews)      | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/pages/view/goawaygo-web-frontend      |
+| Website hosting (Pages: prod, dev, test)        | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/workers-and-pages                     |
 | DNS records for goawaygo.com                    | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/dns/records              |
+| Redirect Rules (www, staging → goawaygo.com)    | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/rules/redirect-rules     |
 | App downloads storage (R2 `goawaygo-downloads`) | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-downloads |
 | Wanderbook photos (R2 `goawaygo-media`)         | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-media     |
-| R2 API tokens (photo access key)                | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/api-tokens                         |
+| Database backups (R2 `goawaygo-backups`)        | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-backups   |
+| R2 API tokens (photos, backups)                 | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/api-tokens                         |
 | Email forwarding (privacy@, support@)           | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/email/routing/routes     |
 | Domain registration and renewal                 | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/domains                               |
-| Redirect `goawaygo.com` → website (Rules)       | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/rules/overview           |
 
-`goawaygo.com` and `www.goawaygo.com` redirect (302, path and query kept) to `staging.goawaygo.com` until launch:
-Redirect Rule "goawaygo.com to website" plus two proxied placeholder A records (`@`, `www` → `192.0.2.1`). Partner
-applications use `https://goawaygo.com`. **At launch (Phase 5):** delete the rule and both records, then add
-`goawaygo.com` to the production site.
+Pages projects: `goawaygo-web-prod` (`goawaygo.com`, `www.goawaygo.com`), `goawaygo-web-dev` (`dev.goawaygo.com`),
+`goawaygo-web-test` (`test.goawaygo.com`); GitHub Actions uploads to them (`web_frontend/docs/deployment.md`).
+`www.goawaygo.com` and `staging.goawaygo.com` (the pre-launch address, a placeholder record) redirect 301 to
+`goawaygo.com` with the path kept.
 
 ## 8. Email sending (Resend)
 
@@ -133,29 +137,30 @@ forward to the team Gmail.
 
 ## 10. Public pages users see
 
-| Page                        | Link                                              |
-| --------------------------- | ------------------------------------------------- |
-| Website                     | https://staging.goawaygo.com                      |
-| Get the app                 | https://staging.goawaygo.com/download             |
-| Privacy Policy              | https://staging.goawaygo.com/privacy              |
-| Terms of Use                | https://staging.goawaygo.com/terms                |
-| Delete my data              | https://staging.goawaygo.com/delete-my-data       |
-| Community Guidelines        | https://staging.goawaygo.com/community-guidelines |
-| Wanderbook reports (admins) | https://staging.goawaygo.com/admin/reports        |
-| Status page                 | https://status.goawaygo.com                       |
-| Contact                     | support@goawaygo.com · privacy@goawaygo.com       |
+| Page                        | Link                                                                        |
+| --------------------------- | --------------------------------------------------------------------------- |
+| Website                     | https://goawaygo.com                                                        |
+| Get the app                 | https://goawaygo.com/download                                               |
+| Privacy Policy              | https://goawaygo.com/privacy                                                |
+| Terms of Use                | https://goawaygo.com/terms                                                  |
+| Delete my data              | https://goawaygo.com/delete-my-data                                         |
+| Community Guidelines        | https://goawaygo.com/community-guidelines                                   |
+| Wanderbook reports (admins) | https://goawaygo.com/admin/reports                                          |
+| Status page                 | https://status.goawaygo.com                                                 |
+| Search Console (Google)     | https://search.google.com/search-console?resource_id=sc-domain:goawaygo.com |
+| Contact                     | support@goawaygo.com · privacy@goawaygo.com                                 |
 
 ## 11. Feature services (Discover, Wanderbook, Book)
 
-| What                                             | Link                                                           |
-| ------------------------------------------------ | -------------------------------------------------------------- |
-| Gemini API keys and usage (Google AI Studio)     | https://aistudio.google.com/apikey                             |
-| Geoapify projects and usage                      | https://myprojects.geoapify.com                                |
-| Unsplash app (demo limits, apply for production) | https://unsplash.com/oauth/applications                        |
-| OpenAI API keys and usage                        | https://platform.openai.com/api-keys                           |
-| Travelpayouts (programs, statistics, payouts)    | https://app.travelpayouts.com                                  |
-| KAYAK Affiliate Network (API keys, approval)     | https://affiliates.kayak.com                                   |
-| Outside API calls so far (Neon SQL editor)       | `SELECT * FROM external_api_usage ORDER BY period_start DESC;` |
+| What                                                                    | Link                                                           |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Gemini API keys and usage (Google AI Studio; project "GoAwayGo Gemini") | https://aistudio.google.com/apikey                             |
+| Geoapify projects and usage                                             | https://myprojects.geoapify.com                                |
+| Unsplash app (demo limits, apply for production)                        | https://unsplash.com/oauth/applications                        |
+| OpenAI API keys and usage                                               | https://platform.openai.com/api-keys                           |
+| Travelpayouts (programs, statistics, payouts)                           | https://app.travelpayouts.com                                  |
+| KAYAK Affiliate Network (API keys, approval)                            | https://affiliates.kayak.com                                   |
+| Outside API calls so far (Neon SQL editor)                              | `SELECT * FROM external_api_usage ORDER BY period_start DESC;` |
 
 ## 12. Reference
 
