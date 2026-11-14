@@ -46,12 +46,14 @@ public class AuthService {
 
 	private final AccountEmailService accountEmails;
 
+	private final TeamOnlyAccess teamOnly;
+
 	/** Compared against when the email is unknown, so "no such user" takes as long as "wrong password". */
 	private final String dummyPasswordHash;
 
 	public AuthService(UserRepository users, PasswordEncoder passwordEncoder, AccessTokenService accessTokens,
 			RefreshTokenService refreshTokens, GoogleIdTokenVerifier googleVerifier, RateLimiter rateLimiter,
-			RateLimitProperties rateLimits, AccountEmailService accountEmails) {
+			RateLimitProperties rateLimits, AccountEmailService accountEmails, TeamOnlyAccess teamOnly) {
 		this.users = users;
 		this.passwordEncoder = passwordEncoder;
 		this.accessTokens = accessTokens;
@@ -60,6 +62,7 @@ public class AuthService {
 		this.rateLimiter = rateLimiter;
 		this.rateLimits = rateLimits;
 		this.accountEmails = accountEmails;
+		this.teamOnly = teamOnly;
 		this.dummyPasswordHash = passwordEncoder.encode("timing-equalizer-not-a-real-password");
 	}
 
@@ -69,6 +72,8 @@ public class AuthService {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "password_too_long", "Password is too long.");
 		}
 		String email = User.normalizeEmail(request.email());
+		// dev and test: only the team signs up (no email is sent to anyone else).
+		this.teamOnly.check(email);
 		if (this.users.existsByEmail(email)) {
 			throw emailTaken();
 		}
@@ -100,6 +105,8 @@ public class AuthService {
 			// Same response for unknown email and wrong password, so attackers can't probe which emails exist.
 			throw new ApiException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Incorrect email or password.");
 		}
+		// After the password check, so the answer doesn't reveal which emails have an account.
+		this.teamOnly.check(user.getEmail());
 		return startSession(user, this.refreshTokens.issue(user.getId(), userAgent), user.cancelDeletion());
 	}
 
@@ -120,6 +127,8 @@ public class AuthService {
 			throw new ApiException(HttpStatus.FORBIDDEN, "google_email_not_verified",
 					"Your Google account's email is not verified. Verify it with Google, or sign up with email.");
 		}
+		// dev and test: only the team, before any account is created or linked.
+		this.teamOnly.check(google.email());
 
 		User user = this.users.findByGoogleSubject(google.subject()).orElse(null);
 		if (user == null) {
@@ -170,6 +179,8 @@ public class AuthService {
 		User user = this.users.findById(rotation.userId())
 			.orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "invalid_refresh_token",
 					"Your session has expired. Please sign in again."));
+		// dev and test: sessions from before the restriction end too.
+		this.teamOnly.check(user.getEmail());
 		return startSession(user, rotation.refreshToken(), false);
 	}
 
@@ -184,6 +195,11 @@ public class AuthService {
 	Session startSession(User user, IssuedRefreshToken refreshToken, boolean restored) {
 		if (restored) {
 			log.info("User {} signed in again: account deletion cancelled", user.getId());
+		}
+		if (this.teamOnly.isTeam(user.getEmail()) && !user.isAdmin()) {
+			// dev and test: the team's account is the environment's admin.
+			user.makeAdmin();
+			log.info("User {} is a team account here: made admin", user.getId());
 		}
 		IssuedToken accessToken = this.accessTokens.issue(user.getId());
 		long expiresIn = Duration.between(accessToken.issuedAt(), accessToken.expiresAt()).toSeconds();

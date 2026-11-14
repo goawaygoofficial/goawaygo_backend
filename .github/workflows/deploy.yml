@@ -90,6 +90,8 @@ jobs:
           FORWARD_HEADERS_STRATEGY: "native"
           CORS_ALLOWED_ORIGINS: "${{ vars.CORS_ALLOWED_ORIGINS }}"
           WEB_BASE_URL: "${{ vars.WEB_BASE_URL }}"
+          # dev and test: only these accounts may sign in (environment variable TEAM_ONLY_EMAILS); empty in prod.
+          TEAM_ONLY_EMAILS: "${{ vars.TEAM_ONLY_EMAILS }}"
           GOOGLE_CLOUD_PROJECT: "${{ vars.GCP_PROJECT_ID }}"
           LOGGING_STRUCTURED_FORMAT_CONSOLE: "com.goawaygo.backend.logging.CloudLoggingFormatter"
           SENTRY_DSN: "${{ vars.SENTRY_DSN }}"

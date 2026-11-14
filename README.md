@@ -169,6 +169,18 @@ Sign-in / refresh response:
 }
 ```
 
+### Team-only sign-in on dev and test
+
+dev and test are for the GoAwayGo team only (MVP 2). The environment variable `TEAM_ONLY_EMAILS` (GitHub environment
+variable of the same name, comma-separated) lists the accounts that may sign up, sign in (password or Google) and
+keep a session there: today only the team Gmail. That account is made an admin there. Everyone else gets
+`403 team_only` ("This GoAwayGo environment is only for the GoAwayGo team"), and sessions from before end at their
+next refresh. Automated and performance test runs (requests with the environment's `X-GoAwayGo-Test` token) are let
+through, so the test accounts keep working. Empty in prod: everyone signs in. Code: `auth/TeamOnlyAccess`.
+
+To give someone access later: add their email to `TEAM_ONLY_EMAILS` in the GitHub environment (dev, test or both)
+and redeploy that environment.
+
 ### Errors
 
 Every error has the same shape. Clients should branch on `error` and may show `message`:
@@ -519,6 +531,7 @@ that environment deploys with (nothing is inherited from a repository variable o
 | `API_BASE_URL`                                        | `https://api-dev.goawaygo.com`             | `https://api-test.goawaygo.com` | `https://api.goawaygo.com`                      |
 | `SENTRY_ENVIRONMENT`                                  | `dev`                                      | `test`                          | `production`                                    |
 | `TEST_FAKES`, `WANDERBOOK_PHOTOS`                     | `true`, `false`                            | `true`, `false`                 | `false`, `true`                                 |
+| `TEAM_ONLY_EMAILS`                                    | the team Gmail                             | the team Gmail                  | (empty: everyone)                               |
 
 The environment `backup` (database backups) holds prod's `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA` and
 `DB_HOST`, and `BACKUP_PUBLIC_KEY`. Repository variables are only what every environment shares (section 4 below).

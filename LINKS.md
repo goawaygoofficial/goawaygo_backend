@@ -8,7 +8,9 @@ The first API request after ~15 idle minutes takes 7–10 s (cold start); that's
 
 ## dev
 
-Gets every version automatically after CI passes on `develop`. Test accounts and fake outside services.
+Gets every version automatically after CI passes on `develop`. Test accounts and fake outside services. **Team only**:
+the website asks for a one-time code sent to the team Gmail (Cloudflare Access), and only the team Gmail can sign in
+(backend `TEAM_ONLY_EMAILS`).
 
 | What                       | Link                                                                                                                                                                                                                                                                                                |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -27,6 +29,7 @@ Gets every version automatically after CI passes on `develop`. Test accounts and
 ## test
 
 Gets a version from dev through the Controller, with the owner's approval. Test accounts and fake outside services.
+**Team only**, like dev.
 
 | What                         | Link                                                                                                                                                                                                                                                                                                                            |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -112,18 +115,20 @@ built once, for every environment).
 
 ### Cloudflare (domain, websites, files, email forwarding)
 
-| What                                    | Link                                                                                               |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Account home                            | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082                                       |
-| Pages projects (dev, test, prod)        | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/workers-and-pages                     |
-| DNS records for goawaygo.com            | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/dns/records              |
-| Redirect Rules (www → goawaygo.com)     | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/rules/redirect-rules     |
-| App downloads (R2 `goawaygo-downloads`) | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-downloads |
-| Wanderbook photos (R2 `goawaygo-media`) | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-media     |
-| R2 API tokens (photos, backups)         | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/api-tokens                         |
-| Email forwarding (privacy@, support@)   | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/email/routing/routes     |
-| DMARC reports                           | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/email/dmarc-management   |
-| Domain registration and renewal         | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/domains                               |
+| What                                          | Link                                                                                                                |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Account home                                  | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082                                                        |
+| Pages projects (dev, test, prod)              | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/workers-and-pages                                      |
+| DNS records for goawaygo.com                  | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/dns/records                               |
+| Redirect Rules (www → goawaygo.com)           | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/rules/redirect-rules                      |
+| App downloads (R2 `goawaygo-downloads`)       | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-downloads                  |
+| Wanderbook photos (R2 `goawaygo-media`)       | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/default/buckets/goawaygo-media                      |
+| R2 API tokens (photos, backups)               | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/r2/api-tokens                                          |
+| Email forwarding (privacy@, support@)         | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/email/routing/routes                      |
+| DMARC reports                                 | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/goawaygo.com/email/dmarc-management                    |
+| Zero Trust: Access for the dev and test sites | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/one/access-controls/apps                               |
+| Access service token for the tests (1 year)   | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/one/access-controls/service-credentials/service-tokens |
+| Domain registration and renewal               | https://dash.cloudflare.com/d76546af7ff5304c8319ec3df10c6082/domains                                                |
 
 ### Errors, statistics and email
 
