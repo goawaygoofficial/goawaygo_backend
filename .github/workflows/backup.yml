@@ -2,7 +2,7 @@ name: Database backup
 
 # Nightly copy of the prod database (MVP 2, 5.7), encrypted so that only the owner can read it, kept 30 days in
 # Cloudflare R2 (bucket goawaygo-backups; a bucket rule deletes copies after 30 days). Neon's own restore window is
-# short; this covers mistakes found later. Restore: scripts/restore-backup.sh (docs/deployment.md, "Database backups").
+# short; this covers mistakes found later. Restore: scripts/restore-backup.sh (README.md, Deployment → "Database backups").
 #
 # - The dump: pg_dump (custom format) of the prod database `goawaygo`, as its owner. The password comes from Secret
 #   Manager in goawaygo-prod through keyless Workload Identity Federation: GitHub never stores it.

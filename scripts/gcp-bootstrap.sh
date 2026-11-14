@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time Google Cloud setup for a GoAwayGo backend environment (see docs/deployment.md).
+# One-time Google Cloud setup for a GoAwayGo backend environment (see README.md, Deployment).
 # Safe to re-run: every step skips what already exists.
 #
 #   Usage:  scripts/gcp-bootstrap.sh <project-id>        e.g. scripts/gcp-bootstrap.sh goawaygo-staging

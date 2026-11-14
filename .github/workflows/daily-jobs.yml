@@ -1,6 +1,6 @@
 name: Daily jobs
 
-# Once a day at 09:00 IST, asks the staging backend to:
+# Once a day at 09:00 IST, asks the prod backend (repository variable PROD_API_BASE_URL) to:
 # - send the trip reminders due today ("in 3 days", "tomorrow"; NotificationController);
 # - delete the accounts whose 30 days after "Delete account" are over (AuthController);
 # - make the day's trip ideas for Home and translate them (DiscoverController), so nobody waits for the AI.
@@ -18,9 +18,9 @@ jobs:
   daily:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: vars.API_BASE_URL != ''
+    if: vars.PROD_API_BASE_URL != ''
     env:
-      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      API_BASE_URL: ${{ vars.PROD_API_BASE_URL }}
     steps:
       - name: Send today's trip reminders
         run: |

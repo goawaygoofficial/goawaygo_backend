@@ -235,6 +235,11 @@ public class User {
 		return this.admin;
 	}
 
+	/** Makes this account an admin (dev and test: the team account, see TeamOnlyAccess). */
+	public void makeAdmin() {
+		this.admin = true;
+	}
+
 	public Instant getCreatedAt() {
 		return this.createdAt;
 	}

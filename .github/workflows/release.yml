@@ -3,7 +3,8 @@ name: Release
 # Release (MVP 2, 5.2 and 5.3): every merge into develop whose CI passes becomes a version, vMAJOR.MINOR.PATCH, with a
 # GitHub Release (.github/scripts/next-version.sh: feat → minor, fix and the rest → patch, "!" or BREAKING CHANGE →
 # major). The backend's Docker image is built once for that version, then deployed to dev (deploy.yml). test and prod
-# get the same image later, through controller.yaml (5.4). Inactive until GCP_PROJECT_ID is set.
+# get the same image later, through controller.yaml (5.4). The image goes to the shared registry (repository variables
+# IMAGE_PROJECT_ID, IMAGE_WIF_PROVIDER, IMAGE_DEPLOY_SA: goawaygo-staging); inactive until IMAGE_PROJECT_ID is set.
 on:
   workflow_run:
     workflows: [CI]
@@ -19,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.IMAGE_PROJECT_ID || vars.GCP_PROJECT_ID }}/goawaygo/backend
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.IMAGE_PROJECT_ID }}/goawaygo/backend
 
 jobs:
   version:
@@ -70,7 +71,7 @@ jobs:
   image:
     name: Build the image once
     needs: version
-    if: vars.GCP_PROJECT_ID != ''
+    if: vars.IMAGE_PROJECT_ID != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -83,8 +84,8 @@ jobs:
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          workload_identity_provider: ${{ vars.IMAGE_WIF_PROVIDER }}
+          service_account: ${{ vars.IMAGE_DEPLOY_SA }}
 
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
 

@@ -16,7 +16,7 @@ import org.springframework.validation.annotation.Validated;
  * {@code goawaygo.external.providers.<name>.*}: one entry per outside API (OpenTripMap, Unsplash, ...).
  *
  * <p>Keys come from Google Secret Manager as environment variables, e.g.
- * {@code GOAWAYGO_EXTERNAL_PROVIDERS_OPENTRIPMAP_APIKEY} (docs/deployment.md), never from this file.
+ * {@code GOAWAYGO_EXTERNAL_PROVIDERS_OPENTRIPMAP_APIKEY} (README.md, Deployment), never from this file.
  */
 @Validated
 @ConfigurationProperties("goawaygo.external")
