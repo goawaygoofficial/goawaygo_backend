@@ -1439,6 +1439,25 @@ Oct 31, 2026 · @GoAway
 | --------- | ------------------------------------------------- | ----------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **KAYAK** | Flights, hotels, cars, packages (app and website) | Not available     | Yes, the only route: **applied 31 Oct, sandbox received** | Links, search box, widgets, white label (limited); **API with live prices** for flights, hotels, cars | Production API by case-by-case approval; no user minimum published |
 
+### Agoda through CJ (2026-11-14)
+
+Agoda's affiliate programme is now run by CJ (Commission Junction): signing up on partners.agoda.com leads to CJ. Our
+CJ publisher account (team Gmail, CID 8126947) has the website property and Agoda Global's special terms accepted;
+activation is an MVP 3 item (Roadmap). This is the affiliate programme (links, 5% on completed bookings); the Lite
+API with live hotel prices is a separate request to Agoda once the account is approved.
+
+Agoda's special terms, which every feature must respect:
+
+- No paid search, SEM or SEO on Agoda or hotel brand names, and none for pages about hotels or accommodation
+  ("hotels in X"). Destination guides about places are fine.
+- No Agoda links through travel-search or price-comparison placement without Agoda's written agreement; if hotel
+  prices are ever shown side by side, Agoda must be treated at least as well as the best competitor.
+- Agoda's content and data (hotel photos, descriptions, prices, reviews) are never shown together with competitors'
+  content, never copied, stored or scraped. Plain links are fine.
+- Our site must look clearly different from Agoda's; no domain or ad using "Agoda"; no negative statements about
+  Agoda; no contact with hotels about bookings; no reselling of bookings.
+- Breaking them can end the programme and forfeit unpaid commission.
+
 ## Roadmap
 
 Where the project stands and what comes next. Tick items as they ship (merged to `develop` and live on dev).
@@ -1694,13 +1713,35 @@ repos are public (2026-11-11): free branch rules, protected environments and Act
       scrolling; limits that fail the run; fake AI and partner services in dev and test. Done 2026-11-12/13: limits
       on the backend's own time (Server-Timing on test runs: reads ~3 ms, destination ~31 ms p95), Core Web Vitals,
       app start-up ~1 s and scrolling on the emulator. A version moves up only with AT and PT ✅ below.
-- [ ] **5.7 Website launch** — pre-rendered public pages (search engines and partners can read them), sitemap,
-      production monitoring and alerts, database backups, Google sign-in in production mode, launch checklist; then
-      apply to Agoda again.
-- [ ] **5.8 Product changes** — from the MVP 1 testing, added here as they are sorted.
+- [x] **5.7 Website launch** — done 2026-11-13: `goawaygo.com` live from `main` (`www` redirects to it);
+      pre-rendered public pages and 50 destination guides, sitemap and robots.txt (Search Console: 59 pages);
+      production monitoring and alerts (Better Stack, Sentry, Google Cloud); encrypted nightly database backups with
+      a practice restore; Google sign-in in production mode; launch checklist (History). The Agoda application, the
+      lawyer review and the native-speaker check moved to MVP 3.
+- [x] **5.8 Clean-up and team-only dev and test** — done 2026-11-14: everything from the pre-launch staging setup
+      deleted (History, "Clean-up after launch"); only dev, test and prod exist; docs in three files per repo; the
+      dev and test websites open only for the team (Cloudflare Access) and only the team account can sign in there
+      (`TEAM_ONLY_EMAILS`); Android build 13 (links on goawaygo.com).
 
-Carried over: phone sign-in with SMS (only if it can be capped), Booking.com through Travelpayouts (late December),
-KAYAK, smaller copies of Wanderbook photos, a native speaker's check of the translations.
+**MVP 2 closed 2026-11-14.** In prod: backend v1.15.0, website v1.12.0, app v1.9.12 (Android 1.5.0 build 13).
+
+### MVP 3 — planned
+
+To be planned with the owner. Already on the list:
+
+- [ ] **Agoda through CJ** — the old partners.agoda.com account no longer signs in; Agoda's affiliate programme now
+      runs through CJ (Commission Junction). CJ publisher account made 2026-11-14 (CID 8126947, property "GoAwayGo:
+      travel guides and AI trip planner", Agoda's special terms accepted). Left: company details, W-8BEN (as an
+      individual until the company is registered), bank details, then Activate (submits for Agoda's review). See
+      Booking partners.
+- [ ] **Lawyer review** of the Privacy Policy, Terms and Community Guidelines.
+- [ ] **Native-speaker check** of the 6 other languages.
+- [ ] **Product changes** from the MVP 1 testing, added here as they are sorted.
+- [ ] Carried over: phone sign-in with SMS (only if it can be capped), Booking.com through Travelpayouts (late
+      December) or CJ, KAYAK production approval (follow up if no reply by 2026-11-21), smaller copies of Wanderbook
+      photos.
+- [ ] Access for more people on dev and test when needed (Cloudflare Access policy "Team only" and the backend's
+      `TEAM_ONLY_EMAILS`). Renew the Access service token before 2027-11-14.
 
 ### Phase 5 — Launch
 
@@ -1859,7 +1900,11 @@ localhost origins for sign-in, the AI GitHub apps.
   backend repository variable `WEB_BASE_URL` deleted (the prod smoke test falls back to `https://goawaygo.com`).
 - **KAYAK:** no portal account yet (sandbox only); nothing to clean. Its key stays for when KAYAK approves.
 
-#### Still to happen
+#### After the clean-up (2026-11-14)
 
-- The testers' installed app (build 12) still links to staging.goawaygo.com (now gone) for Privacy, Terms, Delete my
-  data and shared plans; build 13 links to goawaygo.com and reports to Sentry as `production`.
+- Android build 13 (1.5.0) published and sent to the testers: Privacy, Terms, Delete my data and shared plans open on
+  goawaygo.com (build 12 linked to the deleted staging address).
+- dev and test became team-only: Cloudflare Access (Zero Trust Free) in front of the dev and test websites and their
+  `pages.dev` addresses, and team-only sign-in in the backend. Test runs use the Access service token and their own
+  accounts.
+- Everything promoted to test and prod; MVP 2 closed.
